@@ -1,0 +1,203 @@
+<!-- ============================================================
+     Pagefind 搜索覆盖 — 替换 MkDocs Material 默认 lunr.js
+     构建后需运行 npx pagefind --source site 生成索引
+     ============================================================ -->
+<div class="md-search" data-md-component="search" role="dialog">
+    <label class="md-search__overlay" for="__search"></label>
+    <div class="md-search__inner" role="search">
+        <form class="md-search__form" id="pagefind-search-form">
+            <label class="md-search__icon md-icon" for="__search">
+                {% include ".icons/material/magnify.svg" %}
+            </label>
+            <input type="text" class="md-search__input" id="pagefind-search-input" name="query" placeholder="搜索文档…"
+                aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
+                data-md-component="search-query" required />
+            <div class="md-search__options">
+                <button type="reset" class="md-icon" aria-label="清除" id="pagefind-search-clear">
+                    {% include ".icons/material/close.svg" %}
+                </button>
+            </div>
+        </form>
+        <div class="md-search__output">
+            <div class="md-search__scrollwrap" data-md-scrollfix>
+                <div class="md-search-result" data-md-component="search-result">
+                    <div class="md-search-result__meta" id="pagefind-search-meta">
+                        输入关键词开始搜索
+                    </div>
+                    <ol class="md-search-result__list" id="pagefind-search-list"></ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block pagefind_scripts %}
+<!-- Pagefind 搜索脚本（动态加载 ES Module） -->
+<script>
+    (function () {
+        'use strict';
+
+        var input = document.getElementById('pagefind-search-input');
+        var list = document.getElementById('pagefind-search-list');
+        var meta = document.getElementById('pagefind-search-meta');
+        var form = document.getElementById('pagefind-search-form');
+        var debounceTimer = null;
+        var DEBOUNCE_MS = 250;
+        // 搜索序列号 — 防止异步请求乱序覆盖结果
+        var searchSeq = 0;
+
+        if (!input || !list || !meta) return;
+
+        // ---- 动态加载并初始化 Pagefind ----
+        meta.textContent = '搜索索引加载中…';
+        window.__pagefindReady = false;
+
+        // 使用动态 import() 加载 pagefind（兼容常规 script 标签）
+        var initScript = document.createElement('script');
+        initScript.textContent = [
+            'import("{{ base_url }}/pagefind/pagefind.js").then(function(m) {',
+            '  window.__pagefindMod = m;',
+            '  return m.init();',
+            '}).then(function() {',
+            '  window.__pagefindReady = true;',
+            '  var meta = document.getElementById("pagefind-search-meta");',
+            '  if (meta) meta.textContent = "输入关键词开始搜索";',
+            '}).catch(function(e) {',
+            '  console.error("Pagefind init error:", e);',
+            '  var meta = document.getElementById("pagefind-search-meta");',
+            '  if (meta) meta.textContent = "搜索索引加载失败";',
+            '});'
+        ].join('\n');
+        initScript.type = 'module';
+        document.body.appendChild(initScript);
+
+        // ---- 清除搜索结果 ----
+        function clearResults() {
+            list.innerHTML = '';
+            meta.textContent = '输入关键词开始搜索';
+        }
+
+        // 监听表单 reset 事件（由清除按钮 type=reset 触发）
+        if (form) {
+            form.addEventListener('reset', function () {
+                // 延迟执行等待 input 值被清除
+                setTimeout(function () {
+                    clearResults();
+                    input.focus();
+                }, 0);
+            });
+        }
+
+        // ---- 格式化片段：保留 <mark> 标签，去除其余 HTML ----
+        function sanitizeExcerpt(html) {
+            if (!html) return '';
+            // 仅允许 <mark> 标签，其余 HTML 全部剥离
+            return html.replace(/<(?!\/?mark\b)[^>]*>/gi, '').substring(0, 250);
+        }
+
+        // ---- 渲染结果 ----
+        function renderResults(searchResult) {
+            list.innerHTML = '';
+
+            if (!searchResult || !searchResult.results || searchResult.results.length === 0) {
+                meta.textContent = '未找到相关结果，试试换个关键词？';
+                return;
+            }
+
+            meta.textContent = '共 ' + searchResult.results.length + ' 条结果';
+
+            searchResult.results.forEach(function (result) {
+                result.data().then(function (data) {
+                    var li = document.createElement('li');
+                    li.className = 'md-search-result__item';
+
+                    var title = data.meta.title || '无标题';
+                    // Pagefind 返回的 url 是以 / 开头的站点根绝对路径，直接使用即可
+                    var url = data.url || '/';
+
+                    var excerpt = '';
+                    if (data.excerpt && data.excerpt.length > 0) {
+                        excerpt = sanitizeExcerpt(data.excerpt);
+                    } else if (data.content) {
+                        excerpt = data.content.substring(0, 200);
+                    }
+
+                    li.innerHTML =
+                        '<a href="' + encodeURI(url) + '" class="md-search-result__link" tabindex="0">' +
+                        '<article class="md-search-result__article md-search-result__article--document">' +
+                        '<h1 class="md-search-result__title"></h1>' +
+                        (excerpt
+                            ? '<p class="md-search-result__teaser"></p>'
+                            : '') +
+                        '</article>' +
+                        '</a>';
+
+                    /* 标题用 textContent 防止 XSS */
+                    li.querySelector('.md-search-result__title').textContent = title;
+                    if (excerpt) {
+                        li.querySelector('.md-search-result__teaser').innerHTML = excerpt;
+                    }
+
+                    list.appendChild(li);
+                });
+            });
+        }
+
+        // ---- 执行搜索（带序列号防竞态） ----
+        function performSearch(query) {
+            if (!query || query.trim().length === 0) {
+                clearResults();
+                return;
+            }
+
+            if (!window.__pagefindReady || !window.__pagefindMod) {
+                meta.textContent = '搜索索引加载中，请稍候…';
+                return;
+            }
+
+            var currentSeq = ++searchSeq;
+            meta.textContent = '搜索中…';
+
+            window.__pagefindMod.search(query, {})
+                .then(function (searchResult) {
+                    // 丢弃旧请求的返回结果
+                    if (currentSeq !== searchSeq) return;
+                    if (!searchResult) {
+                        meta.textContent = '搜索索引未就绪';
+                        return;
+                    }
+                    renderResults(searchResult);
+                })
+                .catch(function (err) {
+                    if (currentSeq !== searchSeq) return;
+                    meta.textContent = '搜索出错，请稍后重试';
+                    console.error('Pagefind search error:', err);
+                });
+        }
+
+        // ---- 防抖输入事件 ----
+        input.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function () {
+                performSearch(input.value);
+            }, DEBOUNCE_MS);
+        });
+
+        // ---- 表单提交拦截 ----
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                performSearch(input.value);
+            });
+        }
+
+        // ---- 快捷键 Ctrl+K / Cmd+K ----
+        document.addEventListener('keydown', function (e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                input.focus();
+            }
+        });
+    })();
+</script>
+{% endblock %}
