@@ -202,32 +202,71 @@
     padding: 2rem 1.2rem;
     max-width: 580px;
     width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     position: relative;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     text-align: center;
     animation: slideUp 0.25s ease;
   }
 
+  @media (max-width: 480px) {
+    .flea-card {
+      padding: 1.6rem 0.8rem;
+      width: 94%;
+      max-height: 80vh;
+    }
+  }
+
   .flea-close {
-    position: absolute;
-    top: 0.4rem;
-    right: 0.4rem;
+    position: sticky;
+    top: -1.2rem;
+    float: right;
     background: var(--md-default-bg-color);
     border: none;
     border-radius: 50%;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     cursor: pointer;
     color: var(--md-default-fg-color--light);
     transition: color 0.2s, background 0.2s;
-    padding: 0.4rem 0.7rem;
+    padding: 0.5rem 0.9rem;
     line-height: 1;
     z-index: 10;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .flea-close:hover {
     color: var(--md-default-fg-color);
     background: var(--md-default-fg-color--transparent);
+  }
+
+  @media (max-width: 480px) {
+    .flea-close {
+      font-size: 1.6rem;
+      padding: 0.6rem 1rem;
+      min-width: 48px;
+      min-height: 48px;
+    }
+  }
+
+  /* 阻止华为等手机浏览器内置看图模式 */
+  .flea-qr-item img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
   }
 
   .flea-title {
@@ -1225,25 +1264,7 @@
     };
     bar.appendChild(donateBtn);
 
-    /* 联系作者按钮 */
-    var contactBtn = document.createElement("button");
-    contactBtn.textContent = "\uD83D\uDC64 \u8054\u7CFB\u4F5C\u8005";
-    contactBtn.title = "联系作者反馈建议";
-    contactBtn.className = "md-footer-btn md-footer-btn--contact";
-    contactBtn.onclick = function () {
-      window.open("https://qm.qq.com/q/GbM6rEhNWq", "_blank", "noopener");
-    };
-    bar.appendChild(contactBtn);
 
-    /* 免责声明按钮 */
-    var disclaimerBtn = document.createElement("button");
-    disclaimerBtn.textContent = "\u2696\uFE0F \u514D\u8D23\u58F0\u660E";
-    disclaimerBtn.title = "查看免责声明";
-    disclaimerBtn.className = "md-footer-btn md-footer-btn--contact";
-    disclaimerBtn.onclick = function () {
-      window.location.href = "/disclaimer/";
-    };
-    bar.appendChild(disclaimerBtn);
 
     footerMetaInner.insertBefore(bar, footerMetaInner.firstChild);
   }
@@ -1309,6 +1330,13 @@
       fleaOverlay.classList.remove("flea-overlay--open");
     }
   };
+
+  /* Escape / 返回键关闭弹窗 */
+  document.addEventListener("keydown", function fleaKeydown(e) {
+    if (e.key === "Escape" && fleaOverlay.classList.contains("flea-overlay--open")) {
+      fleaOverlay.classList.remove("flea-overlay--open");
+    }
+  });
 
   var fleaCard = document.createElement("div");
   fleaCard.className = "flea-card";
@@ -1386,6 +1414,14 @@
   fleaTip.className = "flea-tip";
   fleaTip.textContent = "\uD83D\uDCA1 \u957F\u6309\u6216\u626B\u4E00\u626B\u4E0A\u65B9\u4E8C\u7EF4\u7801\u5373\u53EF\u52A0\u5165 \u00B7 \u8BF7\u9075\u5B88\u5E73\u53F0\u4EA4\u6613\u89C4\u5219\uFF0C\u8C28\u9632\u8BC8\u9A97";
   fleaCard.appendChild(fleaTip);
+
+  /* 阻止华为等手机浏览器内置看图模式 */
+  /* 微信小程序二维码（无链接）：完全阻止拖拽/触摸默认行为 */
+  fleaWxImg.addEventListener("pointerdown", function (e) { e.preventDefault(); });
+  fleaWxImg.addEventListener("touchstart", function (e) { e.preventDefault(); });
+  fleaWxImg.addEventListener("dragstart", function (e) { e.preventDefault(); });
+  /* QQ 频道二维码（在 <a> 内）：只阻止拖拽，保留链接点击 */
+  fleaQqImg.addEventListener("dragstart", function (e) { e.preventDefault(); });
 
   fleaOverlay.appendChild(fleaCard);
   document.body.appendChild(fleaOverlay);

@@ -8,6 +8,11 @@ navigation.exclude: true
 
 # ❓ 图书馆常见问题
 
+> 贡献者：[Heinrich](https://qm.qq.com/q/XJJ97PyEYq)
+
+!!! tip "图书卡密码"
+    默认密码为身份证后六位。
+
 ## 🕐 开放时间
 
 | 区域 | 时间 |
