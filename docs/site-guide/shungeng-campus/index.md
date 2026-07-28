@@ -8,13 +8,13 @@ tags:
 
 济南大学舜耕校区位于济南市**历下区舜耕路 13 号**。
 
-![舜耕校区地图](../../assets/images/地点通/济大舜耕校区建筑/舜耕校区地图.png)
-
 ??? info "📍 在高德地图中查看"
     <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/marker?position=117.013,36.651&name=济南大学舜耕校区&zoom=16" allowfullscreen></iframe>
+      <iframe src="https://surl.amap.com/1KrVXW3186Dw" allowfullscreen></iframe>
     </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/marker?position=117.013,36.651&name=济南大学舜耕校区&zoom=16){ target="_blank" }
+    [🔗 在高德地图中打开](https://surl.amap.com/1KrVXW3186Dw){ target="_blank" }
+
+![舜耕校区地图](../../assets/images/地点通/济大舜耕校区建筑/舜耕校区地图.png)
 
 ---
 
@@ -26,7 +26,7 @@ tags:
 
     ---
 
-    应急安全学院、文史楼、经管楼、酒馆楼
+    文史楼、经管楼、酒馆楼
 
     [:octicons-arrow-right-16: 查看](teaching-buildings.md)
 

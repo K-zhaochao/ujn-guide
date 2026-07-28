@@ -12,9 +12,21 @@ tags:
 
 ??? info "📍 查看第12教学楼地图"
     <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/search?query=济南大学第12教学楼&city=济南" allowfullscreen></iframe>
+      <iframe src="https://surl.amap.com/nZyeXlr1eapC" allowfullscreen></iframe>
     </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/search?query=济南大学第12教学楼&city=济南){ target="_blank" }
+    [🔗 在高德地图中打开](https://surl.amap.com/nZyeXlr1eapC){ target="_blank" }
 
 ![第12教学楼](../../assets/images/地点通/济大主校区建筑/教学楼/教学楼-第12教学楼.webp)
 
+## 楼层索引
+
+| 楼层 | 单位 / 功能区 |
+| :---: | :--- |
+| **9F** | 山东省网络环境智能计算技术重点实验室 |
+| **8F** | 计算机科学与工程系<br>网络工程系<br>计算机公共教学部 |
+| **7F** | 行政办公区<br>学生管理工作办公区<br>信创空间 |
+| **5~6F** | 计算机科学与工程实验教学中心 |
+| **4F** | 计算机科学与工程实验教学中心<br>集成电路实验教学中心 |
+| **3F** | 电子与通信工程系<br>电子与通信综合实验教学中心 |
+| **2F** | 国家高分辨率对地观测系统山东数据与应用中心<br>校园网数据中心<br>计算机网络实验教学中心 |
+| **1F** | 山东省网络环境智能计算技术重点实验室<br>教育技术与网络信息中心 |

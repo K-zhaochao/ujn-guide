@@ -155,6 +155,28 @@
     box-shadow: 0 3px 10px rgba(238, 90, 36, 0.4);
   }
 
+  .md-footer-btn--contact {
+    background: #ffffff;
+    color: #1565c0;
+    border: 1px solid #1565c0;
+  }
+
+  .md-footer-btn--contact:hover {
+    background: #1565c0;
+    color: #ffffff;
+  }
+
+  [data-md-color-scheme="slate"] .md-footer-btn--contact {
+    background: var(--md-default-bg-color);
+    color: var(--md-typeset-a-color);
+    border: 1px solid var(--md-typeset-a-color);
+  }
+
+  [data-md-color-scheme="slate"] .md-footer-btn--contact:hover {
+    background: var(--md-typeset-a-color);
+    color: var(--md-default-bg-color);
+  }
+
   /* ===== 跳蚤市场弹窗 ===== */
   .flea-overlay {
     display: none;
@@ -1202,6 +1224,26 @@
       document.getElementById("donate-modal-overlay").classList.add("donate-overlay--open");
     };
     bar.appendChild(donateBtn);
+
+    /* 联系作者按钮 */
+    var contactBtn = document.createElement("button");
+    contactBtn.textContent = "\uD83D\uDC64 \u8054\u7CFB\u4F5C\u8005";
+    contactBtn.title = "联系作者反馈建议";
+    contactBtn.className = "md-footer-btn md-footer-btn--contact";
+    contactBtn.onclick = function () {
+      window.open("https://qm.qq.com/q/GbM6rEhNWq", "_blank", "noopener");
+    };
+    bar.appendChild(contactBtn);
+
+    /* 免责声明按钮 */
+    var disclaimerBtn = document.createElement("button");
+    disclaimerBtn.textContent = "\u2696\uFE0F \u514D\u8D23\u58F0\u660E";
+    disclaimerBtn.title = "查看免责声明";
+    disclaimerBtn.className = "md-footer-btn md-footer-btn--contact";
+    disclaimerBtn.onclick = function () {
+      window.location.href = "/disclaimer/";
+    };
+    bar.appendChild(disclaimerBtn);
 
     footerMetaInner.insertBefore(bar, footerMetaInner.firstChild);
   }

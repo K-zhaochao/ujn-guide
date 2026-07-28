@@ -10,6 +10,12 @@ tags:
 
 ---
 
+??? info "📍 查看图书馆地图"
+    <div class="iframe-wrapper">
+      <iframe src="https://surl.amap.com/lNojGVf1dgOw" allowfullscreen></iframe>
+    </div>
+    [🔗 在高德地图中打开](https://surl.amap.com/lNojGVf1dgOw){ target="_blank" }
+
 ![图书馆正面1](../../assets/images/地点通/济大主校区建筑/图书馆/图书馆-正面1.webp)
 
 ![图书馆正面2](../../assets/images/地点通/济大主校区建筑/图书馆/图书馆-正面2.webp)
@@ -17,12 +23,6 @@ tags:
 ![图书馆正面3](../../assets/images/地点通/济大主校区建筑/图书馆/图书馆-正面3.webp)
 
 ![图书馆正面4](../../assets/images/地点通/济大主校区建筑/图书馆/图书馆-正面4.webp)
-
-??? info "📍 查看图书馆地图"
-    <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/search?query=济南大学图书馆&city=济南" allowfullscreen></iframe>
-    </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/search?query=济南大学图书馆&city=济南){ target="_blank" }
 
 ---
 

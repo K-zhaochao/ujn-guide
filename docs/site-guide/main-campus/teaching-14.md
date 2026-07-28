@@ -12,10 +12,9 @@ tags:
 
 ??? info "📍 查看第14教学楼地图"
     <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/search?query=济南大学第14教学楼化学化工楼&city=济南" allowfullscreen></iframe>
+      <iframe src="https://surl.amap.com/o5uQkOx1i9rk" allowfullscreen></iframe>
     </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/search?query=济南大学第14教学楼化学化工楼&city=济南){ target="_blank" }
+    [🔗 在高德地图中打开](https://surl.amap.com/o5uQkOx1i9rk){ target="_blank" }
 
 ![第14教学楼-化学化工楼](../../assets/images/地点通/济大主校区建筑/教学楼/教学楼-第14教学楼-化学化工楼.webp)
 ![第14教学楼-化学化工楼2](../../assets/images/地点通/济大主校区建筑/教学楼/教学楼-第14教学楼-化学化工楼2.webp)
-

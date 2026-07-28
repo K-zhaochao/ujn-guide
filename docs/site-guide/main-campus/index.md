@@ -8,13 +8,13 @@ tags:
 
 济南大学主校区（中心校区）位于济南市市中区南辛庄西路 336 号，分为 **北苑** 和 **南苑** 两大区域，中间通过天桥连接。
 
-![主校区地图](../../assets/images/地点通/济大主校区建筑/主校区地图.png)
-
 ??? info "📍 在高德地图中查看"
     <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/marker?position=116.984,36.651&name=济南大学主校区&zoom=16" allowfullscreen></iframe>
+      <iframe src="https://surl.amap.com/2aWqcPwM9is" allowfullscreen></iframe>
     </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/marker?position=116.984,36.651&name=济南大学主校区&zoom=16){ target="_blank" }
+    [🔗 在高德地图中打开](https://surl.amap.com/2aWqcPwM9is){ target="_blank" }
+
+![主校区地图](../../assets/images/地点通/济大主校区建筑/主校区地图.png)
 
 ---
 
@@ -176,7 +176,7 @@ tags:
 
     ---
 
-    北苑东南门、新西门、南苑北门
+    北苑东南门、新西门、老西门、南苑北门
 
     [:octicons-arrow-right-16: 查看](gates.md)
 
@@ -184,7 +184,7 @@ tags:
 
     ---
 
-    第1、3、5学术报告厅
+    第1、2、3、5学术报告厅
 
     [:octicons-arrow-right-16: 查看](halls.md)
 

@@ -137,6 +137,7 @@ nav:
         - 校门: site-guide/main-campus/gates.md
         - 操场·运动场: site-guide/main-campus/sports.md
         - 校医院·天桥·其他: site-guide/main-campus/other.md
+        - 🪪 校园卡使用指南: site-guide/main-campus/campus-card-guide.md
     - 🏫 舜耕校区:
       - 舜耕校区总览: site-guide/shungeng-campus/index.md
       - 舜耕校区 · 教学楼:
@@ -240,3 +241,4 @@ nav:
       - 创新创业训练计划管理办法: rules/other/innovation-entrepreneurship.md
       - 学生社团管理办法: rules/other/student-organizations.md
       - 第二课堂成绩单实施办法: rules/other/second-classroom.md
+  - ⚖️ 免责声明: disclaimer.md

@@ -12,9 +12,8 @@ tags:
 
 ??? info "📍 查看第9教学楼地图"
     <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/search?query=济南大学第9教学楼&city=济南" allowfullscreen></iframe>
+      <iframe src="https://surl.amap.com/nRdZo2Fobzg" allowfullscreen></iframe>
     </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/search?query=济南大学第9教学楼&city=济南){ target="_blank" }
+    [🔗 在高德地图中打开](https://surl.amap.com/nRdZo2Fobzg){ target="_blank" }
 
 ![第9教学楼](../../assets/images/地点通/济大主校区建筑/教学楼/教学楼-第9教学楼-水利与环境学院.webp)
-

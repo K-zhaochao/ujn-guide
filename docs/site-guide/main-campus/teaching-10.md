@@ -12,9 +12,9 @@ tags:
 
 ??? info "📍 查看第10教学楼地图"
     <div class="iframe-wrapper">
-      <iframe src="https://uri.amap.com/search?query=济南大学第10教学楼&city=济南" allowfullscreen></iframe>
+      <iframe src="https://surl.amap.com/nSlCxVXn66Y" allowfullscreen></iframe>
     </div>
-    [🔗 在高德地图中打开](https://uri.amap.com/search?query=济南大学第10教学楼&city=济南){ target="_blank" }
+    [🔗 在高德地图中打开](https://surl.amap.com/nSlCxVXn66Y){ target="_blank" }
 
 ![第10教学楼](../../assets/images/地点通/济大主校区建筑/教学楼/教学楼-第10教学楼.webp)
 ![第10教学楼2](../../assets/images/地点通/济大主校区建筑/教学楼/教学楼-第10教学楼2.webp)
