@@ -81,7 +81,7 @@ plugins:
 
 # 顶部全局公告栏
 extra:
-  # announce: "📢 提醒: xxx"
+  announce: "🚧 近期项目维护较为频繁，部署期间服务会暂停 2~3 分钟，请见谅 🙏"
   # 仓库链接已暂时隐藏，防止恶意爬取
   # social:
   #   - icon: fontawesome/brands/github
@@ -95,7 +95,7 @@ extra:
 
 extra_javascript:
   - javascripts/mathjax.js
-  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
   - 首页: index.md
