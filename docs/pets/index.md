@@ -7,6 +7,16 @@ tags:
 
 ---
 
+<div style="text-align:center;margin-bottom:24px">
+  <button class="pet-submit-btn md-button md-button--primary" style="font-size:16px;padding:12px 24px;cursor:pointer">
+    🆕 我要投稿
+  </button>
+  &nbsp;
+  <a href="https://qm.qq.com/q/GbM6rEhNWq" class="md-button" target="_blank" style="font-size:16px;padding:12px 24px">
+    💬 联系作者
+  </a>
+</div>
+
 ## 🐱 猫猫图集
 
 !!! tip "📸 关于本栏目"
