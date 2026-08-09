@@ -56,9 +56,27 @@ ehthumbs.db
 # ========================
 .env
 .env.local
+.env.*
 .env.*.local
 # 但 .env.example 作为模板需要提交
 !.env.example
+!**/.env.example
+.envrc
+.direnv/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+!**/.dev.vars.example
+.wrangler/
+
+# 包管理器/CLI 的本机认证配置可能包含访问令牌
+.npmrc
+.pypirc
+.netrc
+pip.conf
+pip.ini
+test_worker.local.ps1
+test_worker.local.sh
 
 # ========================
 #  日志
@@ -72,6 +90,10 @@ ehthumbs.db
 coverage_html_report/
 htmlcov/
 .coverage.*
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
 
 # ========================
 #  缓存（工具/框架可能生成）
@@ -91,4 +113,90 @@ mkdocs*.cache
 #  Node.js（如果用到）
 # ========================
 node_modules/
-package-lock.json
+.npm/
+.pnpm-store/
+.eslintcache
+# package-lock.json 是可复现安装所需的公开锁文件，不应忽略
+
+# ========================
+#  SQLite 数据库（宠物收集录 v4 后端）
+# ========================
+server/pets.db
+server/pets.db-shm
+server/pets.db-wal
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.sqlite3-journal
+*.bak
+*.backup
+*.dump
+*.sql.gz
+**/backups/
+server/data/
+server/uploads/
+uploads/
+tmp/
+temp/
+
+# 审计归档包含管理操作、操作者与目标对象信息
+**/audit-archives/
+audit-cleanup-*.jsonl
+audit-cleanup-*.jsonl.manifest.json
+
+# 迁移清单、校验报告、打包目录可能暴露绝对路径、数据清单与哈希
+migration-manifest*.json
+migration-verification*.json
+migration-report*.json
+migration-artifacts/
+migration-packages/
+migration-package-*/
+
+# Lsky 数据库导出与存储快照不得进入公开仓库
+lsky.sql
+lsky.sql.gz
+lsky-dump*.sql
+lsky-dump*.sql.gz
+lsky-backup*.sql
+lsky-backup*.sql.gz
+lsky*.dump
+lsky-storage/
+lsky-storage-snapshot*/
+
+# ========================
+#  私钥、证书容器与本地凭据导出
+# ========================
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.kdbx
+*.ovpn
+**/credentials*.json
+**/secrets*.json
+**/*service-account*.json
+**/firebase-adminsdk*.json
+
+# 云平台、容器、SSH/Kubernetes 与 IaC 本机状态
+.aws/
+.ssh/
+.kube/
+**/.docker/config.json
+.terraform/
+.terragrunt-cache/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# ========================
+#  Admin frontend (NOT version controlled: keep admin internals out of public repos)
+# ========================
+server/routes/admin-ui.js

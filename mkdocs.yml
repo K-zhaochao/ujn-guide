@@ -82,6 +82,8 @@ plugins:
 # 顶部全局公告栏
 extra:
   announce: "🚧 近期项目维护较为频繁，部署期间服务会暂停 2~3 分钟，请见谅 🙏"
+  # 顶部 QQ 群按钮链接：后续只需把空值替换为实际 HTTPS 群链接即可
+  qq_group_url: ""
   # 仓库链接已暂时隐藏，防止恶意爬取
   # social:
   #   - icon: fontawesome/brands/github
@@ -96,7 +98,7 @@ extra:
 extra_javascript:
   - javascripts/mathjax.js
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-  - pets/submit.js
+  - pets/pets.js?v=20260809-1
 
 nav:
   - 首页: index.md

@@ -19,8 +19,8 @@
     // Cloudflare Worker 地址（部署后替换为实际地址）
     WORKER_URL: 'https://ujn-ai-worker.draven323.workers.dev',
     // 访问校验 Token（与 Worker 中的 ACCESS_TOKEN 保持一致）
-    // 生成方式：浏览器控制台输入 crypto.randomUUID()，复制结果
-    ACCESS_TOKEN: 'REPLACED_WORKER_ACCESS_TOKEN',
+    // 注意：浏览器端代码无法保密，此值不构成安全边界；请在部署时替换为你自己的 Worker Token
+    ACCESS_TOKEN: 'REPLACE_WITH_YOUR_WORKER_ACCESS_TOKEN',
     // localStorage Key
     STORAGE_KEY: 'ujn_ai_config',
     // 流式文字刷新间隔（ms）

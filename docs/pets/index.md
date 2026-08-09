@@ -1,257 +1,90 @@
 ---
 tags:
   - 宠物收集录
+hide:
+  - navigation
+  - toc
 ---
 
 # 🐾 宠物收集录
 
----
+<!-- 页面专属导航栏：登录 / 投稿 / 我的投稿 / 改名（由 pets.js 渲染） -->
+<div id="pet-nav"></div>
 
-<div style="text-align:center;margin-bottom:24px">
-  <button class="pet-submit-btn md-button md-button--primary" style="font-size:16px;padding:12px 24px;cursor:pointer">
-    🆕 我要投稿
-  </button>
-  &nbsp;
-  <a href="https://qm.qq.com/q/GbM6rEhNWq" class="md-button" target="_blank" style="font-size:16px;padding:12px 24px">
-    💬 联系作者
-  </a>
-</div>
+<!-- 登录小卡片（点击导航栏登录按钮弹出，GitHub / Gitee） -->
+<div id="pet-login-pop" style="display:none"></div>
 
-## 🐱 猫猫图集
+<!-- 改名小卡片 -->
+<div id="pet-rename-pop" style="display:none"></div>
+
+<style>
+  /* ===== 宠物页 CSS 变量：自动适配 Material 浅色 / 深色（slate）主题 ===== */
+  :root {
+    --pet-img-bg: #f3f4f6;              /* 卡片图片占位底 */
+    --pet-soft: rgba(0, 0, 0, .04);     /* 信息行浅底 */
+    --pet-muted: #9ca3af;               /* 次要文字 */
+    --pet-faint: #b0b4bb;               /* 更淡文字 */
+    --pet-border: #e5e7eb;              /* 边框 / 分隔线 */
+    --pet-primary: #3b82f6;             /* 主色 */
+    --pet-grad-a: #fdf2f8;              /* 详情头部渐变起 */
+    --pet-grad-b: #fff7ed;              /* 详情头部渐变止 */
+    --pet-overlay: rgba(0, 0, 0, .55);  /* 弹窗遮罩 */
+    --pet-chip-bg: #fff;                /* 徽章底 */
+    --pet-avatar-bg: #e5e7eb;           /* 头像占位底 */
+    --pet-danger: #ef4444;
+    --pet-danger-bg: #fee2e2;
+    --pet-success: #22c55e;
+    --pet-input-bg: #fff;
+  }
+  [data-md-color-scheme="slate"] {
+    --pet-img-bg: #2b3038;
+    --pet-soft: rgba(255, 255, 255, .06);
+    --pet-muted: #8b93a1;
+    --pet-faint: #6b7280;
+    --pet-border: #3a4150;
+    --pet-primary: #60a5fa;
+    --pet-grad-a: #2a2433;
+    --pet-grad-b: #2b2a22;
+    --pet-overlay: rgba(0, 0, 0, .72);
+    --pet-chip-bg: #2b3038;
+    --pet-avatar-bg: #3a4150;
+    --pet-danger: #f87171;
+    --pet-danger-bg: rgba(239, 68, 68, .18);
+    --pet-success: #4ade80;
+    --pet-input-bg: #1f242d;
+  }
+
+  /* 宠物卡片网格：桌面 4 列 → 中屏 3 列 → 窄屏 2 列 → 手机 1 列 */
+  .pet-grid { grid-template-columns: repeat(4, 1fr) !important; }
+  @media (max-width: 1100px) { .pet-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+  @media (max-width: 760px)  { .pet-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+  @media (max-width: 480px)  { .pet-grid { grid-template-columns: 1fr !important; } }
+</style>
 
 !!! tip "📸 关于本栏目"
-    本栏目收集了济南大学校园内的猫咪图集。每只猫都有自己的专属页面，点击下方卡片即可查看。
-
-    [:fontawesome-brands-qq: 加入猫猫收集图鉴群聊](https://qm.qq.com/q/IucYbisPys){ .md-button }
-
-<div class="grid cards" markdown>
-
-- :cat:{ .lg .middle } **Cooler（图书馆学长）**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/cooler-图书馆学长.md)
-
-- :cat:{ .lg .middle } **优米**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/优米.md)
-
-- :cat:{ .lg .middle } **元老**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/元老.md)
-
-- :cat:{ .lg .middle } **公主**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/公主.md)
-
-- :cat:{ .lg .middle } **凶凶**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/凶凶.md)
-
-- :cat:{ .lg .middle } **口水巾**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/口水巾.md)
-
-- :cat:{ .lg .middle } **团子**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/团子.md)
-
-- :cat:{ .lg .middle } **夸夸**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/夸夸.md)
-
-- :cat:{ .lg .middle } **奇美拉**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/奇美拉.md)
-
-- :cat:{ .lg .middle } **奥利奥**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/奥利奥.md)
-
-- :cat:{ .lg .middle } **娓娓**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/娓娓.md)
-
-- :cat:{ .lg .middle } **小白**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/小白.md)
-
-- :cat:{ .lg .middle } **小破**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/小破.md)
-
-- :cat:{ .lg .middle } **小米花**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/小米花.md)
-
-- :cat:{ .lg .middle } **小糯米**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/小糯米.md)
-
-- :cat:{ .lg .middle } **小花**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/小花.md)
-
-- :cat:{ .lg .middle } **小花（黑白）**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/小花-黑白.md)
-
-- :cat:{ .lg .middle } **年年**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/年年.md)
-
-- :cat:{ .lg .middle } **怕怕**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/怕怕.md)
-
-- :cat:{ .lg .middle } **拽子**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/拽子.md)
-
-- :cat:{ .lg .middle } **捂眼睛**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/捂眼睛.md)
-
-- :cat:{ .lg .middle } **斜刘海**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/斜刘海.md)
-
-- :cat:{ .lg .middle } **暖暖**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/暖暖.md)
-
-- :cat:{ .lg .middle } **树人**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/树人.md)
-
-- :cat:{ .lg .middle } **橘皮**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/橘皮.md)
-
-- :cat:{ .lg .middle } **清清 & 明明**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/清清-明明.md)
-
-- :cat:{ .lg .middle } **爆米花**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/爆米花.md)
-
-- :cat:{ .lg .middle } **猫子**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/猫子.md)
-
-- :cat:{ .lg .middle } **白白**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/白白.md)
-
-- :cat:{ .lg .middle } **眯眼大佐**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/眯眼大佐.md)
-
-- :cat:{ .lg .middle } **胖橘**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/胖橘.md)
-
-- :cat:{ .lg .middle } **花卷**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/花卷.md)
-
-- :cat:{ .lg .middle } **花花**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/花花.md)
-
-- :cat:{ .lg .middle } **花花（橘版）**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/花花-橘版.md)
-
-- :cat:{ .lg .middle } **花酱**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/花酱.md)
-
-- :cat:{ .lg .middle } **蛋黄派**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/蛋黄派.md)
-
-- :cat:{ .lg .middle } **踏雪**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/踏雪.md)
-
-- :cat:{ .lg .middle } **阿波罗**
-
-    ---
-
-    [:octicons-arrow-right-16: 查看](cats/阿波罗.md)
-
+    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现，也可以为喜欢的宠物点赞！
+
+<!-- 工具栏（搜索 / 分类 / 排序）— 静态容器，搜索输入时不会重建，避免输入框失焦 -->
+<div id="pet-toolbar"></div>
+
+<!-- 宠物图鉴动态渲染区（结果网格 + 分页） -->
+<div id="pet-gallery">
+  <p style="text-align:center;color:#999;padding:40px">加载中...</p>
+</div>
+
+<!-- 我的投稿区（页面底部，登录后点击"我的投稿"展开） -->
+<div id="pet-mine-section" style="display:none"></div>
+
+<!-- 弹窗容器 -->
+<div id="pet-detail-modal" style="display:none"></div>
+<div id="pet-submit-modal" style="display:none"></div>
+<div id="pet-edit-modal" style="display:none"></div>
+
+<!-- 图片灯箱（点击详情大图全屏查看，支持左右切换 / Esc 关闭） -->
+<div id="pet-lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:17000;align-items:center;justify-content:center;cursor:zoom-out">
+  <button id="pet-lightbox-close" style="position:fixed;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;width:36px;height:36px;border-radius:50%;cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center">✕</button>
+  <button id="pet-lightbox-prev" style="display:none;position:fixed;left:14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:42px;height:42px;border-radius:50%;cursor:pointer;z-index:2;align-items:center;justify-content:center">‹</button>
+  <img id="pet-lightbox-img" alt="" style="max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 12px 40px rgba(0,0,0,.5);cursor:default;object-fit:contain">
+  <button id="pet-lightbox-next" style="display:none;position:fixed;right:14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);border:none;color:#fff;font-size:24px;width:42px;height:42px;border-radius:50%;cursor:pointer;z-index:2;align-items:center;justify-content:center">›</button>
+  <div id="pet-lightbox-counter" style="position:fixed;bottom:18px;left:50%;transform:translateX(-50%);color:#ddd;font-size:13px;background:rgba(0,0,0,.5);padding:4px 14px;border-radius:20px"></div>
 </div>

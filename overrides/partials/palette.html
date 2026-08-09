@@ -1,0 +1,41 @@
+{#
+在 Material 主题切换器左侧加入 QQ 群入口。
+链接由 mkdocs.yml 的 extra.qq_group_url 提供；留空时仅显示待配置占位。
+#}
+{% set qq_group_url = config.extra.qq_group_url | default("", true) %}
+
+{% if qq_group_url %}
+<a class="md-header__button md-icon md-header__qq-group" href="{{ qq_group_url | e }}" target="_blank"
+  rel="noopener noreferrer" title="加入 QQ 群" aria-label="加入 QQ 群">
+  <span class="md-header__qq-icon" aria-hidden="true">
+    {% include ".icons/fontawesome/brands/qq.svg" %}
+  </span>
+  <span class="md-header__qq-label">交流群</span>
+</a>
+{% else %}
+<span class="md-header__button md-icon md-header__qq-group md-header__qq-group--placeholder" title="QQ 群链接待配置"
+  aria-label="QQ 群链接待配置" aria-disabled="true">
+  <span class="md-header__qq-icon" aria-hidden="true">
+    {% include ".icons/fontawesome/brands/qq.svg" %}
+  </span>
+  <span class="md-header__qq-label">交流群</span>
+</span>
+{% endif %}
+
+<form class="md-header__option" data-md-component="palette">
+  {% for option in config.theme.palette %}
+  {% set scheme = option.scheme | d("default", true) %}
+  {% set primary = option.primary | d("indigo", true) %}
+  {% set accent = option.accent | d("indigo", true) %}
+  <input class="md-option" data-md-color-media="{{ option.media }}"
+    data-md-color-scheme="{{ scheme | replace(' ', '-') }}" data-md-color-primary="{{ primary | replace(' ', '-') }}"
+    data-md-color-accent="{{ accent | replace(' ', '-') }}" {% if option.toggle %} aria-label="{{ option.toggle.name }}"
+    {% else %} aria-hidden="true" {% endif %} type="radio" name="__palette" id="__palette_{{ loop.index0 }}">
+  {% if option.toggle %}
+  <label class="md-header__button md-icon" title="{{ option.toggle.name }}"
+    for="__palette_{{ loop.index % loop.length }}" hidden>
+    {% include ".icons/" ~ option.toggle.icon ~ ".svg" %}
+  </label>
+  {% endif %}
+  {% endfor %}
+</form>
