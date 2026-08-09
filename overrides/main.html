@@ -10,10 +10,11 @@
 
 {% block extrahead %}
 {# Umami 统计：自托管动态脚本，每次构建哈希会变化，无法用 SRI 固定；
-   已通过 Nginx CSP 将 script-src 限制为 um.matehub.top，降低被替换风险 #}
+已通过 Nginx CSP 将 script-src 限制为 um.matehub.top，降低被替换风险 #}
 <script defer src="https://um.matehub.top/script.js" data-website-id="7ec2b9a9-781e-4987-8664-60bd987d3a7e"></script>
 {# MathJax 3.2.2：固定版本 + SRI 完整性校验，防 CDN 投毒 #}
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"
+  integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
 <style>
   /* ===== 顶部 QQ 群入口（位于主题切换按钮左侧） ===== */
   .md-header__button.md-header__qq-group {
