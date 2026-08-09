@@ -1575,8 +1575,9 @@
     // 登录状态恢复（成功后重绘导航栏）
     await restoreSession();
 
-    // postMessage 监听（OAuth 回调）
+    // postMessage 监听（OAuth 回调）— 只接受本站同源回调窗口消息，拒绝跨站伪造
     window.addEventListener('message', function (event) {
+      if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || typeof data !== 'object') return;
       if (data.type === 'auth-success') {

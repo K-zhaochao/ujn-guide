@@ -201,8 +201,12 @@ ${context}`;
     // 斜体
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-    // 链接 [text](url)
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    // 链接 [text](url) — 仅允许 http/https，且 URL 不含引号、尖括号或空白（防 javascript: 与属性注入）
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function (_, text, url) {
+      var safe = String(url).trim();
+      if (!/^https?:\/\/[^\s"'<>]+$/i.test(safe)) return '[' + text + '](' + url + ')';
+      return '<a href="' + safe + '" target="_blank" rel="noopener noreferrer">' + text + '</a>';
+    });
 
     // 无序列表项（- 或 * 开头）
     html = html.replace(/^(?:[-*])\s+(.+)$/gm, '<li>$1</li>');
@@ -602,7 +606,7 @@ ${context}`;
       var excerpt = r.excerpt || '';
       var contentSnippet = (r.content || '').slice(0, 150);
       var displayText = excerpt || contentSnippet || '暂无摘要';
-      return '<a href="' + r.url + '" class="ai-page-item">' +
+      return '<a href="' + escapeHtml(r.url) + '" class="ai-page-item">' +
         '<div class="ai-page-title">' + escapeHtml(title) + '</div>' +
         '<div class="ai-page-excerpt">' + escapeHtml(displayText) + '</div>' +
         '</a>';
@@ -617,7 +621,7 @@ ${context}`;
       <div class="ai-sources-title">📚 信息来源</div>
       <div class="ai-sources-list">
         ${results.map(r => `
-          <a href="${r.url}" class="ai-source-item" target="_blank">
+          <a href="${escapeHtml(r.url)}" class="ai-source-item" target="_blank">
             📄 ${escapeHtml(r.meta.title)}
           </a>
         `).join('')}
@@ -639,36 +643,50 @@ ${context}`;
     const content = container.querySelector('.ai-answer-content');
 
     if (result.error === 'daily_limit_user' || result.error === 'daily_limit_global') {
-      // 免费额度用完了 — 显示 BYOK 引导
+      // 免费额度用完了 — 显示 BYOK 引导（DOM 构建，消息文本化，禁用内联事件）
       status.style.display = 'none';
-      content.innerHTML = `
-        <div class="ai-limit-card">
-          <div class="ai-limit-title">📢 今日免费 AI 问答已用完</div>
-          <div class="ai-limit-desc">${result.message}</div>
-          <div class="ai-limit-actions">
-            <button class="ai-btn ai-btn--primary" onclick="window.__openAISettings()">
-              🔑 配置自己的 API Key 继续使用
-            </button>
-            <button class="ai-btn ai-btn--secondary" onclick="window.__turnOffAI()">
-              📖 关闭 AI，使用普通搜索
-            </button>
-          </div>
-        </div>
-      `;
+      content.textContent = '';
+      const card = document.createElement('div');
+      card.className = 'ai-limit-card';
+      const titleEl = document.createElement('div');
+      titleEl.className = 'ai-limit-title';
+      titleEl.textContent = '📢 今日免费 AI 问答已用完';
+      const descEl = document.createElement('div');
+      descEl.className = 'ai-limit-desc';
+      descEl.textContent = result.message || '';
+      const actions = document.createElement('div');
+      actions.className = 'ai-limit-actions';
+      const btnOpen = document.createElement('button');
+      btnOpen.className = 'ai-btn ai-btn--primary';
+      btnOpen.textContent = '🔑 配置自己的 API Key 继续使用';
+      btnOpen.addEventListener('click', function () { window.__openAISettings(); });
+      const btnOff = document.createElement('button');
+      btnOff.className = 'ai-btn ai-btn--secondary';
+      btnOff.textContent = '📖 关闭 AI，使用普通搜索';
+      btnOff.addEventListener('click', function () { window.__turnOffAI(); });
+      actions.appendChild(btnOpen);
+      actions.appendChild(btnOff);
+      card.appendChild(titleEl);
+      card.appendChild(descEl);
+      card.appendChild(actions);
+      content.appendChild(card);
     } else if (result.error === 'ai_not_configured') {
       status.style.display = 'none';
       content.textContent = 'AI 功能暂未开放，请稍后再试。';
     } else {
       status.style.display = 'none';
       content.textContent = result.message || 'AI 回答出错，请稍后重试。';
-      // 尝试 BYOK 兜底
-      content.innerHTML += `
-        <div style="margin-top:1rem;">
-          <button class="ai-btn ai-btn--primary" onclick="window.__retryWithBYOK('${escapeHtml(question)}')">
-            🔑 切换到自己 Key 重试
-          </button>
-        </div>
-      `;
+      // 尝试 BYOK 兜底 — DOM 构建 + addEventListener，避免把用户输入拼进内联事件
+      const retryWrap = document.createElement('div');
+      retryWrap.style.marginTop = '1rem';
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'ai-btn ai-btn--primary';
+      retryBtn.textContent = '🔑 切换到自己 Key 重试';
+      retryBtn.addEventListener('click', function () {
+        window.__retryWithBYOK(question);
+      });
+      retryWrap.appendChild(retryBtn);
+      content.appendChild(retryWrap);
     }
   }
 
@@ -730,7 +748,7 @@ ${context}`;
           </select>
           <input type="password" id="ai-api-key-input" class="ai-input"
             placeholder="粘贴你的 API Key"
-            value="${settings.apiKey || ''}"
+            value="${escapeHtml(settings.apiKey || '')}"
             style="margin-top:0.5rem;">
           <div class="ai-settings-hint">
             没有 API Key？
