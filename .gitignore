@@ -1,9 +1,7 @@
 # ========================
-#  后端数据文件（不提交）
+#  后端服务（独立私有仓库管理，不在此仓库跟踪）
 # ========================
-server/db.json
-server/node_modules/
-server/.env
+server/
 
 # ========================
 #  MkDocs 构建产物
@@ -72,8 +70,7 @@ ehthumbs.db
 .wrangler/
 
 # 包管理器/CLI 的本机认证配置可能包含访问令牌
-.npmrc# 项目级 npm registry 配置（供应链加固，需提交）
-!server/.npmrc.pypirc
+.npmrc
 .netrc
 pip.conf
 pip.ini
@@ -123,9 +120,6 @@ node_modules/
 # ========================
 #  SQLite 数据库（宠物收集录 v4 后端）
 # ========================
-server/pets.db
-server/pets.db-shm
-server/pets.db-wal
 *.db
 *.db-shm
 *.db-wal
@@ -141,8 +135,6 @@ server/pets.db-wal
 *.dump
 *.sql.gz
 **/backups/
-server/data/
-server/uploads/
 uploads/
 tmp/
 temp/
@@ -198,7 +190,3 @@ lsky-storage-snapshot*/
 *.tfstate.*
 crash.log
 
-# ========================
-#  Admin frontend (NOT version controlled: keep admin internals out of public repos)
-# ========================
-server/routes/admin-ui.js
