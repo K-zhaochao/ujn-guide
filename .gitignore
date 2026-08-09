@@ -14,8 +14,10 @@ ujn-guide-site.zip
 # ========================
 #  部署配置（含服务器信息）
 # ========================
-deploy/
+deploy/*
 .Nexus/
+# nginx 安全加固配置不含敏感信息，需提交
+!deploy/nginx.conf
 
 # ========================
 #  Python
@@ -70,8 +72,8 @@ ehthumbs.db
 .wrangler/
 
 # 包管理器/CLI 的本机认证配置可能包含访问令牌
-.npmrc
-.pypirc
+.npmrc# 项目级 npm registry 配置（供应链加固，需提交）
+!server/.npmrc.pypirc
 .netrc
 pip.conf
 pip.ini

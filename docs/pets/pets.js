@@ -382,15 +382,17 @@
     input.onkeydown = (e) => { if (e.key === 'Enter') $('#pet-rename-save').click(); };
   }
 
-  // 点击空白处关闭弹层
+  // 点击空白处关闭弹层（用 closest 判断锚点，兼容点击按钮内部 SVG/span 的情况）
   document.addEventListener('click', function (e) {
     const pop = $('#pet-login-pop');
     const rp = $('#pet-rename-pop');
+    const isLoginAnchor = !!(e.target.closest && e.target.closest('#pet-login-btn'));
+    const isRenameAnchor = !!(e.target.closest && (e.target.closest('#pet-user-btn') || e.target.closest('#pet-rename-nav')));
     if (pop && pop.style.display !== 'none') {
-      if (!pop.contains(e.target) && e.target.id !== 'pet-login-btn') closePop('pet-login-pop');
+      if (!pop.contains(e.target) && !isLoginAnchor) closePop('pet-login-pop');
     }
     if (rp && rp.style.display !== 'none') {
-      if (!rp.contains(e.target) && e.target.id !== 'pet-user-btn' && e.target.id !== 'pet-rename-nav') closePop('pet-rename-pop');
+      if (!rp.contains(e.target) && !isRenameAnchor) closePop('pet-rename-pop');
     }
   });
 
