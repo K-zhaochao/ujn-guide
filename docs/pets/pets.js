@@ -254,11 +254,15 @@
 
   // ================== 认证 ==================
 
+  // 记录我们打开的 OAuth 窗口引用：登录回调窗口通过 postMessage 回传 token，
+  // 监听端用它校验发送者，防止恶意站点伪造消息。
+  let oauthWindow = null;
+
   function openOAuth(provider) {
     const w = 620, h = 720;
     const left = (screen.width - w) / 2;
     const top = (screen.height - h) / 2;
-    window.open(API_BASE + '/api/auth/' + provider + '/login', 'oauth',
+    oauthWindow = window.open(API_BASE + '/api/auth/' + provider + '/login', 'oauth',
       'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
   }
 
@@ -598,8 +602,11 @@
       ? '<p style="text-align:center;color:' + C.muted + ';padding:40px">' + (searchQuery ? '未找到相关宠物 🔍' : '暂无宠物，快来投稿第一只吧！🐾') + '</p>'
       : orderedGroups.map(([c, list]) => {
           const groupUrl = safeHttpUrl(c.metadata && (c.metadata.groupUrl || c.metadata.groupLink));
+          // 图标与文字默认「💬 加入群聊」，站长可在后台按需改为「📖 查看说明」「🐧 QQ 群」等
+          const groupIcon = (c.metadata && c.metadata.groupIcon) || '💬';
+          const groupLabel = (c.metadata && c.metadata.groupLabel) || '加入群聊';
           const groupLink = groupUrl
-            ? '<a href="' + esc(groupUrl) + '" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:2px 12px;border-radius:20px;background:' + C.primary + ';color:#fff;font-size:12px;font-weight:500;text-decoration:none;vertical-align:middle">💬 加入群聊</a>'
+            ? '<a href="' + esc(groupUrl) + '" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:4px;padding:2px 12px;border-radius:20px;background:' + C.primary + ';color:#fff;font-size:12px;font-weight:500;text-decoration:none;vertical-align:middle">' + esc(groupIcon) + ' ' + esc(groupLabel) + '</a>'
             : '';
           return '<h3 style="margin:18px 0 12px;font-size:17px;color:' + C.fgDark + ';display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
             esc(c.emoji || catEmoji[c.key] || '') + ' ' + esc(c.key) +
@@ -1254,6 +1261,17 @@
 
   function renderMineShell(sec) {
     if (sec.dataset.mineShell === '1') return;
+    // 手机端适配：筛选控件占满整行、触控区域更大；搜索框独占一行
+    if (!document.getElementById('pet-mine-style')) {
+      const st = document.createElement('style');
+      st.id = 'pet-mine-style';
+      st.textContent = '@media (max-width:640px){' +
+        '#pet-mine-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}' +
+        '#pet-mine-filters #pet-mine-search{grid-column:1/-1}' +
+        '#pet-mine-filters select,#pet-mine-filters input[type=date]{width:100%;min-width:0}' +
+        '}';
+      document.head.appendChild(st);
+    }
     const categoryOptions = '<option value="">全部类型</option>' + CATEGORIES.map(c => '<option value="' + esc(c.key) + '">' + (catEmoji[c.key] || '🐾') + ' ' + esc(c.key) + '</option>').join('');
     sec.dataset.mineShell = '1';
     sec.innerHTML =
@@ -1267,8 +1285,8 @@
         : '') +
       '</div>' +
       '<div id="pet-mine-status-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
-      '<input id="pet-mine-search" type="search" placeholder="🔎 搜索名称、地点、描述或 ID" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
+      '<div id="pet-mine-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
+      '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
       '<select id="pet-mine-status" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="">全部状态</option><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已拒绝</option><option value="deleted">已删除</option></select>' +
       '<select id="pet-mine-category" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' + categoryOptions + '</select>' +
       '<input id="pet-mine-date" type="date" title="按投稿日期筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
@@ -1283,13 +1301,21 @@
     if (mineSubmit) mineSubmit.onclick = openSubmitModal;
 
     const search = $('#pet-mine-search');
-    const triggerSearch = debounce(function () {
-      mineQuery = this.value.trim();
+    // 关键词搜索改为显式触发：Enter 或失焦才请求，避免每次输入都打接口。
+    // 失焦时若关键词没有变化则不重复请求（如从搜索框切到其他筛选控件）。
+    let lastAppliedQuery = '';
+    const applyMineQuery = () => {
+      const v = search.value.trim();
+      if (v === lastAppliedQuery) return;
+      lastAppliedQuery = v;
+      mineQuery = v;
       minePage = 1;
       loadMineSubmissions();
-    }, 300);
-    search.oninput = triggerSearch;
-    search.onkeydown = e => { if (e.key === 'Enter') { mineQuery = search.value.trim(); minePage = 1; loadMineSubmissions(); } };
+    };
+    search.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); applyMineQuery(); search.blur(); } };
+    search.onfocusout = applyMineQuery;
+    // 部分移动端浏览器（iOS 等）软键盘「搜索」键触发 search 事件而非 keydown，做兜底
+    search.onsearch = applyMineQuery;
     $('#pet-mine-status').onchange = e => { mineStatus = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-category').onchange = e => { mineCategory = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-date').onchange = e => { mineDate = e.target.value; minePage = 1; loadMineSubmissions(); };
@@ -1358,6 +1384,7 @@
           '<div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><strong style="font-size:14px;color:' + C.fgDark + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">' + (s.name ? esc(s.name) : '<span style="color:' + C.muted + '">🐾 未命名宠物</span>') + '</strong><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span></div><div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') + '</div>' + (s.status === 'rejected' && s.rejectReason ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🚫 ' + esc(s.rejectReason) + '</div>' : '') + '</div>' +
           '<div style="display:flex;gap:5px;flex:none;margin-left:auto">' +
           (!disabled && siteConfig.allowEdit && !siteConfig.maintenance ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
+          (s.status === 'rejected' && !siteConfig.maintenance ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
           (!disabled && siteConfig.allowDelete && !siteConfig.maintenance ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +
           (disabled ? '<span style="font-size:11px;color:' + C.muted + ';padding:6px 2px">可联系站长恢复</span>' : '') +
           '</div></div>';
@@ -1381,6 +1408,18 @@
     }
 
     $all('.pet-edit-btn', sec).forEach(btn => { btn.onclick = () => openEditModal(btn.dataset.id); });
+    $all('.pet-resubmit-btn', sec).forEach(btn => {
+      btn.onclick = async () => {
+        if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
+        if (!confirm('🔁 确定将该投稿重新提交审核吗？提交后需重新等待审核结果。')) return;
+        const r = await api('/api/submissions/' + encodeURIComponent(btn.dataset.id) + '/resubmit', { method: 'POST', body: {} });
+        showToast(r.data.message || (r.ok ? '已重新提交' : '操作失败'), !r.ok);
+        if (r.ok) {
+          petCache.clear();
+          await loadMineSubmissions();
+        }
+      };
+    });
     $all('.pet-del-btn', sec).forEach(btn => {
       btn.onclick = async () => {
         if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，删除功能暂时关闭', true); return; }
@@ -1577,9 +1616,16 @@
     // 登录状态恢复（成功后重绘导航栏）
     await restoreSession();
 
-    // postMessage 监听（OAuth 回调）— 只接受本站同源回调窗口消息，拒绝跨站伪造
+    // postMessage 监听（OAuth 回调）
+    // 回调页由后端 API 域提供（如 http://127.0.0.1:3005），主站域名不同（如 http://localhost:8000），
+    // 因此不能用同源校验（event.origin === location.origin 会丢弃所有回调）。
+    // 改为：①origin 必须是后端 API 的 origin（浏览器保证跨域消息 origin 不可伪造）；
+    //       ②若窗口引用可用（弹窗未被拦截），再校验发送者确实是我们打开的窗口。
+    let apiOrigin = '';
+    try { apiOrigin = new URL(API_BASE).origin; } catch (e) { /* ignore */ }
     window.addEventListener('message', function (event) {
-      if (event.origin !== window.location.origin) return;
+      if (apiOrigin && event.origin !== apiOrigin) return;
+      if (oauthWindow && event.source !== oauthWindow) return;
       const data = event.data;
       if (!data || typeof data !== 'object') return;
       if (data.type === 'auth-success') {
