@@ -18,7 +18,8 @@
 
   // ================== 配置（无任何硬编码密钥） ==================
   const API_BASE = 'http://127.0.0.1:3005'; // ⚠️ 部署时改为 https://pet.matehub.top
-  const MAX_IMAGES = 5;
+  const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
+  let maxImagesLimit = MAX_IMAGES;
   const TOKEN_KEY = 'pet_jwt';
   const PAGE_SIZE = 24;
 
@@ -101,6 +102,7 @@
       bindings: source.bindings || [],
       constraints: source.constraints || { maxImages: MAX_IMAGES },
     };
+    maxImagesLimit = Math.max(1, Number(contentSchema.constraints.maxImages) || MAX_IMAGES);
     const mapType = type => ({
       id: type.id,
       code: type.code,
@@ -250,6 +252,22 @@
     } catch (e) {
       return { ok: false, status: 0, data: { message: '网络错误，请稍后重试' } };
     }
+  }
+
+  // P1-03 自愈：投稿写操作遇到 ROW_VERSION_REQUIRED / SUBMISSION_CONFLICT 时，
+  // 自动重新拉取该投稿最新 rowVersion 并重试一次；仍失败才提示用户手动刷新。
+  async function apiSubmissionAction(method, path, body, retried) {
+    const r = await api(path, { method, body });
+    const code = r.data && r.data.code;
+    if (!r.ok && (code === 'ROW_VERSION_REQUIRED' || code === 'SUBMISSION_CONFLICT') && !retried) {
+      const detail = await api('/api/my/submissions/' + encodeURIComponent(body._id), { method: 'GET' });
+      const sub = detail.ok && (detail.data.submission || detail.data.item);
+      if (!sub) { showToast('刷新失败，请手动刷新后重试', true); return r; }
+      delete body._id;
+      body.rowVersion = sub.rowVersion || sub.row_version || 1;
+      return apiSubmissionAction(method, path, body, true);
+    }
+    return r;
   }
 
   // ================== 认证 ==================
@@ -927,6 +945,7 @@
     } else {
       const htmlType = type === 'number' ? 'number' : type === 'date' ? 'date' : type === 'url' ? 'url' : 'text';
       control = '<input type="' + htmlType + '"' + attrs + ' value="' + esc(value == null ? '' : value) + '" placeholder="' + esc(field.placeholder || '') + '"' +
+        (type === 'number' ? ' step="any"' : '') +
         (field.minValue != null ? ' min="' + Number(field.minValue) + '"' : '') + (field.maxValue != null ? ' max="' + Number(field.maxValue) + '"' : '') + ' style="' + base + (readOnly ? ';opacity:.72' : '') + '">';
     }
     return '<div style="grid-column:' + (type === 'textarea' || type === 'multiselect' ? '1 / -1' : 'auto') + '"><label for="' + id + '" style="display:block;font-size:13px;font-weight:600;color:' + C.muted + ';margin-bottom:4px">' + esc(field.label || key) + required + '</label>' + control + help + '</div>';
@@ -995,7 +1014,7 @@
       '</div>' +
 
       '<div style="margin-bottom:16px">' +
-        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="color:' + C.danger + '">*</span> <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + MAX_IMAGES + ' 张，自动压缩）</span></label>' +
+        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="color:' + C.danger + '">*</span> <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，自动压缩）</span></label>' +
         '<label for="pet-images" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:' + C.soft + ';color:' + C.primary + ';border:2px dashed var(--pet-primary,#93c5fd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">' +
         '<span style="font-size:18px">📷</span> 选择文件</label>' +
         '<input type="file" id="pet-images" accept="image/*" multiple style="display:none">' +
@@ -1009,15 +1028,95 @@
       '<button id="pet-submit-btn" disabled style="width:100%;padding:12px;background:#9ca3af;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:not-allowed;font-weight:600">🔒 请先登录后再投稿</button>' +
       '</div>';
 
-    $('#pet-submit-close').onclick = closeSubmitModal;
-    modal.onclick = (e) => { if (e.target === modal) closeSubmitModal(); };
+    $('#pet-submit-close').onclick = closeWithDraftSave;
+    modal.onclick = (e) => { if (e.target === modal) closeWithDraftSave(); };
 
     updateAuthUI();
+
+    // ===== P1-06 投稿草稿：自动保存 + 恢复（草稿只存文本字段与图片张数，不存 dataUrl） =====
+    let draftId = null;
+    let draftRowVersion = 1;
+    let draftTimer = null;
+    const DRAFT_SAVE_DELAY = 800;
+    const buildDraftPayload = () => {
+      const fields = readDynamicFields($('#pet-dynamic-fields'));
+      const nameEl = $('#pet-name');
+      if (nameEl) fields.name = nameEl.value.trim();
+      return {
+        typeId: submitTypeId || undefined,
+        typeCode: submitTypeCode || undefined,
+        category: submitCategory || undefined,
+        fields,
+        imageCount: uploadedImages.length,
+      };
+    };
+    const hasDraftContent = (payload) => {
+      if (payload.category || payload.typeId || payload.imageCount) return true;
+      return Object.values(payload.fields || {}).some(v => String(v || '').trim() !== '');
+    };
+    const saveDraft = () => {
+      if (!user) return;
+      const payload = buildDraftPayload();
+      if (!hasDraftContent(payload)) return;
+      api('/api/my/drafts', {
+        method: 'POST',
+        body: { id: draftId || undefined, rowVersion: draftId ? draftRowVersion : undefined, schemaVersion: contentSchema.schemaVersion || siteConfig.schemaVersion, payload },
+      }).then(r => {
+        if (r.ok && r.data && r.data.draft) { draftId = r.data.draft.id; draftRowVersion = r.data.draft.rowVersion; }
+      }).catch(() => { /* 草稿保存失败不打断投稿 */ });
+    };
+    const scheduleDraftSave = () => {
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(saveDraft, DRAFT_SAVE_DELAY);
+    };
+    const discardDraft = () => {
+      if (draftId) api('/api/my/drafts/' + encodeURIComponent(draftId), { method: 'DELETE' }).catch(() => {});
+      draftId = null;
+    };
+    function closeWithDraftSave() {
+      clearTimeout(draftTimer);
+      saveDraft(); // 关闭时立即保存当前内容
+      closeSubmitModal();
+    }
+    const restoreLatestDraft = async () => {
+      if (!user) return;
+      try {
+        const r = await api('/api/my/drafts?pageSize=1');
+        if (!r.ok || !r.data || !r.data.items || !r.data.items.length) return;
+        const d = r.data.items[0];
+        draftId = d.id;
+        draftRowVersion = d.rowVersion || 1;
+        const p = d.payload || {};
+        if (p.category || p.typeId) {
+          submitCategory = p.category || '';
+          submitTypeId = p.typeId || '';
+          submitTypeCode = p.typeCode || '';
+          catLabel.textContent = submitCategory ? (catEmoji[submitCategory] || '') + ' ' + submitCategory : '请选择';
+          catLabel.style.color = submitCategory ? 'inherit' : C.muted;
+          renderSubmitFields(submitTypeId, p.fields || {});
+        }
+        const nameEl = $('#pet-name');
+        if (nameEl && p.fields && p.fields.name) nameEl.value = p.fields.name;
+        const cnt = $('#pet-image-count');
+        if (cnt && p.imageCount) cnt.textContent = '💾 上次草稿 ' + p.imageCount + ' 张照片（需重新选择）';
+        showToast('💾 已恢复上次未完成的投稿草稿');
+      } catch (e) { /* 草稿恢复失败不打断投稿 */ }
+    };
+
+    // 输入变化 → 防抖自动保存
+    const nameEl = $('#pet-name');
+    if (nameEl) nameEl.addEventListener('input', scheduleDraftSave);
+    const dynRoot = $('#pet-dynamic-fields');
+    if (dynRoot) dynRoot.addEventListener('input', scheduleDraftSave);
+    restoreLatestDraft();
 
     // 自定义分类下拉（替代原生 select）
     let submitCategory = '';
     let submitTypeId = '';
     let submitTypeCode = '';
+    // P1-04 幂等键：每次打开投稿弹窗生成一次；提交失败重试（弹窗未关）复用同一 key，
+    // 服务端据此去重，双击/网络重试不会产生重复投稿。
+    let submitIdempotencyKey = 'submit:' + (user ? (user.userId || user.id || '') : 'anon') + ':' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2, 8);
     const catBtn = $('#pet-category-btn');
     const catLabel = $('#pet-category-label');
     const catMenu = $('#pet-category-menu');
@@ -1055,6 +1154,7 @@
           catLabel.style.color = 'inherit';
         }
         renderSubmitFields(submitTypeId, {});
+        scheduleDraftSave(); // P1-06：类型选择变化也计入草稿
       });
     });
 
@@ -1064,7 +1164,7 @@
     const imageCount = $('#pet-image-count');
     const uploadedImages = [];
     imgInput.addEventListener('change', async function () {
-      const files = Array.from(this.files).slice(0, MAX_IMAGES);
+      const files = Array.from(this.files).slice(0, maxImagesLimit);
       previews.innerHTML = '';
       uploadedImages.length = 0;
       for (const file of files) {
@@ -1087,6 +1187,7 @@
         } catch (e) { console.warn('Image conversion failed:', e); }
       }
       imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
+      scheduleDraftSave(); // P1-06：图片张数变化计入草稿
     });
 
     // 提交
@@ -1112,17 +1213,27 @@
       this.textContent = '⏳ 提交中...';
       const r = await api('/api/submissions', {
         method: 'POST',
-        body: { name, category, typeId: submitTypeId, typeCode: submitTypeCode, schemaVersion: contentSchema.schemaVersion || siteConfig.schemaVersion, fields, location, appearance, personality, description, images: uploadedImages },
+        body: { name, category, typeId: submitTypeId, typeCode: submitTypeCode, schemaVersion: contentSchema.schemaVersion || siteConfig.schemaVersion, fields, location, appearance, personality, description, images: uploadedImages, idempotencyKey: submitIdempotencyKey },
       });
       if (r.ok && r.data.success) {
         showToast(r.data.message || '✅ 投稿成功！');
+        discardDraft(); // P1-06：提交成功即丢弃草稿，避免再次恢复
         closeSubmitModal();
         petCache.clear();
         loadPets();
       } else {
         this.disabled = false;
         this.textContent = '📤 提交投稿';
-        showToast(r.data.message || '投稿失败，请重试', true);
+        // 幂等命中（重复提交）也视为成功：不提示错误
+        if (r.data && r.data.idempotent) {
+          showToast(r.data.message || '✅ 该投稿已提交！');
+          discardDraft();
+          closeSubmitModal();
+          petCache.clear();
+          loadPets();
+        } else {
+          showToast(r.data.message || '投稿失败，请重试', true);
+        }
       }
     });
   }
@@ -1383,9 +1494,9 @@
           (thumb ? '<img src="' + esc(resolveImage(thumb)) + '" alt="" loading="lazy" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none">' : '<span style="width:46px;height:46px;border-radius:8px;background:' + C.imgBg + ';display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">' + esc(mineTypeIcon(s)) + '</span>') +
           '<div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><strong style="font-size:14px;color:' + C.fgDark + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">' + (s.name ? esc(s.name) : '<span style="color:' + C.muted + '">🐾 未命名宠物</span>') + '</strong><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span></div><div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') + '</div>' + (s.status === 'rejected' && s.rejectReason ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🚫 ' + esc(s.rejectReason) + '</div>' : '') + '</div>' +
           '<div style="display:flex;gap:5px;flex:none;margin-left:auto">' +
-          (!disabled && siteConfig.allowEdit && !siteConfig.maintenance ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
-          (s.status === 'rejected' && !siteConfig.maintenance ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
-          (!disabled && siteConfig.allowDelete && !siteConfig.maintenance ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +
+          (!disabled && siteConfig.allowEdit && !siteConfig.maintenance ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
+          (s.status === 'rejected' && !siteConfig.maintenance ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
+          (!disabled && siteConfig.allowDelete && !siteConfig.maintenance ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +
           (disabled ? '<span style="font-size:11px;color:' + C.muted + ';padding:6px 2px">可联系站长恢复</span>' : '') +
           '</div></div>';
       }).join('') + '</div>';
@@ -1412,7 +1523,7 @@
       btn.onclick = async () => {
         if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
         if (!confirm('🔁 确定将该投稿重新提交审核吗？提交后需重新等待审核结果。')) return;
-        const r = await api('/api/submissions/' + encodeURIComponent(btn.dataset.id) + '/resubmit', { method: 'POST', body: {} });
+        const r = await apiSubmissionAction('POST', '/api/submissions/' + encodeURIComponent(btn.dataset.id) + '/resubmit', { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
         showToast(r.data.message || (r.ok ? '已重新提交' : '操作失败'), !r.ok);
         if (r.ok) {
           petCache.clear();
@@ -1425,7 +1536,7 @@
         if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，删除功能暂时关闭', true); return; }
         if (!siteConfig.allowDelete) { showToast('⚠️ 当前已关闭投稿删除功能，请联系站长', true); return; }
         if (!confirm('⚠️ 确认删除该投稿吗？删除后可在管理后台恢复（软删除）。')) return;
-        const r = await api('/api/submissions/' + encodeURIComponent(btn.dataset.id), { method: 'DELETE' });
+        const r = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(btn.dataset.id), { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
         showToast(r.data.message || (r.ok ? '已删除' : '删除失败'), !r.ok);
         if (r.ok) {
           petCache.clear();
@@ -1509,6 +1620,10 @@
     const typeName = sub.type && sub.type.name ? sub.type.name : sub.category;
     const schemaVersion = sub.formSchemaVersionId || sub.schemaVersion;
     const readOnlyCount = definitions.filter(field => field.readOnly || field.archivedNow).length;
+    // P1-05：既有图回显（详情接口返回 [{url,key}]；兼容旧 string 数组）
+    const editImages = Array.isArray(sub.images) && sub.images.length
+      ? sub.images.map(img => typeof img === 'string' ? { url: img, key: '' } : { url: img.url || '', key: img.key || '' })
+      : [];
 
     const modal = $('#pet-edit-modal');
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -1518,6 +1633,15 @@
       '<h2 style="margin:0 0 4px;font-size:19px;color:' + C.fgDark + '">✏️ 编辑投稿</h2>' +
       '<div style="font-size:13px;color:' + C.muted + ';margin-bottom:8px">' + (sub.name ? esc(sub.name) : '未命名宠物') + ' · ' + esc(typeName || '未分类') + (schemaVersion ? ' · schema v' + esc(schemaVersion) : '') + '</div>' +
       '<div style="font-size:12px;color:' + C.muted + ';margin-bottom:16px">按该投稿保存时的字段版本编辑；保存后“最近更新”排序会置顶。' + (readOnlyCount ? '其中 ' + readOnlyCount + ' 个字段因归档或权限调整为只读。' : '') + '</div>' +
+      // P1-05：图片区（删除 ✕ / 排序 ⇅ / 替换重选 / 追加新图）
+      '<div style="margin-bottom:16px">' +
+        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，点 ✕ 删除，⇅ 调整顺序）</span></label>' +
+        '<div id="pet-edit-images" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
+        '<label for="pet-edit-images-input" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:' + C.soft + ';color:' + C.primary + ';border:2px dashed var(--pet-primary,#93c5fd);border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;margin-top:10px">' +
+          '<span style="font-size:16px">📷</span> 添加照片</label>' +
+        '<input type="file" id="pet-edit-images-input" accept="image/*" multiple style="display:none">' +
+        '<div id="pet-edit-images-hint" style="font-size:12px;color:' + C.muted + ';margin-top:6px"></div>' +
+      '</div>' +
       '<div id="pet-edit-dynamic-fields" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">' +
       (fieldsHtml || '<div style="grid-column:1/-1;color:' + C.muted + ';font-size:13px;padding:8px 0">该历史版本没有可编辑字段</div>') +
       '</div>' +
@@ -1532,29 +1656,97 @@
     $('#pet-edit-cancel').onclick = () => { modal.style.display = 'none'; };
     modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 
+    // ---- P1-05：编辑图片交互 ----
+    const editImagesRoot = $('#pet-edit-images');
+    const editImagesHint = $('#pet-edit-images-hint');
+    function renderEditImages() {
+      editImagesRoot.innerHTML = '';
+      editImages.forEach((img, index) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'width:84px;border-radius:8px;overflow:hidden;border:1px solid ' + C.border + ';position:relative;background:' + C.soft;
+        div.innerHTML =
+          '<img src="' + esc(img.url || img.dataUrl || '') + '" style="width:100%;height:84px;object-fit:cover;display:block">' +
+          '<div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:2px">' +
+            '<span data-act="del" title="删除" style="background:rgba(0,0,0,.62);color:#fff;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;font-size:12px;cursor:pointer">✕</span>' +
+            '<span style="background:rgba(0,0,0,.62);color:#fff;border-radius:8px;padding:1px 6px;font-size:11px;line-height:18px;cursor:pointer">' +
+              '<span data-act="up" title="前移" style="margin-right:4px">▲</span><span data-act="down" title="后移">▼</span>' +
+            '</span>' +
+          '</div>' +
+          (index === 0 ? '<div style="position:absolute;left:4px;bottom:4px;background:var(--pet-primary,#93c5fd);color:#0b1220;border-radius:6px;font-size:10px;padding:1px 5px">封面</div>' : '');
+        div.addEventListener('click', (e) => {
+          const act = e.target && e.target.dataset && e.target.dataset.act;
+          if (act === 'del') {
+            editImages.splice(index, 1);
+          } else if (act === 'up' && index > 0) {
+            const [moved] = editImages.splice(index, 1);
+            editImages.splice(index - 1, 0, moved);
+          } else if (act === 'down' && index < editImages.length - 1) {
+            const [moved] = editImages.splice(index, 1);
+            editImages.splice(index + 1, 0, moved);
+          } else if (!act) {
+            // 点图重选替换
+            const picker = document.createElement('input');
+            picker.type = 'file';
+            picker.accept = 'image/*';
+            picker.onchange = async () => {
+              const file = picker.files && picker.files[0];
+              if (!file) return;
+              try {
+                const dataUrl = await fileToWebP(file);
+                editImages[index] = { dataUrl };
+                renderEditImages();
+              } catch (err) { console.warn('replace failed:', err); }
+            };
+            picker.click();
+          }
+          renderEditImages();
+        });
+        editImagesRoot.appendChild(div);
+      });
+      editImagesHint.textContent = editImages.length
+        ? (editImages.length + ' 张 · 点击图片可替换 · 第一张为封面')
+        : '请至少保留 1 张照片';
+    }
+    renderEditImages();
+    const editImagesInput = $('#pet-edit-images-input');
+    editImagesInput.addEventListener('change', async function () {
+      const files = Array.from(this.files).slice(0, maxImagesLimit - editImages.length);
+      for (const file of files) {
+        try {
+          const dataUrl = await fileToWebP(file);
+          editImages.push({ dataUrl });
+        } catch (err) { console.warn('add failed:', err); }
+      }
+      this.value = '';
+      renderEditImages();
+    });
+
     $('#pet-edit-save').onclick = async () => {
       const root = $('#pet-edit-dynamic-fields');
       const invalid = root && $all('[required]', root).find(el => !el.checkValidity());
       if (invalid) { invalid.reportValidity(); return; }
       const fields = readDynamicFields(root);
+      // P1-05：组装 images —— 既有图传 { url, key }，新增/替换图传 { dataUrl }
+      if (!editImages.length) { showToast('请至少保留 1 张照片', true); return; }
+      if (editImages.length > maxImagesLimit) { showToast('最多 ' + maxImagesLimit + ' 张照片', true); return; }
+      const images = editImages.map(img => img.dataUrl ? { dataUrl: img.dataUrl } : { url: img.url, key: img.key || undefined });
       const saveButton = $('#pet-edit-save');
       saveButton.disabled = true;
       saveButton.textContent = '保存中…';
-      const up = await api('/api/submissions/' + encodeURIComponent(id), {
-        method: 'PUT',
-        body: {
-          fields,
-          name: fields.name !== undefined ? fields.name : sub.name,
-          location: fields.location !== undefined ? fields.location : sub.location,
-          appearance: fields.appearance !== undefined ? fields.appearance : sub.appearance,
-          personality: fields.personality !== undefined ? fields.personality : sub.personality,
-          description: fields.description !== undefined ? fields.description : sub.description,
-          // Keep the published schema/type and optimistic row version when
-          // available; old servers simply ignore these extra fields.
-          typeId: sub.typeId || (sub.type && sub.type.id) || undefined,
-          schemaVersion: sub.formSchemaVersionId || sub.schemaVersion || undefined,
-          rowVersion: sub.rowVersion || undefined,
-        },
+      const up = await apiSubmissionAction('PUT', '/api/submissions/' + encodeURIComponent(id), {
+        fields,
+        name: fields.name !== undefined ? fields.name : sub.name,
+        location: fields.location !== undefined ? fields.location : sub.location,
+        appearance: fields.appearance !== undefined ? fields.appearance : sub.appearance,
+        personality: fields.personality !== undefined ? fields.personality : sub.personality,
+        description: fields.description !== undefined ? fields.description : sub.description,
+        // Keep the published schema/type and optimistic row version when
+        // available; old servers simply ignore these extra fields.
+        typeId: sub.typeId || (sub.type && sub.type.id) || undefined,
+        schemaVersion: sub.formSchemaVersionId || sub.schemaVersion || undefined,
+        rowVersion: sub.rowVersion || undefined,
+        images,
+        _id: id,
       });
       saveButton.disabled = false;
       saveButton.textContent = '保存修改';
