@@ -97,7 +97,7 @@ extra:
 
 extra_javascript:
   - javascripts/mathjax.js
-  - pets/pets.js?v=20260809-4
+  - pets/pets.js?v=20260811-1
 
 nav:
   - 首页: index.md

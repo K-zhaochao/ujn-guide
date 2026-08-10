@@ -16,6 +16,30 @@
 (function () {
   'use strict';
 
+  // ================== P2-10 生命周期 ==================
+  // 本脚本仅服务宠物页（/pets/ 及 /pets/index.html），但**必须首帧无条件订阅**
+  // document$：Material navigation.instant 在站内导航时不会重跑 extra_javascript，
+  // 若首帧 return 则导航到宠物页后无人初始化（卡在加载中）。
+  // 订阅回调按当前路径分流：宠物页 → 初始化并重注册全局监听；其他页 → 只清理监听，
+  // 不发起任何 /api 请求。
+  function isPetPage() {
+    return /\/pets(\/index\.html)?\/?($|\?|#)/.test(location.pathname);
+  }
+
+  // Material 即时导航/多次 init 时，window/document 上的监听会叠加。
+  // 统一登记到 window.__pet_globals，每次初始化前先移除上一轮遗留监听，再注册新监听。
+  const petGlobals = window.__pet_globals || (window.__pet_globals = []);
+  function disposePetGlobals() {
+    while (petGlobals.length) {
+      const g = petGlobals.pop();
+      try { g.target.removeEventListener(g.type, g.fn); } catch (_) { /* ignore */ }
+    }
+  }
+  function addPetGlobal(target, type, fn) {
+    petGlobals.push({ target, type, fn });
+    target.addEventListener(type, fn);
+  }
+
   // ================== 配置（无任何硬编码密钥） ==================
   const API_BASE = 'http://127.0.0.1:3005'; // ⚠️ 部署时改为 https://pet.matehub.top
   const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
@@ -83,6 +107,7 @@
   let mineStatus = '';
   let mineCategory = '';
   let mineDate = '';
+  let mineDateEnd = '';
   let mineSort = 'updated';
   let mineRequestId = 0;
   let mineTypesLoaded = false;
@@ -210,6 +235,9 @@
     if (!t) {
       t = document.createElement('div');
       t.id = 'pet-toast';
+      // P2-14：Toast 增加 aria-live，屏幕阅读器可感知消息变化
+      t.setAttribute('role', 'status');
+      t.setAttribute('aria-live', 'polite');
       t.style.cssText = 'position:fixed;top:20px;right:20px;z-index:20000;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,.15);max-width:360px;transition:opacity .3s';
       document.body.appendChild(t);
     }
@@ -220,6 +248,45 @@
     t.style.opacity = '1';
     clearTimeout(t._timer);
     t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+  }
+
+  // ================== P2-14 无障碍：弹窗统一语义 ==================
+  // 所有弹层打开统一走 openPetModal：
+  //   - role=dialog + aria-modal + aria-label（屏幕阅读器语义）
+  //   - Esc 关闭 + 焦点恢复
+  //   - 打开时记录触发元素，关闭时恢复焦点
+  // 同一 modal 重复打开会先移除上一轮 Esc 监听，避免叠加。
+  function openPetModal(modal, opts) {
+    opts = opts || {};
+    if (!modal) return;
+    const previous = document.activeElement;
+    // 防叠加：先移除该 modal 之前注册的 Esc 监听
+    if (modal._escEntry) {
+      try { modal._escEntry.target.removeEventListener(modal._escEntry.type, modal._escEntry.fn); } catch (_) { /* ignore */ }
+      const idx = petGlobals.indexOf(modal._escEntry);
+      if (idx >= 0) petGlobals.splice(idx, 1);
+      modal._escEntry = null;
+    }
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    if (opts.label) modal.setAttribute('aria-label', opts.label);
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px';
+    const onKey = function (e) {
+      if (e.key !== 'Escape') return;
+      if (opts.onClose) opts.onClose();
+      else modal.style.display = 'none';
+      if (previous && previous.focus && typeof previous.focus === 'function') previous.focus();
+    };
+    const entry = { target: document, type: 'keydown', fn: onKey };
+    modal._escEntry = entry;
+    petGlobals.push(entry);
+    document.addEventListener('keydown', onKey);
+    // 首次打开聚焦到弹窗内第一个可聚焦元素（含关闭按钮）
+    requestAnimationFrame(() => {
+      const first = modal.querySelector('button, input, select, textarea, [tabindex]');
+      if (first && first.focus) first.focus();
+    });
+    return modal;
   }
 
   function resolveImage(url) {
@@ -238,19 +305,41 @@
 
   async function api(path, opts) {
     opts = opts || {};
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {};
     const token = localStorage.getItem(TOKEN_KEY);
+    // P2-09：仅在有 body 时发送 Content-Type —— 匿名 GET 发送它会在跨域时
+    // 触发不必要的 OPTIONS 预检，拖慢首次渲染。
+    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
     if (token) headers['Authorization'] = 'Bearer ' + token;
+    // P2-09：统一超时 + AbortController，避免请求悬挂导致 UI 永远停在加载态
+    const ctrl = ('AbortController' in window) ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 15000) : null;
     try {
       const res = await fetch(API_BASE + path, {
         method: opts.method || 'GET',
         headers,
-        body: opts.body ? JSON.stringify(opts.body) : undefined,
+        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        signal: ctrl ? ctrl.signal : undefined,
       });
       const data = await res.json().catch(() => ({}));
+      // P2-09：401 统一处理 —— 清理失效 token 并更新导航，避免普通请求
+      // 遇到 401 时留下已登录假象（restoreSession 只覆盖启动时的检查）。
+      if (res.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+        const msg = (data && data.message) || '';
+        localStorage.removeItem(TOKEN_KEY);
+        user = null;
+        renderNav();
+        updateAuthUI();
+        if (/拉黑/.test(msg)) showToast('⚠️ ' + msg, true);
+      }
       return { ok: res.ok, status: res.status, data };
     } catch (e) {
+      if (e && e.name === 'AbortError') {
+        return { ok: false, status: 408, data: { message: '请求超时，请检查网络后重试' } };
+      }
       return { ok: false, status: 0, data: { message: '网络错误，请稍后重试' } };
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   }
 
@@ -293,6 +382,8 @@
       const msg = (r.data && r.data.message) || '';
       localStorage.removeItem(TOKEN_KEY);
       user = null;
+      // P2-09：token 失效也会改变 liked / likeCount 展示，失效公开缓存
+      petCache.clear();
       // 被拉黑时提示用户联系站长（其余情况静默清理过期 token）
       if (r.status === 403 && /拉黑/.test(msg)) {
         showToast('⚠️ ' + msg, true);
@@ -310,6 +401,9 @@
     $('#pet-mine-section').style.display = 'none';
     renderNav();
     updateAuthUI();
+    // P2-09：退出后 liked / likeCount 随登录态变化，失效公开缓存并刷新
+    petCache.clear();
+    loadPets();
     showToast('已退出登录');
   }
 
@@ -325,6 +419,9 @@
     const anchor = document.getElementById(anchorId);
     if (!pop || !anchor) return;
     const rect = anchor.getBoundingClientRect();
+    // P2-14：小卡片也带 dialog 语义，屏幕阅读器可识别
+    pop.setAttribute('role', 'dialog');
+    pop.setAttribute('aria-modal', 'false');
     pop.style.display = 'block';
     pop.style.position = 'fixed';
     pop.style.zIndex = '16000';
@@ -405,18 +502,20 @@
   }
 
   // 点击空白处关闭弹层（用 closest 判断锚点，兼容点击按钮内部 SVG/span 的情况）
-  document.addEventListener('click', function (e) {
-    const pop = $('#pet-login-pop');
-    const rp = $('#pet-rename-pop');
-    const isLoginAnchor = !!(e.target.closest && e.target.closest('#pet-login-btn'));
-    const isRenameAnchor = !!(e.target.closest && (e.target.closest('#pet-user-btn') || e.target.closest('#pet-rename-nav')));
-    if (pop && pop.style.display !== 'none') {
-      if (!pop.contains(e.target) && !isLoginAnchor) closePop('pet-login-pop');
-    }
-    if (rp && rp.style.display !== 'none') {
-      if (!rp.contains(e.target) && !isRenameAnchor) closePop('pet-rename-pop');
-    }
-  });
+  function registerPopupClose() {
+    addPetGlobal(document, 'click', function (e) {
+      const pop = $('#pet-login-pop');
+      const rp = $('#pet-rename-pop');
+      const isLoginAnchor = !!(e.target.closest && e.target.closest('#pet-login-btn'));
+      const isRenameAnchor = !!(e.target.closest && (e.target.closest('#pet-user-btn') || e.target.closest('#pet-rename-nav')));
+      if (pop && pop.style.display !== 'none') {
+        if (!pop.contains(e.target) && !isLoginAnchor) closePop('pet-login-pop');
+      }
+      if (rp && rp.style.display !== 'none') {
+        if (!rp.contains(e.target) && !isRenameAnchor) closePop('pet-rename-pop');
+      }
+    });
+  }
 
   // ================== 页面导航栏 ==================
 
@@ -495,7 +594,7 @@
 
     tb.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
-      '<input type="text" id="pet-search" placeholder="🔍 搜索宠物名 / 地点..." style="flex:1;min-width:200px;max-width:380px;padding:10px 14px;border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;outline:none;background:' + C.inputBg + ';color:inherit">' +
+      '<input type="text" id="pet-search" placeholder="🔍 搜索宠物名 / 地点..." aria-label="搜索宠物名或地点" style="flex:1;min-width:200px;max-width:380px;padding:10px 14px;border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;outline:none;background:' + C.inputBg + ';color:inherit">' +
       sortGroup +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">' + filters + '</div>';
@@ -547,6 +646,9 @@
 
   // ================== 宠物图鉴渲染 ==================
 
+  // P2-09：公开列表请求序号——快速搜索 / 切换类型时旧响应不得覆盖新响应
+  let petRequestId = 0;
+
   async function loadPets() {
     const gallery = $('#pet-gallery');
     if (!gallery) return;
@@ -562,10 +664,12 @@
     params.set('page', currentPage);
     params.set('pageSize', PAGE_SIZE);
     const cacheKey = params.toString();
+    const requestSeq = ++petRequestId;
 
     // 命中缓存 → 即时渲染，无需等待网络
     const cached = petCache.get(cacheKey);
     if (cached && Date.now() - cached.t < PET_CACHE_TTL) {
+      if (requestSeq !== petRequestId) return; // 已有更新的请求发出
       allPets = cached.pets;
       totalCount = cached.total;
       totalPages = cached.totalPages;
@@ -583,6 +687,7 @@
     }
 
     const r = await api('/api/pets?' + params.toString());
+    if (requestSeq !== petRequestId) return; // 已被更新的请求取代，丢弃本次响应
     if (!r.ok) {
       gallery.style.opacity = '';
       gallery.innerHTML = '<p class="pet-error" style="text-align:center;color:' + C.danger + ';padding:40px">⚠️ 加载失败：' + esc(r.data.message || '未知错误') + '</p>';
@@ -659,6 +764,10 @@
     });
     $all('.pet-card').forEach(card => {
       card.addEventListener('click', function () { openDetail(this.dataset.id); });
+      // P2-14：键盘操作（Enter / Space 打开详情）
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(this.dataset.id); }
+      });
     });
   }
 
@@ -695,7 +804,7 @@
     const whoLink = p.contributor && p.contributor.profileUrl
       ? '<a href="' + esc(p.contributor.profileUrl) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:' + C.muted + ';text-decoration:none;cursor:pointer" title="打开个人主页">@' + esc(who) + '</a>'
       : (who ? '@' + esc(who) : '');
-    return '<div class="pet-card" data-id="' + esc(p.id) + '" style="background:' + C.bg + ';border:1px solid ' + C.border + ';border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s">' +
+    return '<div class="pet-card" data-id="' + esc(p.id) + '" tabindex="0" role="button" aria-label="查看 ' + esc(p.name || '未命名宠物') + ' 详情" style="background:' + C.bg + ';border:1px solid ' + C.border + ';border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s">' +
       '<div style="width:100%;height:130px;background:' + C.imgBg + ';position:relative">' +
       (img ? '<img src="' + esc(resolveImage(img)) + '" alt="' + esc(p.name) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.innerHTML=\'<div style=\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px\'>' + esc(petEmoji(p)) + '</div>\'">' : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:36px">' + esc(petEmoji(p)) + '</div>') +
       '</div>' +
@@ -740,8 +849,9 @@
         badge.style.color = liked ? C.danger : C.muted;
       }
     }
-    // likes 排序模式下点赞变化会影响顺序 → 重新拉取列表
-    if (sortMode === 'likes') { petCache.clear(); loadPets(); }
+    // P2-09：点赞改变 liked / likeCount，任何排序下都应失效缓存，避免切页/搜索时回旧值
+    petCache.clear();
+    if (sortMode === 'likes') loadPets();
     showToast(r.data.message || (liked ? '已点赞' : '已取消点赞'));
   }
 
@@ -752,7 +862,7 @@
     if (!r.ok || !r.data.pet) { showToast('加载详情失败', true); return; }
     const p = r.data.pet;
     const modal = $('#pet-detail-modal');
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px';
+    openPetModal(modal, { label: '宠物详情' });
 
     const images = p.images || [];
     const mainImg = images.length ? resolveImage(images[0]) : '';
@@ -863,6 +973,31 @@
     if (isNaN(d.getTime())) return '';
     const pad = n => String(n).padStart(2, '0');
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  /** 毫秒时长 → 人类可读（如「2 小时 15 分」「3 天」） */
+  function humanizeDuration(ms) {
+    if (!ms || ms < 0) return '';
+    const minutes = Math.floor(ms / 60000);
+    if (minutes < 1) return '不到 1 分钟';
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    const mins = minutes % 60;
+    if (days > 0) return days + ' 天' + (hours ? ' ' + hours + ' 小时' : '');
+    if (hours > 0) return hours + ' 小时' + (mins ? ' ' + mins + ' 分' : '');
+    return mins + ' 分钟';
+  }
+
+  /** 剪贴板 API 不可用时的兜底复制 */
+  function fallbackCopy(text, btn) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('✅ 已复制投稿 ID：' + text); } catch (e) { showToast('复制失败，请手动复制：' + text, true); }
+    document.body.removeChild(ta);
   }
 
   // ================== 图片灯箱（全屏查看，不跳新页面） ==================
@@ -984,7 +1119,7 @@
       return;
     }
     const modal = $('#pet-submit-modal');
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px';
+    openPetModal(modal, { label: '投稿新宠物' });
     modal.innerHTML =
       '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:540px;width:100%;max-height:90vh;overflow-y:auto;padding:26px 24px;position:relative">' +
       '<button id="pet-submit-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:26px;cursor:pointer;color:' + C.muted + '">✕</button>' +
@@ -1360,7 +1495,8 @@
         params.set('type', mineCategory);
       }
     }
-    if (mineDate) params.set('date', mineDate);
+    if (mineDate) params.set('start', mineDate);
+    if (mineDateEnd) params.set('end', mineDateEnd);
     params.set('sort', mineSort);
     params.set('page', String(minePage));
     params.set('pageSize', String(MINE_PAGE_SIZE));
@@ -1397,11 +1533,14 @@
       '</div>' +
       '<div id="pet-mine-status-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>' +
       '<div id="pet-mine-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
-      '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
+      '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" aria-label="搜索我的投稿" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
       '<select id="pet-mine-status" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="">全部状态</option><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已拒绝</option><option value="deleted">已删除</option></select>' +
       '<select id="pet-mine-category" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' + categoryOptions + '</select>' +
-      '<input id="pet-mine-date" type="date" title="按投稿日期筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
+      '<input id="pet-mine-date" type="date" title="按投稿日期范围（开始）筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
+      '<span style="font-size:12px;color:' + C.muted + '">至</span>' +
+      '<input id="pet-mine-date-end" type="date" title="按投稿日期范围（结束）筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
       '<select id="pet-mine-sort" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="updated">最近修改</option><option value="latest">最新投稿</option><option value="oldest">最早投稿</option><option value="name">名称</option><option value="status">状态</option></select>' +
+      '<button id="pet-mine-reset" title="一键重置所有筛选" style="padding:8px 12px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;color:' + C.fg + ';font-size:13px;cursor:pointer">↺ 重置</button>' +
       '</div>' +
       '<div id="pet-mine-list" aria-live="polite"></div>' +
       '<div id="pet-mine-pager" style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px"></div>' +
@@ -1430,7 +1569,26 @@
     $('#pet-mine-status').onchange = e => { mineStatus = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-category').onchange = e => { mineCategory = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-date').onchange = e => { mineDate = e.target.value; minePage = 1; loadMineSubmissions(); };
+    $('#pet-mine-date-end').onchange = e => {
+      mineDateEnd = e.target.value;
+      // 结束日期早于开始日期时自动对齐，避免空结果误导
+      if (mineDate && mineDateEnd && mineDateEnd < mineDate) mineDate = mineDateEnd;
+      minePage = 1; loadMineSubmissions();
+    };
     $('#pet-mine-sort').onchange = e => { mineSort = e.target.value; minePage = 1; loadMineSubmissions(); };
+    // P2-13：一键重置所有筛选（含日期范围、排序），恢复到默认列表。
+    const mineReset = $('#pet-mine-reset');
+    if (mineReset) mineReset.onclick = () => {
+      mineQuery = ''; mineStatus = ''; mineCategory = ''; mineDate = ''; mineDateEnd = '';
+      mineSort = 'updated'; minePage = 1;
+      $('#pet-mine-search').value = '';
+      $('#pet-mine-status').value = '';
+      $('#pet-mine-category').value = '';
+      $('#pet-mine-date').value = '';
+      $('#pet-mine-date-end').value = '';
+      $('#pet-mine-sort').value = 'updated';
+      loadMineSubmissions();
+    };
   }
 
   async function loadMineTypeOptions() {
@@ -1471,7 +1629,7 @@
     ];
     const countBox = $('#pet-mine-status-counts');
     if (countBox) countBox.innerHTML = countLabels.map(c =>
-      '<button class="pet-mine-count-btn" data-status="' + c[0] + '" style="padding:4px 9px;border:1px solid ' + (mineStatus === c[0] ? C.primary : C.border) + ';border-radius:14px;background:' + (mineStatus === c[0] ? C.primary : C.soft) + ';color:' + (mineStatus === c[0] ? '#fff' : C.fg) + ';font-size:12px;cursor:pointer">' + c[1] + ' ' + c[2] + '</button>'
+      '<button class="pet-mine-count-btn" data-status="' + c[0] + '" aria-pressed="' + (mineStatus === c[0] ? 'true' : 'false') + '" style="padding:4px 9px;border:1px solid ' + (mineStatus === c[0] ? C.primary : C.border) + ';border-radius:14px;background:' + (mineStatus === c[0] ? C.primary : C.soft) + ';color:' + (mineStatus === c[0] ? '#fff' : C.fg) + ';font-size:12px;cursor:pointer">' + c[1] + ' ' + c[2] + '</button>'
     ).join('');
     $all('.pet-mine-count-btn', sec).forEach(btn => {
       btn.onclick = () => {
@@ -1484,20 +1642,31 @@
     });
 
     if (!items.length) {
-      list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:28px 12px">' + (mineQuery || mineStatus || mineCategory || mineDate ? '没有符合筛选条件的投稿' : '你还没有投稿过，点击右上角“投稿”开始吧！🐾') + '</p>';
+      list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:28px 12px">' + (mineQuery || mineStatus || mineCategory || mineDate || mineDateEnd ? '没有符合筛选条件的投稿' : '你还没有投稿过，点击右上角“投稿”开始吧！🐾') + '</p>';
     } else {
       list.innerHTML = '<div style="display:flex;flex-direction:column;gap:7px">' + items.map(s => {
         const meta = mineStatusMeta(s.status);
         const thumb = s.thumbnail || (s.images && s.images[0]) || '';
         const disabled = s.status === 'deleted';
+        const actions = Array.isArray(s.availableActions) ? s.availableActions : [];
+        // 完整拒绝原因：若超过单行则列表内截断，但 title 与详情弹窗给出全文。
+        const rejectFull = s.status === 'rejected' && s.rejectReason ? s.rejectReason : '';
         return '<div class="pet-mine-row" data-id="' + esc(s.id) + '" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid ' + C.border + ';border-radius:10px;background:' + C.soft + ';min-width:0;flex-wrap:wrap">' +
           (thumb ? '<img src="' + esc(resolveImage(thumb)) + '" alt="" loading="lazy" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none">' : '<span style="width:46px;height:46px;border-radius:8px;background:' + C.imgBg + ';display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">' + esc(mineTypeIcon(s)) + '</span>') +
-          '<div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><strong style="font-size:14px;color:' + C.fgDark + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">' + (s.name ? esc(s.name) : '<span style="color:' + C.muted + '">🐾 未命名宠物</span>') + '</strong><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span></div><div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') + '</div>' + (s.status === 'rejected' && s.rejectReason ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🚫 ' + esc(s.rejectReason) + '</div>' : '') + '</div>' +
-          '<div style="display:flex;gap:5px;flex:none;margin-left:auto">' +
-          (!disabled && siteConfig.allowEdit && !siteConfig.maintenance ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
-          (s.status === 'rejected' && !siteConfig.maintenance ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
-          (!disabled && siteConfig.allowDelete && !siteConfig.maintenance ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +
-          (disabled ? '<span style="font-size:11px;color:' + C.muted + ';padding:6px 2px">可联系站长恢复</span>' : '') +
+          '<div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><strong style="font-size:14px;color:' + C.fgDark + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">' + (s.name ? esc(s.name) : '<span style="color:' + C.muted + '">🐾 未命名宠物</span>') + '</strong><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span>' +
+          '<button class="pet-mine-shortid" title="点击复制投稿 ID：' + esc(s.id) + '" style="font-size:11px;padding:2px 7px;border:1px dashed ' + C.border + ';border-radius:8px;background:' + C.bg + ';color:' + C.muted + ';cursor:pointer">#' + esc(s.shortId || String(s.id).replace(/^pet_/, '')) + '</button></div>' +
+          '<div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') +
+          (s.reviewAgeMs > 0 ? ' · 已等待 ' + esc(humanizeDuration(s.reviewAgeMs)) : '') + '</div>' +
+          (rejectFull ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(rejectFull) + '">🚫 ' + esc(rejectFull) + '</div>' : '') +
+          ((s.summaryFields && s.summaryFields.length) ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.summaryFields.map(f => esc(f.label) + ': ' + (typeof f.value === 'string' ? esc(f.value) : JSON.stringify(f.value))).join(' · ') + '</div>' : '') +
+          '</div>' +
+          '<div style="display:flex;gap:5px;flex:none;margin-left:auto;flex-wrap:wrap">' +
+          (actions.includes('view') ? '<button class="pet-view-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">👁️ 查看</button>' : '') +
+          (actions.includes('history') ? '<button class="pet-history-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.fg + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">🕘 历史</button>' : '') +
+          (actions.includes('edit') ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
+          (actions.includes('resubmit') ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
+          (actions.includes('delete') ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +
+          (actions.includes('restore') ? '<button class="pet-restore-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.success + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">♻️ 撤销删除</button>' : '') +
           '</div></div>';
       }).join('') + '</div>';
     }
@@ -1519,6 +1688,29 @@
     }
 
     $all('.pet-edit-btn', sec).forEach(btn => { btn.onclick = () => openEditModal(btn.dataset.id); });
+    $all('.pet-mine-shortid', sec).forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const fullId = btn.title.replace(/^点击复制投稿 ID：/, '').trim();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(fullId).then(() => showToast('✅ 已复制投稿 ID：' + fullId)).catch(() => fallbackCopy(fullId, btn));
+        } else fallbackCopy(fullId, btn);
+      };
+    });
+    $all('.pet-view-btn', sec).forEach(btn => { btn.onclick = () => openMineDetail(btn.dataset.id); });
+    $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
+    $all('.pet-restore-btn', sec).forEach(btn => {
+      btn.onclick = async () => {
+        if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
+        if (!confirm('♻️ 撤销删除该投稿吗？将恢复为删除前的状态。')) return;
+        const r = await apiSubmissionAction('POST', '/api/my/submissions/' + encodeURIComponent(btn.dataset.id) + '/restore', { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
+        showToast(r.data.message || (r.ok ? '已撤销删除' : '操作失败'), !r.ok);
+        if (r.ok) {
+          petCache.clear();
+          await loadMineSubmissions();
+        }
+      };
+    });
     $all('.pet-resubmit-btn', sec).forEach(btn => {
       btn.onclick = async () => {
         if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
@@ -1546,6 +1738,99 @@
         }
       };
     });
+  }
+
+  // ================== 我的投稿：纯查看详情（P2-13） ==================
+  // 不依赖编辑权限：维护模式 / 关闭编辑 / 已删除状态下也能查看完整内容。
+
+  async function openMineDetail(id) {
+    let r = await api('/api/my/submissions/' + encodeURIComponent(id));
+    let sub = r.ok && r.data ? (r.data.submission || r.data.item) : null;
+    if (!sub) { showToast((r.data && r.data.message) || '未找到投稿', true); return; }
+    const typeName = sub.type && sub.type.name ? sub.type.name : (sub.category || '未分类');
+    const meta = mineStatusMeta(sub.status);
+    const rows = [];
+    const pushRow = (label, emoji, value) => {
+      rows.push('<div style="display:flex;gap:10px;padding:10px 14px;background:' + C.soft + ';border-radius:10px;align-items:flex-start">' +
+        '<span style="font-size:15px;line-height:1.5">' + esc(emoji) + '</span>' +
+        '<div style="min-width:0;flex:1"><div style="font-size:12px;color:' + C.muted + ';margin-bottom:2px">' + esc(label) + '</div>' +
+        '<div style="font-size:13px;line-height:1.6;color:' + C.fg + ';word-break:break-word;white-space:pre-wrap">' +
+        (value ? esc(value) : '<span style="color:' + C.faint + '">暂未记录</span>') + '</div></div></div>');
+    };
+    pushRow('类型', mineTypeIcon(sub), typeName);
+    pushRow('发现地点', '📍', sub.location || '');
+    pushRow('外貌特征', '🐾', sub.appearance || '');
+    pushRow('性格特点', '💬', sub.personality || '');
+    pushRow('描述 / 留言', '📝', sub.description || '');
+    if (sub.status === 'rejected' && sub.rejectReason) pushRow('拒绝原因', '🚫', sub.rejectReason + (sub.rejectReason.includes('建议') ? '' : ''));
+    // 动态字段（与编辑弹窗一致的字段定义）
+    const defs = Array.isArray(sub.fieldDefinitions) && sub.fieldDefinitions.length ? sub.fieldDefinitions : [];
+    const values = Object.assign({}, sub.dynamicFields && typeof sub.dynamicFields === 'object' ? sub.dynamicFields : {});
+    defs.forEach(field => {
+      const key = field.key || field.fieldKey;
+      if (key === 'name') return;
+      if (values[key] === undefined || values[key] === '') return;
+      pushRow(field.label || key, fieldIcon(field), typeof values[key] === 'string' ? values[key] : JSON.stringify(values[key]));
+    });
+
+    const modal = $('#pet-detail-modal');
+    openPetModal(modal, { label: '投稿详情' });
+    modal.innerHTML =
+      '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:560px;width:100%;padding:24px;position:relative;max-height:90vh;overflow-y:auto">' +
+      '<button id="pet-detail-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
+      '<h2 style="margin:0 0 4px;font-size:19px;color:' + C.fgDark + '">👁️ 投稿详情</h2>' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:' + C.muted + ';margin-bottom:6px">' +
+        '<span style="padding:2px 8px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span>' +
+        (sub.shortId || sub.id ? '<span style="font-size:11px;padding:2px 8px;border:1px dashed ' + C.border + ';border-radius:8px;color:' + C.muted + '">#' + esc(sub.shortId || String(sub.id).replace(/^pet_/, '')) + '</span>' : '') +
+      '</div>' +
+      '<div style="font-size:13px;color:' + C.fg + ';margin-bottom:14px">' + (sub.name ? esc(sub.name) : '未命名宠物') + ' · ' + esc(typeName) + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">' + rows.join('') + '</div>' +
+      (sub.images && sub.images.length
+        ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' + sub.images.map(img => {
+            const url = typeof img === 'string' ? img : (img.url || '');
+            return url ? '<img src="' + esc(resolveImage(url)) + '" alt="" loading="lazy" style="width:72px;height:72px;object-fit:cover;border-radius:8px">' : '';
+          }).join('') + '</div>'
+        : '') +
+      '<div style="font-size:12px;color:' + C.faint + '">投稿于 ' + esc(formatDate(sub.createdAt)) + (sub.updatedAt && sub.updatedAt !== sub.createdAt ? ' · 更新于 ' + esc(formatDate(sub.updatedAt)) : '') + '</div>' +
+      '</div>';
+    $('#pet-detail-close').onclick = () => { modal.style.display = 'none'; };
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+  }
+
+  // ================== 我的投稿：历史弹窗（P2-13） ==================
+
+  async function openMineHistory(id) {
+    let r = await api('/api/my/submissions/' + encodeURIComponent(id) + '/history');
+    if (!r.ok) { showToast((r.data && r.data.message) || '加载历史失败', true); return; }
+    const history = (r.data && r.data.history) || [];
+    const modal = $('#pet-detail-modal');
+    openPetModal(modal, { label: '投稿历史' });
+    modal.innerHTML =
+      '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:520px;width:100%;padding:24px;position:relative;max-height:90vh;overflow-y:auto">' +
+      '<button id="pet-detail-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
+      '<h2 style="margin:0 0 14px;font-size:19px;color:' + C.fgDark + '">🕘 投稿历史</h2>' +
+      (history.length
+        ? '<div style="display:flex;flex-direction:column;gap:0">' + history.map((h, i) =>
+            '<div style="display:flex;gap:12px;position:relative;padding:0 0 16px">' +
+            (i < history.length - 1 ? '<span style="position:absolute;left:7px;top:18px;bottom:0;width:2px;background:' + C.border + '"></span>' : '') +
+            '<span style="width:16px;height:16px;border-radius:50%;background:' + C.primary + ';flex:none;margin-top:2px;z-index:1"></span>' +
+            '<div style="min-width:0;flex:1"><div style="font-size:13px;color:' + C.fgDark + ';font-weight:600">' + esc(h.label) + '</div>' +
+            (h.detail ? '<div style="font-size:12px;color:' + C.muted + ';margin-top:2px;word-break:break-word">' + esc(h.detail) + '</div>' : '') +
+            '<div style="font-size:11px;color:' + C.faint + ';margin-top:2px">' + esc(formatDateTime(h.createdAt)) + (h.actor ? ' · ' + esc(h.actor) : '') + '</div></div></div>'
+          ).join('') + '</div>'
+        : '<p style="color:' + C.muted + ';text-align:center;padding:18px 0">暂无历史记录</p>') +
+      '</div>';
+    $('#pet-detail-close').onclick = () => { modal.style.display = 'none'; };
+    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+  }
+
+  /** ISO 时间 → 本地完整时间（2026-08-07 14:03） */
+  function formatDateTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
   async function loadMineSubmissions() {
@@ -1626,7 +1911,7 @@
       : [];
 
     const modal = $('#pet-edit-modal');
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px';
+    openPetModal(modal, { label: '编辑投稿' });
     modal.innerHTML =
       '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:560px;width:100%;padding:24px;position:relative;max-height:90vh;overflow-y:auto">' +
       '<button id="pet-edit-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
@@ -1667,9 +1952,10 @@
         div.innerHTML =
           '<img src="' + esc(img.url || img.dataUrl || '') + '" style="width:100%;height:84px;object-fit:cover;display:block">' +
           '<div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:2px">' +
-            '<span data-act="del" title="删除" style="background:rgba(0,0,0,.62);color:#fff;border-radius:50%;width:20px;height:20px;text-align:center;line-height:20px;font-size:12px;cursor:pointer">✕</span>' +
-            '<span style="background:rgba(0,0,0,.62);color:#fff;border-radius:8px;padding:1px 6px;font-size:11px;line-height:18px;cursor:pointer">' +
-              '<span data-act="up" title="前移" style="margin-right:4px">▲</span><span data-act="down" title="后移">▼</span>' +
+            '<button type="button" data-act="del" title="删除" aria-label="删除图片" style="background:rgba(0,0,0,.62);color:#fff;border:none;border-radius:50%;width:24px;height:24px;text-align:center;line-height:1;font-size:12px;cursor:pointer;padding:0">✕</button>' +
+            '<span style="background:rgba(0,0,0,.62);color:#fff;border-radius:8px;padding:1px 2px;font-size:11px;line-height:18px;cursor:pointer">' +
+              '<button type="button" data-act="up" title="前移" aria-label="前移图片" style="background:none;border:none;color:#fff;font-size:11px;cursor:pointer;padding:2px;margin-right:2px">▲</button>' +
+              '<button type="button" data-act="down" title="后移" aria-label="后移图片" style="background:none;border:none;color:#fff;font-size:11px;cursor:pointer;padding:2px">▼</button>' +
             '</span>' +
           '</div>' +
           (index === 0 ? '<div style="position:absolute;left:4px;bottom:4px;background:var(--pet-primary,#93c5fd);color:#0b1220;border-radius:6px;font-size:10px;padding:1px 5px">封面</div>' : '');
@@ -1775,6 +2061,36 @@
 
   // ================== 初始化 ==================
 
+  // P2-09：OAuth postMessage 监听在宠物页初始化时安装（不等 init() 的多次
+  // 异步请求完成后再装，避免快速回调的登录窗口丢消息）。P2-10：经 addPetGlobal
+  // 统一登记，导航/多次初始化先移除上一轮再注册，不叠加。
+  // 回调页由后端 API 域提供（如 http://127.0.0.1:3005），主站域名不同（如 http://localhost:8000），
+  // 因此不能用同源校验（event.origin === location.origin 会丢弃所有回调）。
+  // 改为：①origin 必须是后端 API 的 origin（浏览器保证跨域消息 origin 不可伪造）；
+  //       ②若窗口引用可用（弹窗未被拦截），再校验发送者确实是我们打开的窗口。
+  function installOAuthListener() {
+    let apiOrigin = '';
+    try { apiOrigin = new URL(API_BASE).origin; } catch (e) { /* ignore */ }
+    addPetGlobal(window, 'message', function (event) {
+      if (apiOrigin && event.origin !== apiOrigin) return;
+      if (oauthWindow && event.source !== oauthWindow) return;
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'auth-success') {
+        localStorage.setItem(TOKEN_KEY, data.token);
+        user = data.user;
+        renderNav();
+        updateAuthUI();
+        showToast('✅ 已以 @' + displayName(user) + ' 身份登录');
+        // 登录后公开列表的 liked / likeCount 可能变化：失效图鉴缓存并刷新
+        petCache.clear();
+        loadPets();
+      } else if (data.type === 'auth-error') {
+        showToast(data.message || '登录失败', true);
+      }
+    });
+  }
+
   async function init() {
     // 注入弹窗细滚动条样式（细、圆角、融入卡片，避免系统粗滚动条破坏美观）
     if (!document.getElementById('pet-scroll-style')) {
@@ -1808,37 +2124,14 @@
     // 登录状态恢复（成功后重绘导航栏）
     await restoreSession();
 
-    // postMessage 监听（OAuth 回调）
-    // 回调页由后端 API 域提供（如 http://127.0.0.1:3005），主站域名不同（如 http://localhost:8000），
-    // 因此不能用同源校验（event.origin === location.origin 会丢弃所有回调）。
-    // 改为：①origin 必须是后端 API 的 origin（浏览器保证跨域消息 origin 不可伪造）；
-    //       ②若窗口引用可用（弹窗未被拦截），再校验发送者确实是我们打开的窗口。
-    let apiOrigin = '';
-    try { apiOrigin = new URL(API_BASE).origin; } catch (e) { /* ignore */ }
-    window.addEventListener('message', function (event) {
-      if (apiOrigin && event.origin !== apiOrigin) return;
-      if (oauthWindow && event.source !== oauthWindow) return;
-      const data = event.data;
-      if (!data || typeof data !== 'object') return;
-      if (data.type === 'auth-success') {
-        localStorage.setItem(TOKEN_KEY, data.token);
-        user = data.user;
-        renderNav();
-        updateAuthUI();
-        showToast('✅ 已以 @' + displayName(user) + ' 身份登录');
-      } else if (data.type === 'auth-error') {
-        showToast(data.message || '登录失败', true);
-      }
-    });
-
-    // 灯箱控制（全局绑定一次）
+    // 灯箱控制（全局绑定一次；P2-10：keydown 走统一登记，导航重跑不叠加）
     const lbEl = $('#pet-lightbox');
     if (lbEl) {
       lbEl.onclick = (e) => { if (e.target === lbEl) closeLightbox(); };
       const c = $('#pet-lightbox-close'); if (c) c.onclick = closeLightbox;
       const pv = $('#pet-lightbox-prev'); if (pv) pv.onclick = (e) => { e.stopPropagation(); lightboxStep(-1); };
       const nx = $('#pet-lightbox-next'); if (nx) nx.onclick = (e) => { e.stopPropagation(); lightboxStep(1); };
-      document.addEventListener('keydown', function (e) {
+      addPetGlobal(document, 'keydown', function (e) {
         if (lbEl.style.display === 'none') return;
         if (e.key === 'Escape') closeLightbox();
         if (e.key === 'ArrowLeft') lightboxStep(-1);
@@ -1850,10 +2143,27 @@
     await loadPets();
   }
 
-  // 页面就绪后初始化
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
+  // ================== P2-10 生命周期 ==================
+  // Material 即时导航：改用 document$ 订阅（每次导航完成都会触发），替代
+  // DOMContentLoaded。脚本只加载一次（即时导航不重跑 extra_javascript），
+  // 因此首帧必须无条件订阅；回调内按当前路径分流：
+  //   - 宠物页：清理上一轮监听 → 注册弹层/OAuth 监听 → init()
+  //   - 其他页：仅清理全局监听，不发起任何 /api 请求
+  // 非 Material 环境回退到 DOMContentLoaded。订阅存于 window.__petSub，
+  // 避免脚本被重复执行时叠加订阅。
+  function bootPets() {
+    disposePetGlobals();
+    if (!isPetPage()) return; // 非宠物页：零请求、零渲染
+    registerPopupClose();
+    installOAuthListener();
     init();
+  }
+  if (typeof document$ !== 'undefined' && document$ && document$.subscribe) {
+    if (window.__petSub) { try { window.__petSub.unsubscribe(); } catch (_) { /* ignore */ } }
+    window.__petSub = document$.subscribe(bootPets);
+  } else if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootPets);
+  } else {
+    bootPets();
   }
 })();

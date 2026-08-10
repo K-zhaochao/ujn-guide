@@ -59,6 +59,32 @@ hide:
   @media (max-width: 1100px) { .pet-grid { grid-template-columns: repeat(3, 1fr) !important; } }
   @media (max-width: 760px)  { .pet-grid { grid-template-columns: repeat(2, 1fr) !important; } }
   @media (max-width: 480px)  { .pet-grid { grid-template-columns: 1fr !important; } }
+
+  /* P2-14 无障碍：键盘焦点可见 */
+  .pet-card:focus-visible,
+  .pet-mine-row:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible {
+    outline: 2px solid var(--pet-primary, #3b82f6);
+    outline-offset: 2px;
+  }
+
+  /* P2-14 移动端：动态表单单列、触控目标 ≥ 44px、弹窗适配软键盘 */
+  @media (max-width: 640px) {
+    #pet-dynamic-fields,
+    #pet-edit-dynamic-fields { grid-template-columns: 1fr !important; }
+    #pet-submit-modal .pet-scroll,
+    #pet-edit-modal .pet-scroll,
+    #pet-detail-modal .pet-scroll { max-height: 78vh !important; padding-bottom: max(20px, env(safe-area-inset-bottom)) !important; }
+    .pet-mine-row button,
+    #pet-mine-status-counts button,
+    #pet-mine-filters button,
+    #pet-mine-pager button { min-height: 44px; }
+    #pet-mine-filters input[type=date] { min-height: 44px; }
+  }
 </style>
 
 !!! tip "📸 关于本栏目"
