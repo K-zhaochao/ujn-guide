@@ -1577,12 +1577,14 @@
           '<button class="pet-mine-shortid" title="点击复制投稿 ID：' + esc(s.id) + '" style="font-size:11px;padding:2px 7px;border:1px dashed ' + C.border + ';border-radius:8px;background:' + C.bg + ';color:' + C.muted + ';cursor:pointer">#' + esc(s.shortId || String(s.id).replace(/^pet_/, '')) + '</button></div>' +
           '<div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') +
           (s.reviewAgeMs > 0 ? ' · 已等待 ' + esc(humanizeDuration(s.reviewAgeMs)) : '') + '</div>' +
+          (s.pendingRevisionCount ? '<div style="font-size:12px;color:' + C.primary + ';margin-top:3px">📝 有 ' + Number(s.pendingRevisionCount) + ' 个公开修订待审核，当前页面仍展示已公开版本</div>' : '') +
           (rejectFull ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(rejectFull) + '">🚫 ' + esc(rejectFull) + '</div>' : '') +
           ((s.summaryFields && s.summaryFields.length) ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.summaryFields.map(f => esc(f.label) + ': ' + (typeof f.value === 'string' ? esc(f.value) : JSON.stringify(f.value))).join(' · ') + '</div>' : '') +
           '</div>' +
           '<div style="display:flex;gap:5px;flex:none;margin-left:auto;flex-wrap:wrap">' +
           (actions.includes('view') ? '<button class="pet-view-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">👁️ 查看</button>' : '') +
           (actions.includes('history') ? '<button class="pet-history-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.fg + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">🕘 历史</button>' : '') +
+          ((s.pendingRevisionCount || s.latestRevision) ? '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">📝 修订</button>' : '') +
           (actions.includes('edit') ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
           (actions.includes('resubmit') ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
           (actions.includes('delete') ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +
@@ -1619,6 +1621,7 @@
     });
     $all('.pet-view-btn', sec).forEach(btn => { btn.onclick = () => openMineDetail(btn.dataset.id); });
     $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
+    $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
     $all('.pet-restore-btn', sec).forEach(btn => {
       btn.onclick = async () => {
         if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
@@ -1742,6 +1745,58 @@
       '</div>';
     $('#pet-detail-close').onclick = () => { closePetModal(modal); };
     modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
+  }
+
+  // 已公开投稿的候选版本在服务端单独保存。这个视图让投稿人知道哪些
+  // 变更仍在审核、哪些被拒绝，而不会把候选内容误当作当前公开内容。
+  function revisionValue(value) {
+    if (value === null || value === undefined || value === '') return '未填写';
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  }
+
+  async function openMineRevisions(id) {
+    const r = await api('/api/my/submissions/' + encodeURIComponent(id) + '/revisions');
+    if (!r.ok) { showToast((r.data && r.data.message) || '加载修订失败', true); return; }
+    const revisions = (r.data && r.data.revisions) || [];
+    const labels = { pending: '待审核', approved: '已公开', rejected: '已拒绝', withdrawn: '已撤回', superseded: '已过期' };
+    const colors = { pending: C.primary, approved: C.success, rejected: C.danger, withdrawn: C.muted, superseded: C.muted };
+    const cards = revisions.map(revision => {
+      const diff = revision.diff || {};
+      const changes = [].concat(diff.changes || [], diff.fieldChanges || []).slice(0, 12);
+      const changeHtml = changes.length
+        ? '<div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">' + changes.map(change =>
+            '<div style="font-size:12px;color:' + C.fg + ';word-break:break-word"><strong>' + esc(change.key) + '</strong>：' + esc(revisionValue(change.from)) + ' → ' + esc(revisionValue(change.to)) + '</div>'
+          ).join('') + (diff.imagesChanged ? '<div style="font-size:12px;color:' + C.fg + '">图片顺序或内容已修改</div>' : '') + '</div>'
+        : (diff.imagesChanged ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:8px">图片顺序或内容已修改</div>' : '<div style="font-size:12px;color:' + C.muted + ';margin-top:8px">没有可展示的字段差异</div>');
+      return '<div style="padding:11px 12px;border:1px solid ' + C.border + ';border-radius:9px;background:' + C.soft + '">' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><strong style="font-size:13px;color:' + C.fgDark + '">' + esc(labels[revision.status] || revision.status) + '</strong>' +
+        '<span style="font-size:11px;color:' + (colors[revision.status] || C.muted) + '">提交于 ' + esc(formatDateTime(revision.createdAt)) + '</span>' +
+        (revision.source === 'admin' ? '<span style="font-size:11px;color:' + C.muted + '">管理员修订</span>' : '') + '</div>' +
+        changeHtml +
+        (revision.reviewReason ? '<div style="font-size:12px;color:' + (revision.status === 'rejected' ? C.danger : C.muted) + ';margin-top:8px">审核说明：' + esc(revision.reviewReason) + '</div>' : '') +
+        (revision.canWithdraw ? '<div style="margin-top:9px"><button class="pet-revision-withdraw" data-submission="' + esc(id) + '" data-id="' + esc(revision.id) + '" data-row="' + Number(revision.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.danger + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">撤回修订</button></div>' : '') +
+      '</div>';
+    }).join('') || '<p style="color:' + C.muted + ';text-align:center;padding:18px 0">暂无公开修订记录</p>';
+    const modal = $('#pet-detail-modal');
+    openPetModal(modal, { label: '公开修订' });
+    modal.innerHTML =
+      '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:620px;width:100%;padding:24px;position:relative;max-height:90vh;overflow-y:auto">' +
+      '<button id="pet-detail-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
+      '<h2 style="margin:0 0 5px;font-size:19px;color:' + C.fgDark + '">📝 公开修订</h2>' +
+      '<p style="font-size:12px;color:' + C.muted + ';line-height:1.6;margin:0 0 14px">待审核修订不会改变当前公开内容；审核通过后才会替换。</p>' +
+      '<div style="display:flex;flex-direction:column;gap:9px">' + cards + '</div></div>';
+    $('#pet-detail-close').onclick = () => { closePetModal(modal); };
+    modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
+    $all('.pet-revision-withdraw', modal).forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm('确定撤回这条待审修订吗？')) return;
+        const result = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(btn.dataset.submission) + '/revisions/' + encodeURIComponent(btn.dataset.id), {
+          rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.submission,
+        });
+        showToast(result.data.message || (result.ok ? '已撤回修订' : '撤回失败'), !result.ok);
+        if (result.ok) { closePetModal(modal); petCache.clear(); await loadMineSubmissions(); }
+      };
+    });
   }
 
   /** ISO 时间 → 本地完整时间（2026-08-07 14:03） */
