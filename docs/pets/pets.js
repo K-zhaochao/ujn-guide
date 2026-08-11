@@ -46,7 +46,6 @@
   const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
   let maxImagesLimit = MAX_IMAGES;
   const PAGE_SIZE = 24;
-  let csrfToken = '';
 
   // 官方品牌图标（内联 SVG，避免额外网络请求；path 取自官方 logo）
   const BRAND_ICONS = {
@@ -167,16 +166,8 @@
     })[c]);
   }
 
-  function safeHttpUrl(value) {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-    try {
-      const parsed = new URL(raw);
-      return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : '';
-    } catch (_) {
-      return '';
-    }
-  }
+  const petClient = window.UJNGuidePetClient;
+  const safeHttpUrl = petClient && petClient.safeHttpUrl;
 
   function typeForPet(p) {
     if (!p) return null;
@@ -304,44 +295,26 @@
 
   // ================== API ==================
 
+  if (!petClient || typeof petClient.createApiClient !== 'function' || typeof petClient.createAuthSession !== 'function') {
+    throw new Error('缺少 pets/pet-client.js，无法初始化宠物前端');
+  }
+  let authSession;
+  const apiClient = petClient.createApiClient({
+    baseUrl: API_BASE,
+    getCsrfToken: () => authSession ? authSession.getCsrfToken() : '',
+  });
+  authSession = petClient.createAuthSession({ request: apiClient.request });
+
   async function api(path, opts) {
-    opts = opts || {};
-    const headers = {};
-    const method = String(opts.method || 'GET').toUpperCase();
-    // P2-09：仅在有 body 时发送 Content-Type —— 匿名 GET 发送它会在跨域时
-    // 触发不必要的 OPTIONS 预检，拖慢首次渲染。
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
-    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken) headers['X-CSRF-Token'] = csrfToken;
-    // P2-09：统一超时 + AbortController，避免请求悬挂导致 UI 永远停在加载态
-    const ctrl = ('AbortController' in window) ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 15000) : null;
-    try {
-      const res = await fetch(API_BASE + path, {
-        method,
-        headers,
-        body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
-        credentials: 'same-origin',
-        signal: ctrl ? ctrl.signal : undefined,
-      });
-      const data = await res.json().catch(() => ({}));
-      // 会话失效时统一清理页面内状态，避免普通请求留下已登录假象。
-      if (res.status === 401 && user) {
-        const msg = (data && data.message) || '';
-        csrfToken = '';
-        user = null;
-        renderNav();
-        updateAuthUI();
-        if (/拉黑/.test(msg)) showToast('⚠️ ' + msg, true);
-      }
-      return { ok: res.ok, status: res.status, data };
-    } catch (e) {
-      if (e && e.name === 'AbortError') {
-        return { ok: false, status: 408, data: { message: '请求超时，请检查网络后重试' } };
-      }
-      return { ok: false, status: 0, data: { message: '网络错误，请稍后重试' } };
-    } finally {
-      if (timer) clearTimeout(timer);
+    const result = await authSession.request(path, opts);
+    if (result.sessionExpired) {
+      const msg = (result.data && result.data.message) || '';
+      user = null;
+      renderNav();
+      updateAuthUI();
+      if (/拉黑/.test(msg)) showToast('⚠️ ' + msg, true);
     }
+    return result;
   }
 
   // P1-03 自愈：投稿写操作遇到 ROW_VERSION_REQUIRED / SUBMISSION_CONFLICT 时，
@@ -367,20 +340,11 @@
   let oauthWindow = null;
   let oauthNonce = '';
 
-  function createOAuthNonce() {
-    if (!window.crypto || typeof window.crypto.getRandomValues !== 'function' || typeof window.btoa !== 'function') return '';
-    const bytes = new Uint8Array(32);
-    window.crypto.getRandomValues(bytes);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
   function openOAuth(provider) {
     const w = 620, h = 720;
     const left = (screen.width - w) / 2;
     const top = (screen.height - h) / 2;
-    const nonce = createOAuthNonce();
+    const nonce = petClient.createOAuthNonce(window.crypto, window.btoa);
     if (!nonce) {
       showToast('当前浏览器不支持安全登录，请升级浏览器后重试', true);
       return;
@@ -398,13 +362,11 @@
   }
 
   async function restoreSession() {
-    const r = await api('/api/auth/me');
+    const r = await authSession.restore();
     if (r.ok && r.data.success) {
-      user = r.data.user;
-      csrfToken = typeof r.data.csrfToken === 'string' ? r.data.csrfToken : '';
+      user = authSession.getUser();
     } else {
       const msg = (r.data && r.data.message) || '';
-      csrfToken = '';
       user = null;
       // P2-09：token 失效也会改变 liked / likeCount 展示，失效公开缓存
       petCache.clear();
@@ -418,12 +380,11 @@
   }
 
   async function logout() {
-    const result = await api('/api/auth/logout', { method: 'POST', body: {} });
+    const result = await authSession.logout();
     if (!result.ok && result.status !== 401) {
       showToast((result.data && result.data.message) || '退出登录失败，请重试', true);
       return;
     }
-    csrfToken = '';
     user = null;
     oauthNonce = '';
     closePop('pet-login-pop');

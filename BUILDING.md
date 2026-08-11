@@ -6,11 +6,14 @@
 python -m pip install -r requirements.txt
 npm ci
 npm run test:build
+npm run test:frontend
 npm run test:release
 npm run build
 ```
 
 `npm run build` 会执行 `mkdocs build --strict --clean`，由 `hooks/pagefind.py` 使用本地 `pagefind` 生成搜索索引，再验证 `site/pagefind/pagefind.js`、索引文件和已知的 `pets/index.html` 页面。
+
+`npm run test:frontend` 使用 Vitest + jsdom 运行宠物前端基础模块测试，当前覆盖同源 Cookie 请求、CSRF 头、会话恢复/失效/登出、OAuth nonce 和安全 URL。它不访问真实 API、OAuth 或图床。
 
 `npm run test:release` 验证同源 API 发布契约、release manifest、文件篡改拒绝与 health 对账。Linux 上的原子切换与回滚由 `scripts/release/` 提供；真实服务器配置和运维材料仅保存在本机 `deploy/` 目录。
 
