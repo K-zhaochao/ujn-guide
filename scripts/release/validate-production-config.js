@@ -53,6 +53,7 @@ function validateConfig(env, nginxText) {
 
   const port = Number(env.PORT);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) errors.push('PORT 必须是 1 到 65535 的整数');
+  if (String(env.BIND_HOST || '').trim() !== '127.0.0.1') errors.push('同源发布的 BIND_HOST 必须为 127.0.0.1');
   if (String(env.ADMIN_PATH || '').trim() !== '/admin') errors.push('同源发布的 ADMIN_PATH 必须为 /admin');
 
   const nginx = String(nginxText || '');

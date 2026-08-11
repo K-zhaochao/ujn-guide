@@ -11,6 +11,29 @@ npm run test:release
 npm run build
 ```
 
+## 宠物系统本地联调
+
+宠物页、API 和管理后台必须从同一个浏览器 origin 访问。先在 `server/.env`
+中保持 `BIND_HOST=127.0.0.1`、`PORT=3005`、
+`MAIN_SITE_URL=http://127.0.0.1:8000` 与
+`OAUTH_CALLBACK_BASE=http://127.0.0.1:8000/api/auth`，然后分别启动：
+
+```powershell
+cd server
+npm run dev
+```
+
+```powershell
+cd ..
+npm run build
+npm run dev:site
+```
+
+浏览器只访问 `http://127.0.0.1:8000/pets/` 和
+`http://127.0.0.1:8000/admin`。`3005` 是内部上游端口，不能直接打开其
+OAuth 回调或后台页面；本地代理和生产 Nginx 都会把 `/api/*`、`/admin`
+转发到该回环地址。
+
 `npm run build` 会执行 `mkdocs build --strict --clean`，由 `hooks/pagefind.py` 使用本地 `pagefind` 生成搜索索引，再验证 `site/pagefind/pagefind.js`、索引文件和已知的 `pets/index.html` 页面。
 
 `npm run test:frontend` 使用 Vitest + jsdom 运行宠物前端基础模块测试，当前覆盖同源 Cookie 请求、CSRF 头、会话恢复/失效/登出、OAuth nonce 和安全 URL，以及内容 schema 投影、字段展示、列表筛选参数、分页计算、OAuth 回调消息校验和弹窗焦点管理。它不访问真实 API、OAuth 或图床。
