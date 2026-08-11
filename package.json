@@ -9,7 +9,8 @@
   "scripts": {
     "build": "python scripts/build_site.py",
     "test:build": "python -m unittest discover -s tests -p test_*.py",
-    "verify:site": "python scripts/verify_site_build.py"
+    "verify:site": "python scripts/verify_site_build.py",
+    "verify": "powershell -ExecutionPolicy Bypass -File ./verify.ps1 -Target site"
   },
   "devDependencies": {
     "pagefind": "1.5.2"
