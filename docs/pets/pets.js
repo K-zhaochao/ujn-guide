@@ -31,13 +31,20 @@
   const petGlobals = window.__pet_globals || (window.__pet_globals = []);
   function disposePetGlobals() {
     while (petGlobals.length) {
-      const g = petGlobals.pop();
-      try { g.target.removeEventListener(g.type, g.fn); } catch (_) { /* ignore */ }
+      removePetGlobal(petGlobals[petGlobals.length - 1]);
     }
   }
   function addPetGlobal(target, type, fn) {
-    petGlobals.push({ target, type, fn });
+    const entry = { target, type, fn };
+    petGlobals.push(entry);
     target.addEventListener(type, fn);
+    return entry;
+  }
+  function removePetGlobal(entry) {
+    if (!entry) return;
+    try { entry.target.removeEventListener(entry.type, entry.fn); } catch (_) { /* ignore */ }
+    const index = petGlobals.indexOf(entry);
+    if (index >= 0) petGlobals.splice(index, 1);
   }
 
   // ================== 配置（无任何硬编码密钥） ==================
@@ -118,7 +125,10 @@
   let contentSchemaReady = false;
   const petClient = window.UJNGuidePetClient;
   const petViewModel = window.UJNGuidePetViewModel;
+  const petOAuth = window.UJNGuidePetOAuth;
+  const petModal = window.UJNGuidePetModal;
   const safeHttpUrl = petClient && petClient.safeHttpUrl;
+  let modalController = null;
 
   function applyContentSchema(config, schema) {
     const projection = petViewModel && petViewModel.projectContentSchema(config, schema, MAX_IMAGES);
@@ -192,38 +202,17 @@
   //   - role=dialog + aria-modal + aria-label（屏幕阅读器语义）
   //   - Esc 关闭 + 焦点恢复
   //   - 打开时记录触发元素，关闭时恢复焦点
-  // 同一 modal 重复打开会先移除上一轮 Esc 监听，避免叠加。
+  // 弹窗控制器统一处理重复打开、Esc 监听清理和焦点恢复。
   function openPetModal(modal, opts) {
     opts = opts || {};
-    if (!modal) return;
-    const previous = document.activeElement;
-    // 防叠加：先移除该 modal 之前注册的 Esc 监听
-    if (modal._escEntry) {
-      try { modal._escEntry.target.removeEventListener(modal._escEntry.type, modal._escEntry.fn); } catch (_) { /* ignore */ }
-      const idx = petGlobals.indexOf(modal._escEntry);
-      if (idx >= 0) petGlobals.splice(idx, 1);
-      modal._escEntry = null;
-    }
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    if (opts.label) modal.setAttribute('aria-label', opts.label);
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px';
-    const onKey = function (e) {
-      if (e.key !== 'Escape') return;
-      if (opts.onClose) opts.onClose();
-      else modal.style.display = 'none';
-      if (previous && previous.focus && typeof previous.focus === 'function') previous.focus();
-    };
-    const entry = { target: document, type: 'keydown', fn: onKey };
-    modal._escEntry = entry;
-    petGlobals.push(entry);
-    document.addEventListener('keydown', onKey);
-    // 首次打开聚焦到弹窗内第一个可聚焦元素（含关闭按钮）
-    requestAnimationFrame(() => {
-      const first = modal.querySelector('button, input, select, textarea, [tabindex]');
-      if (first && first.focus) first.focus();
+    return modalController.open(modal, {
+      label: opts.label,
+      style: 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px',
     });
-    return modal;
+  }
+
+  function closePetModal(modal) {
+    modalController.close(modal);
   }
 
   function resolveImage(url) {
@@ -241,9 +230,20 @@
   // ================== API ==================
 
   if (!petClient || typeof petClient.createApiClient !== 'function' || typeof petClient.createAuthSession !== 'function' ||
-      !petViewModel || typeof petViewModel.projectContentSchema !== 'function') {
+      !petViewModel || typeof petViewModel.projectContentSchema !== 'function' ||
+      !petOAuth || typeof petOAuth.createOAuthTransaction !== 'function' ||
+      !petModal || typeof petModal.createModalController !== 'function') {
     throw new Error('缺少宠物前端基础模块，无法初始化宠物页面');
   }
+  modalController = petModal.createModalController({
+    document,
+    requestAnimationFrame: typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : undefined,
+    registerListener: addPetGlobal,
+    unregisterListener: removePetGlobal,
+  });
+  const oauthTransaction = petOAuth.createOAuthTransaction({
+    origin: petOAuth.resolveOrigin(API_BASE || location.origin, location.origin),
+  });
   let authSession;
   const apiClient = petClient.createApiClient({
     baseUrl: API_BASE,
@@ -283,9 +283,6 @@
 
   // 记录我们打开的 OAuth 窗口引用：登录回调窗口通过 postMessage 回传 token，
   // 监听端同时校验窗口引用和本次交易 nonce，防止可信 origin 内的其他窗口伪造消息。
-  let oauthWindow = null;
-  let oauthNonce = '';
-
   function openOAuth(provider) {
     const w = 620, h = 720;
     const left = (screen.width - w) / 2;
@@ -303,8 +300,7 @@
       showToast('登录窗口被浏览器拦截，请允许弹窗后重试', true);
       return;
     }
-    oauthWindow = openedWindow;
-    oauthNonce = nonce;
+    oauthTransaction.start(openedWindow, nonce);
   }
 
   async function restoreSession() {
@@ -332,7 +328,7 @@
       return;
     }
     user = null;
-    oauthNonce = '';
+    oauthTransaction.clear();
     closePop('pet-login-pop');
     closePop('pet-rename-pop');
     $('#pet-mine-section').style.display = 'none';
@@ -875,11 +871,11 @@
 
       '</div>';
 
-    $('#pet-detail-close').onclick = () => { modal.style.display = 'none'; };
+    $('#pet-detail-close').onclick = () => { closePetModal(modal); };
     // 主图点击 → 灯箱全屏查看（不再新开标签页）
     const detailMain = modal.querySelector('#pet-detail-main');
     if (detailMain) detailMain.onclick = () => openLightbox(images.map(resolveImage), detailIdx);
-    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
     $('#pet-like-btn').onclick = (e) => { e.stopPropagation(); toggleLike(p.id, e.currentTarget); };
 
     // 缩略图切换主图
@@ -1306,7 +1302,7 @@
 
   function closeSubmitModal() {
     const m = $('#pet-submit-modal');
-    if (m) m.style.display = 'none';
+    if (m) closePetModal(m);
   }
 
   /** 投稿模态框内：登录区 / 已登录状态 */
@@ -1724,8 +1720,8 @@
         : '') +
       '<div style="font-size:12px;color:' + C.faint + '">投稿于 ' + esc(formatDate(sub.createdAt)) + (sub.updatedAt && sub.updatedAt !== sub.createdAt ? ' · 更新于 ' + esc(formatDate(sub.updatedAt)) : '') + '</div>' +
       '</div>';
-    $('#pet-detail-close').onclick = () => { modal.style.display = 'none'; };
-    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    $('#pet-detail-close').onclick = () => { closePetModal(modal); };
+    modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
   }
 
   // ================== 我的投稿：历史弹窗（P2-13） ==================
@@ -1751,8 +1747,8 @@
           ).join('') + '</div>'
         : '<p style="color:' + C.muted + ';text-align:center;padding:18px 0">暂无历史记录</p>') +
       '</div>';
-    $('#pet-detail-close').onclick = () => { modal.style.display = 'none'; };
-    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    $('#pet-detail-close').onclick = () => { closePetModal(modal); };
+    modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
   }
 
   /** ISO 时间 → 本地完整时间（2026-08-07 14:03） */
@@ -1868,9 +1864,9 @@
       '</div>' +
       '</div>';
 
-    $('#pet-edit-close').onclick = () => { modal.style.display = 'none'; };
-    $('#pet-edit-cancel').onclick = () => { modal.style.display = 'none'; };
-    modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+    $('#pet-edit-close').onclick = () => { closePetModal(modal); };
+    $('#pet-edit-cancel').onclick = () => { closePetModal(modal); };
+    modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
 
     // ---- P1-05：编辑图片交互 ----
     const editImagesRoot = $('#pet-edit-images');
@@ -1969,7 +1965,7 @@
       saveButton.textContent = '保存修改';
       showToast(up.data.message || (up.ok ? '已保存' : '保存失败'), !up.ok);
       if (up.ok) {
-        modal.style.display = 'none';
+        closePetModal(modal);
         petCache.clear();
         openMineSection();
         loadPets();
@@ -1997,18 +1993,10 @@
   // 统一登记，导航/多次初始化先移除上一轮再注册，不叠加。
   // 回调页通过同源 /api 提供。origin、窗口引用、消息结构和本次 nonce 都必须匹配。
   function installOAuthListener() {
-    let apiOrigin = '';
-    try { apiOrigin = new URL(API_BASE || location.origin, location.origin).origin; } catch (e) { /* ignore */ }
     addPetGlobal(window, 'message', async function (event) {
-      if (!apiOrigin || event.origin !== apiOrigin) return;
-      if (!oauthWindow || event.source !== oauthWindow) return;
-      const data = event.data;
-      if (!data || typeof data !== 'object') return;
-      if ((data.type !== 'auth-success' && data.type !== 'auth-error') || data.nonce !== oauthNonce) return;
-      if (data.type === 'auth-success') {
-        if (!data.user || typeof data.user !== 'object') return;
-        oauthWindow = null;
-        oauthNonce = '';
+      const message = oauthTransaction.consume(event);
+      if (!message) return;
+      if (message.type === 'auth-success') {
         await restoreSession();
         if (!user) {
           showToast('登录状态未建立，请重新登录', true);
@@ -2018,11 +2006,8 @@
         // 登录后公开列表的 liked / likeCount 可能变化：失效图鉴缓存并刷新
         petCache.clear();
         loadPets();
-      } else if (data.type === 'auth-error') {
-        if (typeof data.message !== 'string') return;
-        oauthWindow = null;
-        oauthNonce = '';
-        showToast(data.message || '登录失败', true);
+      } else if (message.type === 'auth-error') {
+        showToast(message.message || '登录失败', true);
       }
     });
   }

@@ -112,7 +112,9 @@ extra_javascript:
   - javascripts/mathjax.js
   - pets/pet-client.js?v=20260811-1
   - pets/pet-view-model.js?v=20260811-1
-  - pets/pets.js?v=20260811-3
+  - pets/pet-oauth.js?v=20260811-1
+  - pets/pet-modal.js?v=20260811-1
+  - pets/pets.js?v=20260811-4
 
 nav:
   - 首页: index.md
