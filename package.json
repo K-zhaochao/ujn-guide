@@ -8,7 +8,9 @@
   },
   "scripts": {
     "build": "python scripts/build_site.py",
+    "dev:site": "node scripts/dev/local-proxy.js",
     "test:build": "python -m unittest discover -s tests -p test_*.py",
+    "test:dev": "node --test tests/dev/*.test.js",
     "test:frontend": "vitest run",
     "test:release": "node --test tests/release/release-manifest.test.js",
     "verify:site": "python scripts/verify_site_build.py",
