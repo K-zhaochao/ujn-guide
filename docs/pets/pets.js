@@ -363,15 +363,38 @@
   // ================== 认证 ==================
 
   // 记录我们打开的 OAuth 窗口引用：登录回调窗口通过 postMessage 回传 token，
-  // 监听端用它校验发送者，防止恶意站点伪造消息。
+  // 监听端同时校验窗口引用和本次交易 nonce，防止可信 origin 内的其他窗口伪造消息。
   let oauthWindow = null;
+  let oauthNonce = '';
+
+  function createOAuthNonce() {
+    if (!window.crypto || typeof window.crypto.getRandomValues !== 'function' || typeof window.btoa !== 'function') return '';
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
 
   function openOAuth(provider) {
     const w = 620, h = 720;
     const left = (screen.width - w) / 2;
     const top = (screen.height - h) / 2;
-    oauthWindow = window.open(API_BASE + '/api/auth/' + provider + '/login', 'oauth',
+    const nonce = createOAuthNonce();
+    if (!nonce) {
+      showToast('当前浏览器不支持安全登录，请升级浏览器后重试', true);
+      return;
+    }
+    const loginUrl = new URL(API_BASE + '/api/auth/' + encodeURIComponent(provider) + '/login', location.href);
+    loginUrl.searchParams.set('nonce', nonce);
+    const openedWindow = window.open(loginUrl.href, 'oauth',
       'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top);
+    if (!openedWindow) {
+      showToast('登录窗口被浏览器拦截，请允许弹窗后重试', true);
+      return;
+    }
+    oauthWindow = openedWindow;
+    oauthNonce = nonce;
   }
 
   async function restoreSession() {
@@ -397,6 +420,7 @@
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     user = null;
+    oauthNonce = '';
     closePop('pet-login-pop');
     closePop('pet-rename-pop');
     $('#pet-mine-section').style.display = 'none';
@@ -2065,17 +2089,20 @@
   // P2-09：OAuth postMessage 监听在宠物页初始化时安装（不等 init() 的多次
   // 异步请求完成后再装，避免快速回调的登录窗口丢消息）。P2-10：经 addPetGlobal
   // 统一登记，导航/多次初始化先移除上一轮再注册，不叠加。
-  // 回调页通过同源 /api 提供。origin 必须等于当前站点，且在弹窗引用可用时
-  // 继续校验发送者确实是本页打开的窗口。
+  // 回调页通过同源 /api 提供。origin、窗口引用、消息结构和本次 nonce 都必须匹配。
   function installOAuthListener() {
     let apiOrigin = '';
     try { apiOrigin = new URL(API_BASE || location.origin, location.origin).origin; } catch (e) { /* ignore */ }
     addPetGlobal(window, 'message', function (event) {
-      if (apiOrigin && event.origin !== apiOrigin) return;
-      if (oauthWindow && event.source !== oauthWindow) return;
+      if (!apiOrigin || event.origin !== apiOrigin) return;
+      if (!oauthWindow || event.source !== oauthWindow) return;
       const data = event.data;
       if (!data || typeof data !== 'object') return;
+      if ((data.type !== 'auth-success' && data.type !== 'auth-error') || data.nonce !== oauthNonce) return;
       if (data.type === 'auth-success') {
+        if (typeof data.token !== 'string' || !data.token || !data.user || typeof data.user !== 'object') return;
+        oauthWindow = null;
+        oauthNonce = '';
         localStorage.setItem(TOKEN_KEY, data.token);
         user = data.user;
         renderNav();
@@ -2085,6 +2112,9 @@
         petCache.clear();
         loadPets();
       } else if (data.type === 'auth-error') {
+        if (typeof data.message !== 'string') return;
+        oauthWindow = null;
+        oauthNonce = '';
         showToast(data.message || '登录失败', true);
       }
     });
