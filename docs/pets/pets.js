@@ -116,35 +116,18 @@
   let siteConfig = { allowSubmit: true, allowEdit: true, allowDelete: true, maintenance: false, schemaVersion: null };
   let contentSchema = { schemaVersion: null, types: [], fields: [], bindings: [], constraints: { maxImages: MAX_IMAGES } };
   let contentSchemaReady = false;
+  const petClient = window.UJNGuidePetClient;
+  const petViewModel = window.UJNGuidePetViewModel;
+  const safeHttpUrl = petClient && petClient.safeHttpUrl;
 
   function applyContentSchema(config, schema) {
-    const source = schema && Array.isArray(schema.types) ? schema : (config || {});
-    if (!source || !Array.isArray(source.types)) return false;
-    contentSchema = {
-      schemaVersion: source.schemaVersion || (config && config.schemaVersion) || null,
-      types: source.types || [],
-      fields: source.fields || [],
-      bindings: source.bindings || [],
-      constraints: source.constraints || { maxImages: MAX_IMAGES },
-    };
-    maxImagesLimit = Math.max(1, Number(contentSchema.constraints.maxImages) || MAX_IMAGES);
-    const mapType = type => ({
-      id: type.id,
-      code: type.code,
-      key: type.name,
-      emoji: type.icon || '🐾',
-      acceptSubmission: type.acceptSubmission !== false,
-      metadata: type.metadata && typeof type.metadata === 'object' ? type.metadata : {},
-    });
-    CATEGORIES = contentSchema.types
-      .filter(type => type.visible !== false && !type.archived && !type.archivedAt)
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-      .map(mapType);
-    SUBMISSION_TYPES = contentSchema.types
-      .filter(type => type.acceptSubmission !== false && !type.archived && !type.archivedAt)
-      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
-      .map(mapType);
-    catEmoji = Object.fromEntries(contentSchema.types.map(type => [type.name, type.icon || '🐾']));
+    const projection = petViewModel && petViewModel.projectContentSchema(config, schema, MAX_IMAGES);
+    if (!projection) return false;
+    contentSchema = projection.contentSchema;
+    maxImagesLimit = projection.maxImagesLimit;
+    CATEGORIES = projection.categories;
+    SUBMISSION_TYPES = projection.submissionTypes;
+    catEmoji = projection.categoryEmoji;
     siteConfig.schemaVersion = contentSchema.schemaVersion;
     contentSchemaReady = true;
     return true;
@@ -166,61 +149,23 @@
     })[c]);
   }
 
-  const petClient = window.UJNGuidePetClient;
-  const safeHttpUrl = petClient && petClient.safeHttpUrl;
-
   function typeForPet(p) {
-    if (!p) return null;
-    const raw = p.type || {};
-    return CATEGORIES.find(type =>
-      (raw.id != null && String(type.id) === String(raw.id)) ||
-      (raw.code && type.code === raw.code) ||
-      type.key === (raw.name || p.category)
-    ) || null;
+    return petViewModel.typeForPet(p, CATEGORIES);
   }
 
   function petEmoji(p) {
-    return (p && p.type && p.type.icon) || (typeForPet(p) || {}).emoji || catEmoji[p && p.category] || '🐾';
+    return petViewModel.petEmoji(p, CATEGORIES, catEmoji);
   }
 
-  function fieldKey(field) { return field && (field.key || field.fieldKey) || ''; }
+  function fieldKey(field) { return petViewModel.fieldKey(field); }
 
-  function fieldIcon(field) {
-    if (field && field.icon) return field.icon;
-    return { location: '📍', appearance: '🎨', personality: '💕', description: '📝' }[fieldKey(field)] || '•';
-  }
+  function fieldIcon(field) { return petViewModel.fieldIcon(field); }
 
-  function fieldDisplayValue(field, value) {
-    if (value === undefined || value === null || value === '') return '';
-    const options = Array.isArray(field && field.options) ? field.options : [];
-    const labels = new Map(options.map(option => [String(option.code || option.optionCode), option.label || option.code || option.optionCode]));
-    const mapOption = item => labels.get(String(item)) || String(item);
-    if (Array.isArray(value)) return value.map(mapOption).join('、');
-    if ((field && field.dataType) === 'boolean' || typeof value === 'boolean') return value ? '是' : '否';
-    if ((field && field.dataType) === 'select') return mapOption(value);
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
-  }
+  function fieldDisplayValue(field, value) { return petViewModel.fieldDisplayValue(field, value); }
 
-  function legacyPublicDefinitions(p, context) {
-    const fields = [
-      { key: 'location', label: '常出没地点', dataType: 'location' },
-      { key: 'appearance', label: '外貌特征', dataType: 'textarea' },
-      { key: 'personality', label: '性格特点', dataType: 'textarea' },
-      { key: 'description', label: '补充描述', dataType: 'textarea' },
-    ];
-    return fields.filter(field =>
-      p && Object.prototype.hasOwnProperty.call(p, field.key) && (context !== 'card' || field.key === 'location')
-    );
-  }
+  function legacyPublicDefinitions(p, context) { return petViewModel.legacyPublicDefinitions(p, context); }
 
-  function publicFieldEntries(p, context) {
-    const definitions = Array.isArray(p && p.fieldDefinitions) && p.fieldDefinitions.length
-      ? p.fieldDefinitions
-      : legacyPublicDefinitions(p, context);
-    const values = Object.assign({}, p || {}, p && p.fields && typeof p.fields === 'object' ? p.fields : {});
-    return definitions.map(field => ({ field, value: values[fieldKey(field)] }));
-  }
+  function publicFieldEntries(p, context) { return petViewModel.publicFieldEntries(p, context); }
 
   function showToast(msg, isError) {
     let t = document.getElementById('pet-toast');
@@ -295,8 +240,9 @@
 
   // ================== API ==================
 
-  if (!petClient || typeof petClient.createApiClient !== 'function' || typeof petClient.createAuthSession !== 'function') {
-    throw new Error('缺少 pets/pet-client.js，无法初始化宠物前端');
+  if (!petClient || typeof petClient.createApiClient !== 'function' || typeof petClient.createAuthSession !== 'function' ||
+      !petViewModel || typeof petViewModel.projectContentSchema !== 'function') {
+    throw new Error('缺少宠物前端基础模块，无法初始化宠物页面');
   }
   let authSession;
   const apiClient = petClient.createApiClient({
@@ -644,16 +590,14 @@
     const gallery = $('#pet-gallery');
     if (!gallery) return;
 
-    const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (currentFilter !== '全部') {
-      const selectedType = CATEGORIES.find(c => c.key === currentFilter);
-      if (selectedType && selectedType.id != null) params.set('typeId', selectedType.id);
-      else params.set('category', currentFilter);
-    }
-    params.set('sort', sortMode);
-    params.set('page', currentPage);
-    params.set('pageSize', PAGE_SIZE);
+    const params = new URLSearchParams(petViewModel.buildPetListQuery({
+      searchQuery,
+      currentFilter,
+      categories: CATEGORIES,
+      sortMode,
+      currentPage,
+      pageSize: PAGE_SIZE,
+    }));
     const cacheKey = params.toString();
     const requestSeq = ++petRequestId;
 
@@ -764,11 +708,7 @@
 
   /** 生成页码数字按钮（当前页前后各 2 页 + 首尾） */
   function paginationNumbers() {
-    const pages = [];
-    const push = p => { if (!pages.includes(p)) pages.push(p); };
-    for (let p = 1; p <= totalPages; p++) {
-      if (p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2) push(p);
-    }
+    const pages = petViewModel.paginationPages(totalPages, currentPage);
     const html = [];
     for (let i = 0; i < pages.length; i++) {
       const p = pages[i];

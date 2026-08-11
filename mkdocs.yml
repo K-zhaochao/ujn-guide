@@ -111,7 +111,8 @@ extra:
 extra_javascript:
   - javascripts/mathjax.js
   - pets/pet-client.js?v=20260811-1
-  - pets/pets.js?v=20260811-2
+  - pets/pet-view-model.js?v=20260811-1
+  - pets/pets.js?v=20260811-3
 
 nav:
   - 首页: index.md
