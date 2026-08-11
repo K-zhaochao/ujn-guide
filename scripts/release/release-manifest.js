@@ -95,7 +95,7 @@ function assertSameOriginFrontEnd(sourceRoot) {
 function readRuntimeTemplate(sourceRoot) {
   const template = path.join(sourceRoot, 'scripts', 'release', 'templates', 'ujn-guide-nginx.conf');
   const contents = fs.readFileSync(template, 'utf8');
-  for (const fragment of ['location /api/', 'location = /admin', 'proxy_pass http://127.0.0.1:$backend_port', 'root $release_root/current/site']) {
+  for (const fragment of ['location ^~ /api/', 'location = /admin', 'location ^~ /admin/', 'proxy_pass http://127.0.0.1:$backend_port', 'root $release_root/current/site']) {
     if (!contents.includes(fragment)) throw new Error(`Nginx 发布模板缺少同源接线：${fragment}`);
   }
   return { path: template, sha256: sha256File(template) };

@@ -28,8 +28,9 @@ function makeFixture() {
   write(path.join(source, 'docs', 'pets', 'pets.js'), "const API_BASE = '';\n");
   write(path.join(source, 'scripts', 'release', 'templates', 'ujn-guide-nginx.conf'), [
     'root $release_root/current/site;',
-    'location /api/ { proxy_pass http://127.0.0.1:$backend_port; }',
+    'location ^~ /api/ { proxy_pass http://127.0.0.1:$backend_port; }',
     'location = /admin { proxy_pass http://127.0.0.1:$backend_port; }',
+    'location ^~ /admin/ { proxy_pass http://127.0.0.1:$backend_port; }',
   ].join('\n'));
   write(path.join(server, 'package.json'), JSON.stringify({ name: 'fixture-server', version: '5.0.0' }));
   write(path.join(server, 'routes', 'admin-ui.js'), 'module.exports = {};\n');
@@ -138,11 +139,14 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
     'ADMIN_PATH=/admin',
   ].join('\n'));
   const nginx = [
-    'location /api/ { proxy_pass http://127.0.0.1:3100; }',
+    'location ^~ /api/ { proxy_pass http://127.0.0.1:3100; }',
     'location = /admin { proxy_pass http://127.0.0.1:3100; }',
-    'location /admin/ { proxy_pass http://127.0.0.1:3100; }',
+    'location ^~ /admin/ { proxy_pass http://127.0.0.1:3100; }',
   ].join('\n');
   assert.deepEqual(validateConfig(env, nginx), { ok: true, errors: [] });
+  const legacyLocations = validateConfig(env, nginx.replaceAll('^~ ', ''));
+  assert.equal(legacyLocations.ok, false);
+  assert.ok(legacyLocations.errors.includes('Nginx 缺少高优先级 /api/ 反向代理'));
   const invalid = validateConfig({ ...env, OAUTH_CALLBACK_BASE: 'http://127.0.0.1:3100/api/auth' }, nginx.replaceAll(':3100', ':3000'));
   assert.equal(invalid.ok, false);
   assert.ok(invalid.errors.includes('OAUTH_CALLBACK_BASE 必须等于 MAIN_SITE_URL + /api/auth'));

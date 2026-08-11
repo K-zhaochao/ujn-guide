@@ -35,6 +35,10 @@ function parseHttpsOrigin(name, raw, errors) {
   }
 }
 
+function hasLocation(nginx, pattern) {
+  return pattern.test(String(nginx || ''));
+}
+
 function validateConfig(env, nginxText) {
   const errors = [];
   const mainSite = parseHttpsOrigin('MAIN_SITE_URL', env.MAIN_SITE_URL, errors);
@@ -52,8 +56,13 @@ function validateConfig(env, nginxText) {
   if (String(env.ADMIN_PATH || '').trim() !== '/admin') errors.push('同源发布的 ADMIN_PATH 必须为 /admin');
 
   const nginx = String(nginxText || '');
-  if (!nginx.includes('location /api/')) errors.push('Nginx 缺少 /api/ 反向代理');
-  if (!nginx.includes('location = /admin') || !nginx.includes('location /admin/')) errors.push('Nginx 缺少 /admin 反向代理');
+  if (!hasLocation(nginx, /(^|\n)\s*location\s+\^~\s+\/api\/\s*\{/m)) {
+    errors.push('Nginx 缺少高优先级 /api/ 反向代理');
+  }
+  if (!hasLocation(nginx, /(^|\n)\s*location\s*=\s*\/admin\s*\{/m)
+    || !hasLocation(nginx, /(^|\n)\s*location\s+\^~\s+\/admin\/\s*\{/m)) {
+    errors.push('Nginx 缺少 /admin 反向代理');
+  }
   if (Number.isSafeInteger(port) && !new RegExp(`proxy_pass\\s+http://127\\.0\\.0\\.1:${port}(?:[;\\s])`).test(nginx)) {
     errors.push('Nginx 反向代理端口与 PORT 不一致');
   }
