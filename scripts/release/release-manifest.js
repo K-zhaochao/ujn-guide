@@ -26,13 +26,14 @@ function sha256File(file) {
   return hash.digest('hex');
 }
 
-function hashDirectory(directory, { excludeNames = new Set() } = {}) {
+function hashDirectory(directory, { excludeNames = new Set(), includeFiles = false } = {}) {
   const root = path.resolve(directory);
   const rootStat = fs.lstatSync(root);
   if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw new Error(`必须是普通目录：${root}`);
   const hash = crypto.createHash('sha256');
   let fileCount = 0;
   let totalBytes = 0;
+  const files = includeFiles ? [] : null;
   function walk(current, relative = '') {
     const entries = fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
@@ -48,13 +49,48 @@ function hashDirectory(directory, { excludeNames = new Set() } = {}) {
         hash.update(`file\0${rel}\0${stat.size}\0${digest}\n`);
         fileCount++;
         totalBytes += stat.size;
+        if (files) files.push({ path: rel, size: stat.size, sha256: digest });
       } else {
         throw new Error(`release 不允许非常规文件：${absolute}`);
       }
     }
   }
   walk(root);
-  return { sha256: hash.digest('hex'), fileCount, totalBytes };
+  const result = { sha256: hash.digest('hex'), fileCount, totalBytes };
+  if (files) result.files = files;
+  return result;
+}
+
+const REQUIRED_ADMIN_UI_FILES = Object.freeze([
+  'routes/admin-ui.js',
+  'public/admin-ui-state.js',
+  'public/favicon.svg',
+]);
+
+function assertRegularFile(file) {
+  const stat = fs.lstatSync(file);
+  if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`管理后台资源必须是普通文件：${file}`);
+  return stat;
+}
+
+function hashAdminUiAssets(serverDir) {
+  const server = path.resolve(serverDir);
+  for (const relative of REQUIRED_ADMIN_UI_FILES) assertRegularFile(path.join(server, relative));
+
+  const shell = path.join(server, 'routes', 'admin-ui.js');
+  const shellStat = assertRegularFile(shell);
+  const staticAssets = hashDirectory(path.join(server, 'public'), { includeFiles: true });
+  const files = [
+    { path: 'server/routes/admin-ui.js', size: shellStat.size, sha256: sha256File(shell) },
+    ...staticAssets.files.map(file => ({
+      path: `server/public/${file.path}`,
+      size: file.size,
+      sha256: file.sha256,
+    })),
+  ].sort((left, right) => left.path.localeCompare(right.path));
+  const hash = crypto.createHash('sha256');
+  for (const file of files) hash.update(`file\0${file.path}\0${file.size}\0${file.sha256}\n`);
+  return { sha256: hash.digest('hex'), files };
 }
 
 function readPackageVersion(serverDir) {
@@ -110,12 +146,12 @@ function releaseManifest({ releaseId, sourceRoot, serverDir, siteDir, migrations
   assertSameOriginFrontEnd(root);
   const staticSite = hashDirectory(site);
   if (staticSite.fileCount === 0) throw new Error('静态站构建产物为空，拒绝创建 release');
-  const adminUiFile = path.join(server, 'routes', 'admin-ui.js');
   const migrationSource = path.join(server, 'migrations.js');
   const configTemplate = path.join(server, '.env.example');
   const definitionList = migrations || readMigrationDefinitions(server);
   const packageInfo = readPackageVersion(server);
   const nginxTemplate = readRuntimeTemplate(root);
+  const adminUi = hashAdminUiAssets(server);
   return {
     format: FORMAT,
     formatVersion: FORMAT_VERSION,
@@ -127,7 +163,9 @@ function releaseManifest({ releaseId, sourceRoot, serverDir, siteDir, migrations
     },
     artifacts: {
       staticSite,
-      adminUi: { path: 'server/routes/admin-ui.js', sha256: sha256File(adminUiFile) },
+      // A UI page is only valid together with every static module it loads.
+      // verifyRelease still understands the legacy single-file manifest shape.
+      adminUi,
       migrations: {
         path: 'server/migrations.js',
         sourceSha256: sha256File(migrationSource),
@@ -233,8 +271,23 @@ function verifyRelease(releaseDir) {
     const actual = hashDirectory(staticSite);
     if (actual.sha256 !== manifest.artifacts?.staticSite?.sha256) errors.push('静态站摘要不匹配');
   } catch (error) { errors.push(`静态站校验失败：${error.message}`); }
+  const adminUi = manifest.artifacts?.adminUi;
+  if (Array.isArray(adminUi?.files)) {
+    try {
+      const actual = hashAdminUiAssets(server);
+      const expectedFiles = adminUi.files;
+      if (actual.sha256 !== adminUi.sha256) errors.push('adminUi 摘要不匹配');
+      if (JSON.stringify(actual.files) !== JSON.stringify(expectedFiles)) errors.push('adminUi 资源集合不匹配');
+    } catch (error) { errors.push(`adminUi 校验失败：${error.message}`); }
+  } else {
+    // v1 manifests recorded only the HTML route. Continue accepting them so a
+    // newer deployment tool can still verify and roll back an older release.
+    try {
+      const actual = sha256File(path.join(server, 'routes', 'admin-ui.js'));
+      if (actual !== adminUi?.sha256) errors.push('adminUi 摘要不匹配');
+    } catch (error) { errors.push(`adminUi 校验失败：${error.message}`); }
+  }
   for (const [key, relative] of Object.entries({
-    adminUi: 'routes/admin-ui.js',
     migrations: 'migrations.js',
     configTemplate: '.env.example',
   })) {
@@ -323,6 +376,7 @@ module.exports = {
   sha256Text,
   sha256File,
   hashDirectory,
+  hashAdminUiAssets,
   parseEnvFile,
   releaseManifest,
   createRelease,

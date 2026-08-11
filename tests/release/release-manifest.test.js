@@ -34,6 +34,8 @@ function makeFixture() {
   ].join('\n'));
   write(path.join(server, 'package.json'), JSON.stringify({ name: 'fixture-server', version: '5.0.0' }));
   write(path.join(server, 'routes', 'admin-ui.js'), 'module.exports = {};\n');
+  write(path.join(server, 'public', 'admin-ui-state.js'), 'window.AdminUiState = {};\n');
+  write(path.join(server, 'public', 'favicon.svg'), '<svg></svg>\n');
   write(path.join(server, 'migrations.js'), 'module.exports = {};\n');
   write(path.join(server, '.env.example'), 'JWT_SECRET=\n');
   write(path.join(site, 'index.html'), '<h1>fixture</h1>\n');
@@ -64,6 +66,7 @@ test('release manifest 对静态站、管理 UI、迁移和运行变量生成可
   });
   assert.equal(result.manifest.runtime.topology, 'same-origin');
   assert.equal(result.manifest.artifacts.migrations.definitions.length, 1);
+  assert.equal(result.manifest.artifacts.adminUi.files.length, 3);
   assert.deepEqual(verifyRelease(fixture.output), {
     ok: true,
     releaseDir: fixture.output,
@@ -103,6 +106,26 @@ test('任一受控文件被篡改或 health 摘要不匹配时必须拒绝', () 
   const health = verifyHealthPayload({ success: true, release: { id: 'release-2' } }, { ...result.manifest, manifestSha256: result.manifestSha256 });
   assert.equal(health.ok, false);
   assert.ok(health.errors.includes('health 静态站摘要不匹配'));
+});
+
+test('管理后台静态模块被篡改时 release 校验必须拒绝', () => {
+  const fixture = makeFixture();
+  createRelease({
+    releaseId: 'release-admin-static',
+    output: fixture.output,
+    sourceRoot: fixture.source,
+    serverDir: fixture.server,
+    siteDir: fixture.site,
+    migrations: [{ id: 'm1', checksum: 'e'.repeat(64) }],
+    rootRevision: 'root-revision',
+    serverRevision: 'server-revision',
+    skipGitCheck: true,
+  });
+  write(path.join(fixture.output, 'server', 'public', 'admin-ui-state.js'), 'tampered\n');
+  const check = verifyRelease(fixture.output);
+  assert.equal(check.ok, false);
+  assert.ok(check.errors.includes('adminUi 摘要不匹配'));
+  assert.ok(check.errors.includes('adminUi 资源集合不匹配'));
 });
 
 test('包含本机 API 地址的前端配置不能进入发布流程', () => {
