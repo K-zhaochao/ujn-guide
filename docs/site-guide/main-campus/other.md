@@ -35,6 +35,8 @@ tags:
 
 ![小吃街](../../assets/images/地点通/济大主校区建筑/其他/其他-小吃街.webp)
 
+<a id="campus-card-service"></a>
+
 ## 校园卡业务部
 
 ??? info "📍 查看校园卡业务部地图"

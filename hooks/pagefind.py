@@ -32,7 +32,7 @@ def on_post_build(config, **kwargs):
     safe_print("[hooks] >> 运行 Pagefind 搜索引擎索引...")
 
     result = subprocess.run(
-        ["npx", "pagefind", "--site", str(site_dir)],
+        ["npx", "--no-install", "pagefind", "--site", str(site_dir)],
         capture_output=True,
         text=True,
         encoding="utf-8",

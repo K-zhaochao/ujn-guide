@@ -6,7 +6,7 @@ tags:
 
 # 🪪 校园卡使用指南
 
-[← 返回校园卡业务部](other.md#校园卡业务部){ .md-button }
+[← 返回校园卡业务部](other.md#campus-card-service){ .md-button }
 
 ---
 

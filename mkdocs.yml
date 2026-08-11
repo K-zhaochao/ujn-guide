@@ -64,12 +64,25 @@ markdown_extensions:
 hooks:
   - hooks/pagefind.py
 
+# 这些页面由摘要页、详情卡片或正文链接进入，不放入一级导航，避免主导航被原文附录淹没。
+not_in_nav: |
+  /clubs/appendix/
+  /clubs/societies/ftf-board-game.md
+  /green-book/academic/appendix/
+  /green-book/appeal/济南大学学生申诉办法/
+  /green-book/scholarship/appendix/
+  /green-book/youth-league/appendix/
+  /pets/cats/
+  /rules/appendix/
+  /site-guide/main-campus/图书馆须知与问答/
+  /site-guide/shungeng-campus/library-*.md
+  /site-guide/shungeng-campus/图书馆须知与问答/
+
 # 插件配置
 plugins:
   # search 插件仅用于渲染搜索 UI 框架，实际搜索由 Pagefind 驱动
   - search:
       enabled: true
-      prebuild_index: false
   - mermaid2
   - glightbox:
       touchNavigation: true

@@ -1,0 +1,17 @@
+{
+  "name": "ujn-guide-build-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "济南大学校园通静态站构建工具链",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "python scripts/build_site.py",
+    "test:build": "python -m unittest discover -s tests -p test_*.py",
+    "verify:site": "python scripts/verify_site_build.py"
+  },
+  "devDependencies": {
+    "pagefind": "1.5.2"
+  }
+}

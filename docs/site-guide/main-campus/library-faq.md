@@ -2,7 +2,7 @@
 navigation.exclude: true
 ---
 
-:arrow_left: [返回图书馆](../library.md)
+:arrow_left: [返回图书馆](library.md)
 
 ---
 
