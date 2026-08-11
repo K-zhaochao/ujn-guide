@@ -45,8 +45,8 @@
   const API_BASE = '';
   const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
   let maxImagesLimit = MAX_IMAGES;
-  const TOKEN_KEY = 'pet_jwt';
   const PAGE_SIZE = 24;
+  let csrfToken = '';
 
   // 官方品牌图标（内联 SVG，避免额外网络请求；path 取自官方 logo）
   const BRAND_ICONS = {
@@ -307,27 +307,27 @@
   async function api(path, opts) {
     opts = opts || {};
     const headers = {};
-    const token = localStorage.getItem(TOKEN_KEY);
+    const method = String(opts.method || 'GET').toUpperCase();
     // P2-09：仅在有 body 时发送 Content-Type —— 匿名 GET 发送它会在跨域时
     // 触发不必要的 OPTIONS 预检，拖慢首次渲染。
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
-    if (token) headers['Authorization'] = 'Bearer ' + token;
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && csrfToken) headers['X-CSRF-Token'] = csrfToken;
     // P2-09：统一超时 + AbortController，避免请求悬挂导致 UI 永远停在加载态
     const ctrl = ('AbortController' in window) ? new AbortController() : null;
     const timer = ctrl ? setTimeout(() => ctrl.abort(), 15000) : null;
     try {
       const res = await fetch(API_BASE + path, {
-        method: opts.method || 'GET',
+        method,
         headers,
         body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+        credentials: 'same-origin',
         signal: ctrl ? ctrl.signal : undefined,
       });
       const data = await res.json().catch(() => ({}));
-      // P2-09：401 统一处理 —— 清理失效 token 并更新导航，避免普通请求
-      // 遇到 401 时留下已登录假象（restoreSession 只覆盖启动时的检查）。
-      if (res.status === 401 && localStorage.getItem(TOKEN_KEY)) {
+      // 会话失效时统一清理页面内状态，避免普通请求留下已登录假象。
+      if (res.status === 401 && user) {
         const msg = (data && data.message) || '';
-        localStorage.removeItem(TOKEN_KEY);
+        csrfToken = '';
         user = null;
         renderNav();
         updateAuthUI();
@@ -398,13 +398,13 @@
   }
 
   async function restoreSession() {
-    if (!localStorage.getItem(TOKEN_KEY)) return;
     const r = await api('/api/auth/me');
     if (r.ok && r.data.success) {
       user = r.data.user;
+      csrfToken = typeof r.data.csrfToken === 'string' ? r.data.csrfToken : '';
     } else {
       const msg = (r.data && r.data.message) || '';
-      localStorage.removeItem(TOKEN_KEY);
+      csrfToken = '';
       user = null;
       // P2-09：token 失效也会改变 liked / likeCount 展示，失效公开缓存
       petCache.clear();
@@ -417,8 +417,13 @@
     updateAuthUI();
   }
 
-  function logout() {
-    localStorage.removeItem(TOKEN_KEY);
+  async function logout() {
+    const result = await api('/api/auth/logout', { method: 'POST', body: {} });
+    if (!result.ok && result.status !== 401) {
+      showToast((result.data && result.data.message) || '退出登录失败，请重试', true);
+      return;
+    }
+    csrfToken = '';
     user = null;
     oauthNonce = '';
     closePop('pet-login-pop');
@@ -2093,20 +2098,21 @@
   function installOAuthListener() {
     let apiOrigin = '';
     try { apiOrigin = new URL(API_BASE || location.origin, location.origin).origin; } catch (e) { /* ignore */ }
-    addPetGlobal(window, 'message', function (event) {
+    addPetGlobal(window, 'message', async function (event) {
       if (!apiOrigin || event.origin !== apiOrigin) return;
       if (!oauthWindow || event.source !== oauthWindow) return;
       const data = event.data;
       if (!data || typeof data !== 'object') return;
       if ((data.type !== 'auth-success' && data.type !== 'auth-error') || data.nonce !== oauthNonce) return;
       if (data.type === 'auth-success') {
-        if (typeof data.token !== 'string' || !data.token || !data.user || typeof data.user !== 'object') return;
+        if (!data.user || typeof data.user !== 'object') return;
         oauthWindow = null;
         oauthNonce = '';
-        localStorage.setItem(TOKEN_KEY, data.token);
-        user = data.user;
-        renderNav();
-        updateAuthUI();
+        await restoreSession();
+        if (!user) {
+          showToast('登录状态未建立，请重新登录', true);
+          return;
+        }
         showToast('✅ 已以 @' + displayName(user) + ' 身份登录');
         // 登录后公开列表的 liked / likeCount 可能变化：失效图鉴缓存并刷新
         petCache.clear();
