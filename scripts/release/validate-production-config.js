@@ -42,19 +42,20 @@ function hasLocation(nginx, pattern) {
 function validateConfig(env, nginxText) {
   const errors = [];
   const mainSite = parseHttpsOrigin('MAIN_SITE_URL', env.MAIN_SITE_URL, errors);
-  const allowedOrigins = String(env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean)
+  const configuredAllowedOrigins = String(env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean)
     .map(value => parseHttpsOrigin('ALLOWED_ORIGINS', value, errors));
-  if (!allowedOrigins.length) errors.push('ALLOWED_ORIGINS 不能为空');
+  const allowedOrigins = configuredAllowedOrigins.length ? configuredAllowedOrigins : (mainSite ? [mainSite] : []);
   if (mainSite && !allowedOrigins.includes(mainSite)) errors.push('ALLOWED_ORIGINS 必须包含 MAIN_SITE_URL');
 
   const callback = String(env.OAUTH_CALLBACK_BASE || '').trim().replace(/\/+$/, '');
   const expectedCallback = mainSite ? `${mainSite}/api/auth` : '';
-  if (callback !== expectedCallback) errors.push('OAUTH_CALLBACK_BASE 必须等于 MAIN_SITE_URL + /api/auth');
+  if (callback && callback !== expectedCallback) errors.push('OAUTH_CALLBACK_BASE 如保留必须等于 MAIN_SITE_URL + /api/auth');
 
   const port = Number(env.PORT);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) errors.push('PORT 必须是 1 到 65535 的整数');
   if (String(env.BIND_HOST || '').trim() !== '127.0.0.1') errors.push('同源发布的 BIND_HOST 必须为 127.0.0.1');
-  if (String(env.ADMIN_PATH || '').trim() !== '/admin') errors.push('同源发布的 ADMIN_PATH 必须为 /admin');
+  const adminPath = String(env.ADMIN_PATH || '').trim().replace(/\/+$/, '');
+  if (adminPath && adminPath !== '/admin') errors.push('同源发布的 ADMIN_PATH 如保留必须为 /admin');
 
   const nginx = String(nginxText || '');
   if (!hasLocation(nginx, /(^|\n)\s*location\s+\^~\s+\/api\/\s*\{/m)) {

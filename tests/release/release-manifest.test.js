@@ -133,11 +133,8 @@ test('正式打包只复制 Git 已跟踪的后端文件，不携带被忽略密
 test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约', () => {
   const env = parseEnv([
     'MAIN_SITE_URL=https://guide.example.test',
-    'ALLOWED_ORIGINS=https://guide.example.test,https://www.example.test',
-    'OAUTH_CALLBACK_BASE=https://guide.example.test/api/auth',
     'BIND_HOST=127.0.0.1',
     'PORT=3100',
-    'ADMIN_PATH=/admin',
   ].join('\n'));
   const nginx = [
     'location ^~ /api/ { proxy_pass http://127.0.0.1:3100; }',
@@ -150,11 +147,14 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
   assert.ok(legacyLocations.errors.includes('Nginx 缺少高优先级 /api/ 反向代理'));
   const invalid = validateConfig({ ...env, OAUTH_CALLBACK_BASE: 'http://127.0.0.1:3100/api/auth' }, nginx.replaceAll(':3100', ':3000'));
   assert.equal(invalid.ok, false);
-  assert.ok(invalid.errors.includes('OAUTH_CALLBACK_BASE 必须等于 MAIN_SITE_URL + /api/auth'));
+  assert.ok(invalid.errors.includes('OAUTH_CALLBACK_BASE 如保留必须等于 MAIN_SITE_URL + /api/auth'));
   assert.ok(invalid.errors.includes('Nginx 反向代理端口与 PORT 不一致'));
 
   const publicBind = validateConfig({ ...env, BIND_HOST: '0.0.0.0' }, nginx);
   assert.ok(publicBind.errors.includes('同源发布的 BIND_HOST 必须为 127.0.0.1'));
+
+  const customAdminPath = validateConfig({ ...env, ADMIN_PATH: '/private-admin' }, nginx);
+  assert.ok(customAdminPath.errors.includes('同源发布的 ADMIN_PATH 如保留必须为 /admin'));
 });
 
 test('部署脚本默认检查同源后端的 3005 health 端点', () => {

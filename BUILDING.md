@@ -15,8 +15,8 @@ npm run build
 
 宠物页、API 和管理后台必须从同一个浏览器 origin 访问。先在 `server/.env`
 中保持 `BIND_HOST=127.0.0.1`、`PORT=3005`、
-`MAIN_SITE_URL=http://127.0.0.1:8000` 与
-`OAUTH_CALLBACK_BASE=http://127.0.0.1:8000/api/auth`，然后分别启动：
+`MAIN_SITE_URL=http://127.0.0.1:8000`。OAuth 回调和默认 CORS 来源由该地址自动派生，
+不需要设置 `OAUTH_CALLBACK_BASE`、`ALLOWED_ORIGINS` 或 `ADMIN_PATH`，然后分别启动：
 
 ```powershell
 cd server
