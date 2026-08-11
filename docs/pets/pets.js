@@ -10,8 +10,8 @@
  *   - 详情弹窗
  *   - 全部颜色使用 CSS 变量（适配 Material 深色主题）
  *
- * 部署前需修改：
- *   const API_BASE = 'https://pet.matehub.top'; // 后端 API 域名
+ * 发布拓扑：
+ *   API 通过同源 /api 访问；Nginx 将 /api 和 /admin 反向代理到后端。
  */
 (function () {
   'use strict';
@@ -41,7 +41,8 @@
   }
 
   // ================== 配置（无任何硬编码密钥） ==================
-  const API_BASE = 'http://127.0.0.1:3005'; // ⚠️ 部署时改为 https://pet.matehub.top
+  // P0-04：生产环境固定走同源反向代理，禁止把开发机地址编入发布产物。
+  const API_BASE = '';
   const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
   let maxImagesLimit = MAX_IMAGES;
   const TOKEN_KEY = 'pet_jwt';
@@ -2064,13 +2065,11 @@
   // P2-09：OAuth postMessage 监听在宠物页初始化时安装（不等 init() 的多次
   // 异步请求完成后再装，避免快速回调的登录窗口丢消息）。P2-10：经 addPetGlobal
   // 统一登记，导航/多次初始化先移除上一轮再注册，不叠加。
-  // 回调页由后端 API 域提供（如 http://127.0.0.1:3005），主站域名不同（如 http://localhost:8000），
-  // 因此不能用同源校验（event.origin === location.origin 会丢弃所有回调）。
-  // 改为：①origin 必须是后端 API 的 origin（浏览器保证跨域消息 origin 不可伪造）；
-  //       ②若窗口引用可用（弹窗未被拦截），再校验发送者确实是我们打开的窗口。
+  // 回调页通过同源 /api 提供。origin 必须等于当前站点，且在弹窗引用可用时
+  // 继续校验发送者确实是本页打开的窗口。
   function installOAuthListener() {
     let apiOrigin = '';
-    try { apiOrigin = new URL(API_BASE).origin; } catch (e) { /* ignore */ }
+    try { apiOrigin = new URL(API_BASE || location.origin, location.origin).origin; } catch (e) { /* ignore */ }
     addPetGlobal(window, 'message', function (event) {
       if (apiOrigin && event.origin !== apiOrigin) return;
       if (oauthWindow && event.source !== oauthWindow) return;

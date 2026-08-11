@@ -1,0 +1,150 @@
+'use strict';
+
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const test = require('node:test');
+const { execFileSync } = require('node:child_process');
+
+const {
+  createRelease,
+  assertSameOriginFrontEnd,
+  verifyRelease,
+} = require('../../scripts/release/release-manifest');
+const { verifyHealthPayload } = require('../../scripts/release/verify-running-release');
+const { parseEnv, validateConfig } = require('../../scripts/release/validate-production-config');
+
+function write(file, contents) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, contents, 'utf8');
+}
+
+function makeFixture() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ujn-release-'));
+  const source = path.join(root, 'source');
+  const server = path.join(root, 'server');
+  const site = path.join(root, 'site');
+  write(path.join(source, 'docs', 'pets', 'pets.js'), "const API_BASE = '';\n");
+  write(path.join(source, 'scripts', 'release', 'templates', 'ujn-guide-nginx.conf'), [
+    'root $release_root/current/site;',
+    'location /api/ { proxy_pass http://127.0.0.1:$backend_port; }',
+    'location = /admin { proxy_pass http://127.0.0.1:$backend_port; }',
+  ].join('\n'));
+  write(path.join(server, 'package.json'), JSON.stringify({ name: 'fixture-server', version: '5.0.0' }));
+  write(path.join(server, 'routes', 'admin-ui.js'), 'module.exports = {};\n');
+  write(path.join(server, 'migrations.js'), 'module.exports = {};\n');
+  write(path.join(server, '.env.example'), 'JWT_SECRET=\n');
+  write(path.join(site, 'index.html'), '<h1>fixture</h1>\n');
+  return { root, source, server, site, output: path.join(root, 'release') };
+}
+
+function commitFixture(directory) {
+  const run = args => execFileSync('git', ['-C', directory, ...args], { stdio: 'ignore' });
+  run(['init', '-q']);
+  run(['config', 'user.email', 'release-test@example.invalid']);
+  run(['config', 'user.name', 'Release Test']);
+  run(['add', '.']);
+  run(['commit', '-qm', 'fixture']);
+}
+
+test('release manifest 对静态站、管理 UI、迁移和运行变量生成可复核摘要', () => {
+  const fixture = makeFixture();
+  const result = createRelease({
+    releaseId: '20260811.1',
+    output: fixture.output,
+    sourceRoot: fixture.source,
+    serverDir: fixture.server,
+    siteDir: fixture.site,
+    migrations: [{ id: 'm1', checksum: 'a'.repeat(64) }],
+    rootRevision: 'root-revision',
+    serverRevision: 'server-revision',
+    skipGitCheck: true,
+  });
+  assert.equal(result.manifest.runtime.topology, 'same-origin');
+  assert.equal(result.manifest.artifacts.migrations.definitions.length, 1);
+  assert.deepEqual(verifyRelease(fixture.output), {
+    ok: true,
+    releaseDir: fixture.output,
+    releaseId: '20260811.1',
+    errors: [],
+  });
+
+  const health = verifyHealthPayload({
+    success: true,
+    release: {
+      id: result.manifest.release.id,
+      manifestSha256: result.manifestSha256,
+      staticSiteSha256: result.manifest.artifacts.staticSite.sha256,
+      adminUiSha256: result.manifest.artifacts.adminUi.sha256,
+    },
+  }, { ...result.manifest, manifestSha256: result.manifestSha256 });
+  assert.deepEqual(health, { ok: true, errors: [] });
+});
+
+test('任一受控文件被篡改或 health 摘要不匹配时必须拒绝', () => {
+  const fixture = makeFixture();
+  const result = createRelease({
+    releaseId: 'release-2',
+    output: fixture.output,
+    sourceRoot: fixture.source,
+    serverDir: fixture.server,
+    siteDir: fixture.site,
+    migrations: [{ id: 'm1', checksum: 'b'.repeat(64) }],
+    rootRevision: 'root-revision',
+    serverRevision: 'server-revision',
+    skipGitCheck: true,
+  });
+  write(path.join(fixture.output, 'server', 'routes', 'admin-ui.js'), 'tampered\n');
+  const check = verifyRelease(fixture.output);
+  assert.equal(check.ok, false);
+  assert.ok(check.errors.includes('adminUi 摘要不匹配'));
+  const health = verifyHealthPayload({ success: true, release: { id: 'release-2' } }, { ...result.manifest, manifestSha256: result.manifestSha256 });
+  assert.equal(health.ok, false);
+  assert.ok(health.errors.includes('health 静态站摘要不匹配'));
+});
+
+test('包含本机 API 地址的前端配置不能进入发布流程', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ujn-api-base-'));
+  write(path.join(root, 'docs', 'pets', 'pets.js'), "const API_BASE = 'http://127.0.0.1:3005';\n");
+  assert.throws(() => assertSameOriginFrontEnd(root), /同源空串/);
+});
+
+test('正式打包只复制 Git 已跟踪的后端文件，不携带被忽略密钥', () => {
+  const fixture = makeFixture();
+  write(path.join(fixture.server, '.gitignore'), '.env.*\n!.env.example\n');
+  commitFixture(fixture.source);
+  commitFixture(fixture.server);
+  write(path.join(fixture.server, '.env.local'), 'JWT_SECRET=must-not-be-packaged\n');
+  createRelease({
+    releaseId: 'release-tracked-only',
+    output: fixture.output,
+    sourceRoot: fixture.source,
+    serverDir: fixture.server,
+    siteDir: fixture.site,
+    migrations: [{ id: 'm1', checksum: 'd'.repeat(64) }],
+  });
+  assert.equal(fs.existsSync(path.join(fixture.output, 'server', '.env.local')), false);
+  const check = verifyRelease(fixture.output);
+  assert.equal(check.ok, true, JSON.stringify(check));
+});
+
+test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约', () => {
+  const env = parseEnv([
+    'MAIN_SITE_URL=https://guide.example.test',
+    'ALLOWED_ORIGINS=https://guide.example.test,https://www.example.test',
+    'OAUTH_CALLBACK_BASE=https://guide.example.test/api/auth',
+    'PORT=3100',
+    'ADMIN_PATH=/admin',
+  ].join('\n'));
+  const nginx = [
+    'location /api/ { proxy_pass http://127.0.0.1:3100; }',
+    'location = /admin { proxy_pass http://127.0.0.1:3100; }',
+    'location /admin/ { proxy_pass http://127.0.0.1:3100; }',
+  ].join('\n');
+  assert.deepEqual(validateConfig(env, nginx), { ok: true, errors: [] });
+  const invalid = validateConfig({ ...env, OAUTH_CALLBACK_BASE: 'http://127.0.0.1:3100/api/auth' }, nginx.replaceAll(':3100', ':3000'));
+  assert.equal(invalid.ok, false);
+  assert.ok(invalid.errors.includes('OAUTH_CALLBACK_BASE 必须等于 MAIN_SITE_URL + /api/auth'));
+  assert.ok(invalid.errors.includes('Nginx 反向代理端口与 PORT 不一致'));
+});

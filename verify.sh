@@ -59,6 +59,7 @@ verify_site() {
   fi
 
   run_and_log "run site build unit tests" "$report_root/unit-tests.log" npm run test:build
+  run_and_log "run release tool unit tests" "$report_root/release-tool-tests.log" npm run test:release
   run_and_log "run strict site build" "$report_root/build.log" npm run build
 
   if [[ "$skip_audit" == false ]]; then
