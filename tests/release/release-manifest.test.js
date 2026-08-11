@@ -152,3 +152,9 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
   assert.ok(invalid.errors.includes('OAUTH_CALLBACK_BASE 必须等于 MAIN_SITE_URL + /api/auth'));
   assert.ok(invalid.errors.includes('Nginx 反向代理端口与 PORT 不一致'));
 });
+
+test('部署脚本默认检查同源后端的 3005 health 端点', () => {
+  const script = fs.readFileSync(path.join(__dirname, '../../scripts/release/deploy-release.sh'), 'utf8');
+  assert.match(script, /health_url="http:\/\/127\.0\.0\.1:3005\/api\/health"/);
+  assert.match(script, /default: http:\/\/127\.0\.0\.1:3005\/api\/health/);
+});

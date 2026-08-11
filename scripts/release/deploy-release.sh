@@ -7,7 +7,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 release_root=""
 release_dir=""
 service_name="ujn-guide-pet.service"
-health_url="http://127.0.0.1:3000/api/health"
+health_url="http://127.0.0.1:3005/api/health"
 env_file=""
 nginx_config=""
 allow_initial=false
@@ -22,7 +22,7 @@ Usage:
 
 Options:
   --service NAME       systemd service name (default: ujn-guide-pet.service)
-  --health-url URL     internal health endpoint (default: http://127.0.0.1:3000/api/health)
+  --health-url URL     internal health endpoint (default: http://127.0.0.1:3005/api/health)
   --env-file PATH      external production environment file, never copied or printed
   --nginx-config PATH  rendered Nginx virtual-host configuration to cross-check
   --allow-initial      explicitly allow the first release with no rollback target
