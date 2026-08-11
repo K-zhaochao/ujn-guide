@@ -86,6 +86,19 @@ describe('宠物前端视图模型', () => {
     expect(viewModel.buildPetListQuery()).toEqual({ sort: 'latest', page: 1, pageSize: 24 });
   });
 
+  it('将我的投稿的唯一状态按钮状态与其他筛选转换为请求参数', () => {
+    expect(viewModel.buildMineListQuery({
+      query: '图书馆', status: 'approved', category: '12', start: '2026-08-01', end: '2026-08-10',
+      sort: 'updated', page: 2, pageSize: 10,
+    })).toEqual({
+      q: '图书馆', status: 'approved', typeId: '12', start: '2026-08-01', end: '2026-08-10',
+      sort: 'updated', page: 2, pageSize: 10, includeDeleted: 1,
+    });
+    expect(viewModel.buildMineListQuery({ category: '历史分类' })).toEqual({
+      category: '历史分类', type: '历史分类', sort: 'updated', page: 1, pageSize: 10, includeDeleted: 1,
+    });
+  });
+
   it('只保留当前页附近及首尾页，供页码控件插入省略号', () => {
     expect(viewModel.paginationPages(1, 1)).toEqual([1]);
     expect(viewModel.paginationPages(10, 5)).toEqual([1, 3, 4, 5, 6, 7, 10]);

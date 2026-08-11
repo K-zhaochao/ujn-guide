@@ -125,6 +125,24 @@
     return query;
   }
 
+  function buildMineListQuery({
+    query = '', status = '', category = '', start = '', end = '', sort = 'updated', page = 1, pageSize = 10,
+  } = {}) {
+    const result = { sort, page, pageSize, includeDeleted: 1 };
+    if (query) result.q = query;
+    if (status) result.status = status;
+    if (category) {
+      if (/^\d+$/.test(String(category))) result.typeId = category;
+      else {
+        result.category = category;
+        result.type = category;
+      }
+    }
+    if (start) result.start = start;
+    if (end) result.end = end;
+    return result;
+  }
+
   function paginationPages(totalPages, currentPage) {
     const pages = [];
     const push = page => { if (!pages.includes(page)) pages.push(page); };
@@ -136,6 +154,7 @@
 
   return {
     DEFAULT_MAX_IMAGES,
+    buildMineListQuery,
     buildPetListQuery,
     fieldDisplayValue,
     fieldIcon,

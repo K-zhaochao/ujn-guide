@@ -1404,26 +1404,10 @@
   }
 
   function mineQueryParams() {
-    const params = new URLSearchParams();
-    if (mineQuery) params.set('q', mineQuery);
-    if (mineStatus) params.set('status', mineStatus);
-    if (mineCategory) {
-      if (/^\d+$/.test(String(mineCategory))) params.set('typeId', mineCategory);
-      else {
-        params.set('category', mineCategory);
-        // `type` is the forward-compatible alias used during migration.
-        params.set('type', mineCategory);
-      }
-    }
-    if (mineDate) params.set('start', mineDate);
-    if (mineDateEnd) params.set('end', mineDateEnd);
-    params.set('sort', mineSort);
-    params.set('page', String(minePage));
-    params.set('pageSize', String(MINE_PAGE_SIZE));
-    // Soft-deleted records remain visible in the personal history; actions are
-    // disabled for them, while the admin recycle bin can still restore them.
-    params.set('includeDeleted', '1');
-    return params;
+    return new URLSearchParams(petViewModel.buildMineListQuery({
+      query: mineQuery, status: mineStatus, category: mineCategory, start: mineDate, end: mineDateEnd,
+      sort: mineSort, page: minePage, pageSize: MINE_PAGE_SIZE,
+    }));
   }
 
   function renderMineShell(sec) {
@@ -1454,7 +1438,6 @@
       '<div id="pet-mine-status-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>' +
       '<div id="pet-mine-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
       '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" aria-label="搜索我的投稿" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
-      '<select id="pet-mine-status" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="">全部状态</option><option value="pending">待审核</option><option value="approved">已通过</option><option value="rejected">已拒绝</option><option value="deleted">已删除</option></select>' +
       '<select id="pet-mine-category" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' + categoryOptions + '</select>' +
       '<input id="pet-mine-date" type="date" title="按投稿日期范围（开始）筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
       '<span style="font-size:12px;color:' + C.muted + '">至</span>' +
@@ -1486,7 +1469,6 @@
     search.onfocusout = applyMineQuery;
     // 部分移动端浏览器（iOS 等）软键盘「搜索」键触发 search 事件而非 keydown，做兜底
     search.onsearch = applyMineQuery;
-    $('#pet-mine-status').onchange = e => { mineStatus = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-category').onchange = e => { mineCategory = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-date').onchange = e => { mineDate = e.target.value; minePage = 1; loadMineSubmissions(); };
     $('#pet-mine-date-end').onchange = e => {
@@ -1502,7 +1484,6 @@
       mineQuery = ''; mineStatus = ''; mineCategory = ''; mineDate = ''; mineDateEnd = '';
       mineSort = 'updated'; minePage = 1;
       $('#pet-mine-search').value = '';
-      $('#pet-mine-status').value = '';
       $('#pet-mine-category').value = '';
       $('#pet-mine-date').value = '';
       $('#pet-mine-date-end').value = '';
@@ -1555,8 +1536,6 @@
       btn.onclick = () => {
         mineStatus = btn.dataset.status;
         minePage = 1;
-        const select = $('#pet-mine-status');
-        if (select) select.value = mineStatus;
         loadMineSubmissions();
       };
     });
