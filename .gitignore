@@ -10,16 +10,10 @@ site/
 ujn-guide-site.zip
 
 # ========================
-#  部署配置（含服务器信息）
+#  部署配置、运维文档与本机发布材料（不进入版本控制）
 # ========================
 deploy/*
 .Nexus/
-# nginx 安全加固配置不含敏感信息，需提交
-!deploy/nginx.conf
-# 文档入口和质量门禁文档已完成脱敏核对并受版本控制。
-!deploy/README.md
-!deploy/quality/
-!deploy/quality/*.md
 
 # ========================
 #  Python
