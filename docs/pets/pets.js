@@ -52,6 +52,7 @@
   const API_BASE = '';
   const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
   let maxImagesLimit = MAX_IMAGES;
+  let maxImageBytesLimit = 5 * 1024 * 1024;
   const PAGE_SIZE = 24;
 
   // 官方品牌图标（内联 SVG，避免额外网络请求；path 取自官方 logo）
@@ -135,6 +136,7 @@
     if (!projection) return false;
     contentSchema = projection.contentSchema;
     maxImagesLimit = projection.maxImagesLimit;
+    maxImageBytesLimit = projection.maxImageBytesLimit;
     CATEGORIES = projection.categories;
     SUBMISSION_TYPES = projection.submissionTypes;
     catEmoji = projection.categoryEmoji;
@@ -1069,7 +1071,7 @@
       '</div>' +
 
       '<div style="margin-bottom:16px">' +
-        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="color:' + C.danger + '">*</span> <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，自动压缩）</span></label>' +
+        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="color:' + C.danger + '">*</span> <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，单张不超过 ' + imageLimitLabel() + '，自动压缩）</span></label>' +
         '<label for="pet-images" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:' + C.soft + ';color:' + C.primary + ';border:2px dashed var(--pet-primary,#93c5fd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">' +
         '<span style="font-size:18px">📷</span> 选择文件</label>' +
         '<input type="file" id="pet-images" accept="image/*" multiple style="display:none">' +
@@ -1225,6 +1227,7 @@
       for (const file of files) {
         try {
           const dataUrl = await fileToWebP(file);
+          assertImageWithinLimit(dataUrl);
           uploadedImages.push(dataUrl);
           const div = document.createElement('div');
           div.style.cssText = 'width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid ' + C.border + ';position:relative';
@@ -1239,7 +1242,7 @@
             }
           };
           previews.appendChild(div);
-        } catch (e) { console.warn('Image conversion failed:', e); }
+        } catch (e) { showToast(e && e.message ? e.message : '图片压缩失败，请更换图片后重试', true); }
       }
       imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
       scheduleDraftSave(); // P1-06：图片张数变化计入草稿
@@ -1340,6 +1343,24 @@
   }
 
   /** 图片 → WebP dataURL（压缩） */
+  function imageLimitLabel() {
+    return (maxImageBytesLimit / (1024 * 1024)).toFixed(maxImageBytesLimit % (1024 * 1024) ? 1 : 0) + ' MB';
+  }
+
+  function dataUrlByteLength(dataUrl) {
+    const comma = String(dataUrl || '').indexOf(',');
+    if (comma < 0) return 0;
+    const base64 = String(dataUrl).slice(comma + 1).replace(/\s/g, '');
+    const padding = base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0);
+    return Math.max(0, Math.floor(base64.length * 3 / 4) - padding);
+  }
+
+  function assertImageWithinLimit(dataUrl) {
+    if (dataUrlByteLength(dataUrl) > maxImageBytesLimit) {
+      throw new Error('压缩后的单张图片超过 ' + imageLimitLabel() + '，请更换图片后重试');
+    }
+  }
+
   function fileToWebP(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1874,7 +1895,7 @@
       '<div style="font-size:12px;color:' + C.muted + ';margin-bottom:16px">按该投稿保存时的字段版本编辑；保存后“最近更新”排序会置顶。' + (readOnlyCount ? '其中 ' + readOnlyCount + ' 个字段因归档或权限调整为只读。' : '') + '</div>' +
       // P1-05：图片区（删除 ✕ / 排序 ⇅ / 替换重选 / 追加新图）
       '<div style="margin-bottom:16px">' +
-        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，点 ✕ 删除，⇅ 调整顺序）</span></label>' +
+        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，单张不超过 ' + imageLimitLabel() + '，点 ✕ 删除，⇅ 调整顺序）</span></label>' +
         '<div id="pet-edit-images" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
         '<label for="pet-edit-images-input" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:' + C.soft + ';color:' + C.primary + ';border:2px dashed var(--pet-primary,#93c5fd);border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;margin-top:10px">' +
           '<span style="font-size:16px">📷</span> 添加照片</label>' +
@@ -1933,9 +1954,10 @@
               if (!file) return;
               try {
                 const dataUrl = await fileToWebP(file);
+                assertImageWithinLimit(dataUrl);
                 editImages[index] = { dataUrl };
                 renderEditImages();
-              } catch (err) { console.warn('replace failed:', err); }
+              } catch (err) { showToast(err && err.message ? err.message : '图片压缩失败，请更换图片后重试', true); }
             };
             picker.click();
           }
@@ -1954,8 +1976,9 @@
       for (const file of files) {
         try {
           const dataUrl = await fileToWebP(file);
+          assertImageWithinLimit(dataUrl);
           editImages.push({ dataUrl });
-        } catch (err) { console.warn('add failed:', err); }
+        } catch (err) { showToast(err && err.message ? err.message : '图片压缩失败，请更换图片后重试', true); }
       }
       this.value = '';
       renderEditImages();

@@ -10,7 +10,7 @@ describe('宠物前端视图模型', () => {
     const config = { schemaVersion: 'config-v1', types: [] };
     const schema = {
       schemaVersion: 'schema-v2',
-      constraints: { maxImages: 8 },
+      constraints: { maxImages: 8, maxImageBytes: 3 * 1024 * 1024 },
       types: [
         { id: 2, code: 'dog', name: '狗狗', icon: '🐶', sortOrder: 20 },
         { id: 1, code: 'cat', name: '猫猫', icon: '🐱', sortOrder: 10 },
@@ -25,6 +25,7 @@ describe('宠物前端视图模型', () => {
 
     expect(projection.contentSchema.schemaVersion).toBe('schema-v2');
     expect(projection.maxImagesLimit).toBe(8);
+    expect(projection.maxImageBytesLimit).toBe(3 * 1024 * 1024);
     expect(projection.categories.map(type => type.key)).toEqual(['猫猫', '只读分类', '狗狗']);
     // 隐藏类型不出现在公开导航，但仍可作为后台可投稿类型。
     expect(projection.submissionTypes.map(type => type.key)).toEqual(['鸟类', '猫猫', '狗狗']);

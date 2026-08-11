@@ -44,6 +44,7 @@
     return {
       contentSchema,
       maxImagesLimit: Math.max(1, Number(contentSchema.constraints.maxImages) || fallbackMaxImages),
+      maxImageBytesLimit: Math.max(1, Number(contentSchema.constraints.maxImageBytes) || (5 * 1024 * 1024)),
       categories: contentSchema.types
         .filter(type => type.visible !== false && activeTypes(type))
         .sort(bySortOrder)
