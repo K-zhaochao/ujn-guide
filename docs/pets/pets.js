@@ -455,7 +455,7 @@
   function renderNav() {
     const nav = $('#pet-nav');
     if (!nav) return;
-    // 管理后台按钮（仅管理员可见；点击签发一次性票据跳转，后端 /api/auth/ticket 校验权限）
+    // 管理后台与主站共用 Cookie 会话；后端仍会在管理 API 上校验管理员角色。
     const adminBtn = user && user.isAdmin
       ? '<button id="pet-admin-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:none;border:1px solid ' + C.primary + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.primary + ';font-weight:600">⚙️ 管理后台</button>'
       : '';
@@ -496,14 +496,7 @@
       }
     };
     const ab = $('#pet-admin-nav');
-    if (ab) ab.onclick = async () => {
-      const r = await api('/api/auth/ticket', { method: 'POST', body: {} });
-      if (r.ok && r.data.url) {
-        window.open(r.data.url, '_blank');
-      } else {
-        showToast((r.data && r.data.message) || '无权限进入管理后台', true);
-      }
-    };
+    if (ab) ab.onclick = () => window.open('/admin', '_blank', 'noopener');
     const lo = $('#pet-logout-nav'); if (lo) lo.onclick = logout;
   }
 
