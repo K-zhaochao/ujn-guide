@@ -117,6 +117,7 @@ extra_javascript:
   - pets/pet-format.js?v=20260812-2
   - pets/pet-views.js?v=20260812-2
   - pets/pet-mine.js?v=20260812-2
+  - pets/pet-submit.js?v=20260812-2
   - pets/pets.js?v=20260812-2
 
 nav:
