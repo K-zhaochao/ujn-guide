@@ -1,0 +1,287 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { createContext, runInContext } from 'node:vm';
+import { JSDOM } from 'jsdom';
+
+const require = createRequire(import.meta.url);
+const stateModule = require('../../server/public/admin-ui-state.js');
+const viewsModule = require('../../server/public/admin-ui-views.js');
+const adminUiCode = readFileSync('server/public/admin-ui.js', 'utf8');
+
+/** 构造 HTTP 风格响应（与脚本内 api() 的解析方式一致） */
+const jsonResponse = (data, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: async () => data,
+});
+
+const ADMIN = {
+  provider: 'github', username: 'root', nickname: '站长', role: 'superadmin', isAdmin: true, avatarUrl: '',
+};
+const MODERATOR = {
+  provider: 'github', username: 'mod', nickname: '审核员', role: 'admin', isAdmin: true, avatarUrl: '',
+};
+
+const SAMPLE_SUB = {
+  id: 'sub_1', name: '小白', category: '猫猫', type: { name: '猫猫' }, status: 'pending',
+  location: '操场', createdAt: '2026-08-01T10:00:00Z', rowVersion: 1,
+  contributor: { provider: 'github', username: 'tester', nickname: '测试' },
+  images: [], likes: 0, liked: false,
+};
+
+/**
+ * 标准路由 mock：覆盖登录/统计/各视图数据端点。
+ * overrides 可替换/追加端点（url => response | Promise）。
+ */
+function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
+  const routes = {
+    '/api/auth/me': () => jsonResponse({ success: true, csrfToken: 'csrf-1', user }),
+    '/api/auth/config': () => jsonResponse({ providers: ['github', 'gitee'] }),
+    '/api/admin/stats': () => jsonResponse({ stats: { pending: 1, approved: 2, rejected: 0, deleted: 0, users: 1, banned: 0 } }),
+    '/api/content-model/types': () => jsonResponse({ types: [{ id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1 }] }),
+    '/api/admin/submissions?status=pending&page=1&pageSize=10&sort=oldest': () => jsonResponse({
+      total: 1, submissions: [SAMPLE_SUB],
+      schema: { schemaVersion: 1, types: [], fields: [] },
+    }),
+    '/api/admin/submissions?status=approved&page=1&pageSize=10&sort=latest': () => jsonResponse({ total: 0, submissions: [] }),
+    '/api/admin/submissions?status=rejected&page=1&pageSize=10&sort=latest': () => jsonResponse({ total: 0, submissions: [] }),
+    '/api/admin/submissions?status=deleted&page=1&pageSize=10&sort=latest': () => jsonResponse({ total: 0, submissions: [] }),
+    '/api/admin/users?q=&page=1&pageSize=10': () => jsonResponse({
+      total: 1,
+      users: [{ id: 'u1', provider: 'github', username: 'tester', nickname: '测试', role: 'user', total: 1, approved: 1, pending: 0, banned: false, email: 'a@b.c', note: '' }],
+    }),
+    '/api/admin/content-model/draft': () => jsonResponse({ draft: { draftRevision: 5, types: [{ id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1 }], fields: [], bindings: [] }, diff: null, validation: null }),
+    '/api/admin/content-model/versions?page=1&pageSize=10': () => jsonResponse({ versions: [], total: 0 }),
+    '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, revision: 1 }, policy: [], runtime: {} }),
+    '/api/admin/settings/history?page=1&pageSize=10': () => jsonResponse({ items: [], total: 0 }),
+    '/api/admin/backups?limit=5': () => jsonResponse({ exports: [] }),
+    '/api/admin/audit?action=&actor=&start=&end=&page=1&pageSize=50': () => jsonResponse({ total: 1, audit: [{ id: 1, action: 'submission.approve', actor_username: 'root', created_at: '2026-08-01T10:00:00Z', target_id: 'sub_1', detail: '通过投稿' }] }),
+    '/api/admin/audit-cleanup/tasks?limit=8&offset=0': () => jsonResponse({ tasks: [], total: 0 }),
+    '/api/admin/audit/actions': () => jsonResponse({ actions: [{ action: 'submission.approve' }] }),
+    '/api/admin/media-assets?status=orphan%2Cdelete_pending%2Cdelete_failed&provider=&limit=50&offset=0': () => jsonResponse({ total: 0, assets: [] }),
+    '/api/admin/media-assets?status=orphan,delete_pending,delete_failed&provider=&limit=50&offset=0': () => jsonResponse({ total: 0, assets: [] }),
+  };
+  return async (url, opts) => {
+    const handler = overrides[url] || routes[url];
+    if (handler) return handler(url, opts);
+    if (url.startsWith('/api/admin/submissions?status=') && url.includes('pageSize=1')) {
+      const status = /status=(\w+)/.exec(url)[1];
+      return jsonResponse({ total: status === 'pending' ? 1 : 0, submissions: [] });
+    }
+    return jsonResponse({ message: 'unmocked: ' + url }, 500);
+  };
+}
+
+/** 启动一个独立 JSDOM 实例并执行 admin-ui.js */
+function boot({ user = ADMIN, fetchImpl, overrides = {} } = {}) {
+  const dom = new JSDOM('<!DOCTYPE html><html><head></head><body><div id="app"></div></body></html>', {
+    url: 'http://localhost:3005/admin/',
+    pretendToBeVisual: true,
+  });
+  const { window } = dom;
+  window.AdminUiState = stateModule;
+  window.AdminUiViews = viewsModule;
+  window.__ADMIN_CFG = { LOGO: '/admin/assets/favicon.svg', MAIN_SITE: 'http://localhost:3005' };
+  const fetchCalls = [];
+  const impl = fetchImpl || standardRoutes({ user, overrides });
+  window.fetch = (...args) => { fetchCalls.push({ url: args[0], opts: args[1] }); return Promise.resolve(impl(args[0], args[1])); };
+  // 模拟浏览器关键全局（脚本会用到）
+  window.screen = { width: 1280, height: 800 };
+  window.scrollTo = () => {};
+  // jsdom 的 Window.eval 不解析 window/document 全局，需用 vm context 执行
+  runInContext(adminUiCode, createContext(window));
+  return { dom, window, document: window.document, fetchCalls };
+}
+
+/** 轮询等待指定选择器出现 */
+async function waitFor(doc, selector, timeout = 800) {
+  const start = Date.now();
+  for (;;) {
+    const el = doc.querySelector(selector);
+    if (el) return el;
+    if (Date.now() - start > timeout) throw new Error('等待超时: ' + selector + '；当前 app 内容: ' + (doc.getElementById('app') || {}).innerHTML);
+    await new Promise(r => setTimeout(r, 5));
+  }
+}
+
+const settle = () => new Promise(r => setTimeout(r, 10));
+
+describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () => {
+  let instances = [];
+  beforeEach(() => { instances = []; });
+  afterEach(() => { instances.forEach(i => i.dom.window.close()); });
+
+  function bootTracked(opts) {
+    const inst = boot(opts);
+    instances.push(inst);
+    return inst;
+  }
+
+  it('未登录：渲染登录页并展示 OAuth 提供方', async () => {
+    const { document } = bootTracked({ fetchImpl: async (url) => {
+      if (url === '/api/auth/me') return jsonResponse({ success: false }, 401);
+      if (url === '/api/auth/config') return jsonResponse({ providers: ['github', 'gitee'] });
+      return jsonResponse({ message: 'unmocked' }, 500);
+    } });
+    await waitFor(document, '.login-card');
+    const text = document.getElementById('app').textContent;
+    expect(text).toContain('登录');
+    expect(document.querySelectorAll('.oauth-btn').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('已登录但非管理员：渲染无权限提示', async () => {
+    const { document } = bootTracked({ fetchImpl: async (url) => {
+      if (url === '/api/auth/me') return jsonResponse({ success: true, csrfToken: 'x', user: { ...MODERATOR, isAdmin: false, role: 'user' } });
+      return jsonResponse({ message: 'unmocked' }, 500);
+    } });
+    await waitFor(document, '.forbidden');
+    expect(document.getElementById('app').textContent).toContain('无权限');
+  });
+
+  it('普通管理员：仪表盘渲染，侧边栏仅显示有权限视图', async () => {
+    const { document } = bootTracked({ user: MODERATOR });
+    await waitFor(document, '#sidebar');
+    const items = [...document.querySelectorAll('.nav-item')].map(n => n.dataset.view);
+    expect(items).toContain('pending');
+    expect(items).toContain('users');
+    // 站长专属视图对普通管理员不可见
+    expect(items).not.toContain('deleted');
+    expect(items).not.toContain('banned');
+    expect(items).not.toContain('model');
+    expect(items).not.toContain('audit');
+    expect(items).not.toContain('media');
+    expect(items).not.toContain('settings');
+  });
+
+  it('超管：侧边栏渲染全部视图', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '#sidebar');
+    const items = [...document.querySelectorAll('.nav-item')].map(n => n.dataset.view);
+    ['pending', 'approved', 'rejected', 'deleted', 'users', 'banned', 'model', 'audit', 'media', 'settings']
+      .forEach(v => expect(items).toContain(v));
+  });
+
+  it('待审核列表加载成功：渲染投稿卡片与投稿人', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '#sub-list');
+    const text = document.getElementById('view-root').textContent;
+    expect(text).toContain('小白');
+    expect(text).toContain('@tester');
+  });
+
+  it('待审核列表加载失败：展示错误信息', async () => {
+    const { document } = bootTracked({ overrides: {
+      '/api/admin/submissions?status=pending&page=1&pageSize=10&sort=oldest': () => jsonResponse({ message: '数据库连接失败' }, 500),
+    } });
+    await waitFor(document, '.empty');
+    expect(document.getElementById('view-root').textContent).toContain('加载失败');
+    expect(document.getElementById('view-root').textContent).toContain('数据库连接失败');
+  });
+
+  it('侧边栏切换视图：点击“用户”后加载用户列表', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="users"]');
+    document.querySelector('.nav-item[data-view="users"]').click();
+    await waitFor(document, 'table');
+    expect(document.getElementById('view-root').textContent).toContain('tester');
+    expect(fetchCalls.some(c => c.url.includes('/api/admin/users?'))).toBe(true);
+  });
+
+  it('用户列表加载失败：展示错误', async () => {
+    const { document } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/users?q=&page=1&pageSize=10': () => jsonResponse({ message: '用户数据异常' }, 500),
+    } });
+    await waitFor(document, '.nav-item[data-view="users"]');
+    document.querySelector('.nav-item[data-view="users"]').click();
+    await waitFor(document, '.empty');
+    expect(document.getElementById('view-root').textContent).toContain('加载失败');
+    expect(document.getElementById('view-root').textContent).toContain('用户数据异常');
+  });
+
+  it('内容模型加载成功：渲染类型管理视图', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="model"]');
+    document.querySelector('.nav-item[data-view="model"]').click();
+    await waitFor(document, '.model-types, .model-type-list, [data-action="modeltypenew"], .settings-wrap');
+    expect(document.getElementById('view-root').textContent).toContain('猫猫');
+  });
+
+  it('系统设置加载成功：渲染功能开关与保存按钮', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="settings"]');
+    document.querySelector('.nav-item[data-view="settings"]').click();
+    await waitFor(document, '.settings-wrap');
+    const text = document.getElementById('view-root').textContent;
+    expect(text).toContain('允许投稿');
+    expect(document.querySelector('[data-action="settings-save"]')).toBeTruthy();
+  });
+
+  it('系统设置加载失败：展示错误', async () => {
+    const { document } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/settings': () => jsonResponse({ message: '设置读取失败' }, 500),
+    } });
+    await waitFor(document, '.nav-item[data-view="settings"]');
+    document.querySelector('.nav-item[data-view="settings"]').click();
+    await waitFor(document, '.empty');
+    expect(document.getElementById('view-root').textContent).toContain('加载失败');
+    expect(document.getElementById('view-root').textContent).toContain('设置读取失败');
+  });
+
+  it('审计日志加载成功：渲染表格与操作下拉', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="audit"]');
+    document.querySelector('.nav-item[data-view="audit"]').click();
+    await waitFor(document, '.table-wrap');
+    expect(document.getElementById('view-root').textContent).toContain('submission.approve');
+    expect(document.querySelector('select[data-af-action]')).toBeTruthy();
+  });
+
+  it('媒体清理加载成功：渲染资源表格（空态）', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="media"]');
+    document.querySelector('.nav-item[data-view="media"]').click();
+    await waitFor(document, '.media-summary, .empty');
+    expect(document.getElementById('view-root').textContent).toContain('媒体');
+  });
+
+  it('审批冲突：自动重拉 rowVersion 并重试成功', async () => {
+    let approveAttempts = 0;
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/submissions/sub_1/approve': async (url, opts) => {
+        approveAttempts++;
+        if (approveAttempts === 1) return jsonResponse({ message: '行版本冲突', code: 'SUBMISSION_CONFLICT' }, 409);
+        const body = JSON.parse(opts.body);
+        if (body.rowVersion !== 2) return jsonResponse({ message: 'rowVersion 未刷新', code: 'SUBMISSION_CONFLICT' }, 409);
+        return jsonResponse({ success: true, message: '已通过' });
+      },
+      '/api/admin/submissions/sub_1': () => jsonResponse({ submission: { ...SAMPLE_SUB, rowVersion: 2 } }),
+    } });
+    await waitFor(document, '[data-action="approve"]');
+    document.querySelector('[data-action="approve"]').click();
+    await settle();
+    expect(approveAttempts).toBe(2);
+    const approveCalls = fetchCalls.filter(c => c.url === '/api/admin/submissions/sub_1/approve');
+    expect(approveCalls.length).toBe(2);
+    expect(JSON.parse(approveCalls[1].opts.body).rowVersion).toBe(2);
+    expect(document.getElementById('pet-toast').textContent).toContain('已通过');
+  });
+
+  it('批量通过：勾选后确认并提交批量接口', async () => {
+    const { window, document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '[data-check][data-check-id]');
+    const checkbox = document.querySelector('[data-check][data-check-id]');
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new window.Event('change', { bubbles: true }));
+    document.querySelector('[data-action="bulk-approve"]').click();
+    // 确认弹窗
+    await waitFor(document, '[data-cf-ok]');
+    document.querySelector('[data-cf-ok]').click();
+    await settle();
+    const batch = fetchCalls.find(c => c.url === '/api/admin/submissions/batch');
+    expect(batch).toBeTruthy();
+    expect(batch.opts.method).toBe('POST');
+    expect(JSON.parse(batch.opts.body).action).toBe('approve');
+    expect(JSON.parse(batch.opts.body).ids).toContain('sub_1');
+  });
+});
