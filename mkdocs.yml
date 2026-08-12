@@ -2,7 +2,7 @@ site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
-site_url: https://ujn.matehub.top/
+site_url: https://127.0.0.1:8000/
 
 theme:
   name: material
@@ -110,11 +110,13 @@ extra:
 
 extra_javascript:
   - javascripts/mathjax.js
-  - pets/pet-client.js?v=20260811-1
-  - pets/pet-view-model.js?v=20260811-1
-  - pets/pet-oauth.js?v=20260811-1
-  - pets/pet-modal.js?v=20260811-1
-  - pets/pets.js?v=20260811-5
+  - pets/pet-client.js?v=20260812-1
+  - pets/pet-view-model.js?v=20260812-1
+  - pets/pet-oauth.js?v=20260812-1
+  - pets/pet-modal.js?v=20260812-1
+  - pets/pet-format.js?v=20260812-1
+  - pets/pet-views.js?v=20260812-1
+  - pets/pets.js?v=20260812-1
 
 nav:
   - 首页: index.md
