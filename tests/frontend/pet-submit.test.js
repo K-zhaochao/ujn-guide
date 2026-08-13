@@ -251,6 +251,29 @@ describe('宠物「投稿表单」交互控制器', () => {
     expect(document.querySelector('#pet-image-count').textContent).toContain('已选 1 张');
   });
 
+  it('删除单张图片：预览移除且顺序保持', async () => {
+    const t = makeSubmit();
+    mountSubmit();
+    t.controller.openSubmitModal();
+    await flush();
+    const input = document.querySelector('#pet-images');
+    const f1 = new File(['1'], 'a.png', { type: 'image/png' });
+    const f2 = new File(['2'], 'b.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { value: [f1, f2], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await flush();
+    const previews = document.querySelector('#pet-image-previews');
+    expect(previews.querySelectorAll('img').length).toBe(2);
+    expect(document.querySelector('#pet-image-count').textContent).toContain('已选 2 张');
+    // 删除第一张（✕ 是 div 内最后一个 span 的祖先按钮）
+    const first = previews.children[0];
+    const removeBtn = first.querySelector('span');
+    removeBtn.click();
+    await flush();
+    expect(previews.querySelectorAll('img').length).toBe(1);
+    expect(document.querySelector('#pet-image-count').textContent).toContain('已选 1 张');
+  });
+
   it('提交成功：调用投稿接口、丢弃草稿、关闭弹窗并回调刷新', async () => {
     const t = makeSubmit();
     let deleteDraftCalled = false;

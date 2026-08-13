@@ -284,4 +284,102 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(JSON.parse(batch.opts.body).action).toBe('approve');
     expect(JSON.parse(batch.opts.body).ids).toContain('sub_1');
   });
+
+  it('设置两窗口冲突：保存遇 SETTINGS_CONFLICT 提示并自动重拉最新值', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/settings': async (url, opts) => {
+        if (opts && opts.method === 'PUT') {
+          return jsonResponse({ message: '已被其他管理员修改', code: 'SETTINGS_CONFLICT' }, 409);
+        }
+        return jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, revision: 1 }, policy: [], runtime: {} });
+      },
+    } });
+    await waitFor(document, '.nav-item[data-view="settings"]');
+    document.querySelector('.nav-item[data-view="settings"]').click();
+    await waitFor(document, '.settings-wrap');
+    const isGet = c => String(c.opts && c.opts.method || 'GET').toUpperCase() === 'GET';
+    const getCallsBefore = fetchCalls.filter(c => c.url === '/api/admin/settings' && isGet(c)).length;
+    // 关闭「允许投稿」并保存 → 确认弹窗 → 提交
+    document.querySelector('[data-setting="allowSubmit"]').click();
+    document.querySelector('[data-action="settings-save"]').click();
+    await waitFor(document, '[data-cf-ok]');
+    document.querySelector('[data-cf-ok]').click();
+    await settle();
+    const put = fetchCalls.find(c => c.url === '/api/admin/settings' && c.opts && String(c.opts.method).toUpperCase() === 'PUT');
+    expect(put).toBeTruthy();
+    expect(JSON.parse(put.opts.body).expectedRevision).toBe(1);
+    expect(JSON.parse(put.opts.body).allowSubmit).toBe(false);
+    // 冲突后应提示并重新 GET 拉取最新值
+    expect(document.getElementById('pet-toast').textContent).toContain('已被其他管理员修改');
+    const getCallsAfter = fetchCalls.filter(c => c.url === '/api/admin/settings' && isGet(c)).length;
+    expect(getCallsAfter).toBeGreaterThan(getCallsBefore);
+  });
+
+  it('内容模型发布：预览确认后调用发布接口并携带草稿修订号', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/content-model/preview': () => jsonResponse({ preview: { valid: true, errors: [], warnings: [], impact: { submissions: 0 }, draftRevision: 5 } }),
+      '/api/admin/content-model/publish': () => jsonResponse({ ok: true, message: '内容模型已发布' }),
+    } });
+    await waitFor(document, '.nav-item[data-view="model"]');
+    document.querySelector('.nav-item[data-view="model"]').click();
+    await waitFor(document, '[data-action="modelpublish"]');
+    document.querySelector('[data-action="modelpublish"]').click();
+    // 预览弹窗（confirmBox 挂载在 body）
+    await waitFor(document, '[data-cf-ok]');
+    expect(document.body.textContent).toContain('内容模型影响预览');
+    document.querySelector('[data-cf-ok]').click();
+    await settle();
+    const preview = fetchCalls.find(c => c.url === '/api/admin/content-model/preview');
+    expect(preview).toBeTruthy();
+    expect(preview.opts.method).toBe('POST');
+    const publish = fetchCalls.find(c => c.url === '/api/admin/content-model/publish');
+    expect(publish).toBeTruthy();
+    expect(JSON.parse(publish.opts.body).expectedDraftRevision).toBe(5);
+  });
+
+  it('内容模型回滚：确认后携带目标版本与草稿修订号', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/content-model/versions?page=1&pageSize=10': () => jsonResponse({
+        versions: [{ version: 1, status: 'published', basedOnVersion: null, checksum: 'abc123', createdAt: '2026-08-01T10:00:00Z' }],
+        total: 1,
+      }),
+      '/api/admin/content-model/rollback': () => jsonResponse({ ok: true, message: '已回滚并发布新版本' }),
+    } });
+    await waitFor(document, '.nav-item[data-view="model"]');
+    document.querySelector('.nav-item[data-view="model"]').click();
+    // 切到「发布历史」tab 才渲染版本列表与回滚按钮
+    await waitFor(document, '[data-action="modeltab"][data-tab="versions"]');
+    document.querySelector('[data-action="modeltab"][data-tab="versions"]').click();
+    await waitFor(document, '[data-action="modelrollback"]');
+    document.querySelector('[data-action="modelrollback"]').click();
+    await waitFor(document, '[data-cf-ok]');
+    document.querySelector('[data-cf-ok]').click();
+    await settle();
+    const rollback = fetchCalls.find(c => c.url === '/api/admin/content-model/rollback');
+    expect(rollback).toBeTruthy();
+    expect(rollback.opts.method).toBe('POST');
+    expect(JSON.parse(rollback.opts.body).version).toBe(1);
+    expect(JSON.parse(rollback.opts.body).expectedDraftRevision).toBe(5);
+  });
+
+  it('审计清理任务重试：确认后调用重试接口并刷新任务列表', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/audit-cleanup/tasks?limit=8&offset=0': () => jsonResponse({
+        total: 1,
+        tasks: [{ id: 'clean_1', status: 'failed', filters: { action: 'submit' }, processedCount: 5, createdAt: '2026-08-01T10:00:00Z' }],
+      }),
+      '/api/admin/audit-cleanup/tasks/clean_1/retry': () => jsonResponse({ ok: true, message: '任务已重新排队' }),
+    } });
+    await waitFor(document, '.nav-item[data-view="audit"]');
+    document.querySelector('.nav-item[data-view="audit"]').click();
+    await waitFor(document, '[data-action="auditcleanup-retry"]');
+    document.querySelector('[data-action="auditcleanup-retry"]').click();
+    await waitFor(document, '[data-cf-ok]');
+    document.querySelector('[data-cf-ok]').click();
+    await settle();
+    const retry = fetchCalls.find(c => c.url === '/api/admin/audit-cleanup/tasks/clean_1/retry');
+    expect(retry).toBeTruthy();
+    expect(retry.opts.method).toBe('POST');
+    expect(document.getElementById('pet-toast').textContent).toContain('任务已重新排队');
+  });
 });
