@@ -224,6 +224,19 @@ describe('宠物前端渲染层', () => {
     expect(row).not.toContain('pet-restore-btn');
     expect(row).not.toContain('pet-history-btn');
 
+    const pendingRevision = v.mineRowHtml({
+      id: 'pet_10', name: '小黄', status: 'approved', category: '猫猫',
+      pendingRevisionCount: 2, latestRevision: { id: 'rev_1' }, availableActions: ['edit'],
+    });
+    expect(pendingRevision).toContain('有 2 条修改待审核');
+    expect(pendingRevision).toContain('图鉴继续显示当前公开版本');
+    expect(pendingRevision).toContain('查看待审修改');
+
+    const revisionHistory = v.mineRowHtml({
+      id: 'pet_12', status: 'approved', latestRevision: { id: 'rev_2' }, availableActions: [],
+    });
+    expect(revisionHistory).toContain('查看修改记录');
+
     const deleted = v.mineRowHtml({
       id: 'pet_11', status: 'deleted', createdAt: '2026-08-01T00:00:00Z',
       availableActions: ['restore'],

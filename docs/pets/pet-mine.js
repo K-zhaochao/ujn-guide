@@ -26,6 +26,7 @@
       api, apiSubmissionAction,
       showToast,
       openPetModal, closePetModal,
+      confirmAction = async () => false,
       onLoginRequired,
       onSubmit,
       onEdit,
@@ -89,7 +90,7 @@
         '<div style="border:1px solid ' + C.border + ';border-radius:14px;padding:16px;margin:24px 0 8px">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">' +
         '<span id="pet-mine-title" style="font-size:17px;font-weight:700;color:' + C.fgDark + '">📋 我的投稿</span>' +
-        '<span style="font-size:12px;color:' + C.muted + '">支持关键词、状态、类型、日期筛选；详情按需加载</span>' +
+        '<span style="font-size:12px;color:' + C.muted + '">支持关键词、状态、类型、日期筛选；已公开内容的修改需再次审核，审核前图鉴保持原公开版本</span>' +
         '<button id="pet-mine-close" style="margin-left:auto;padding:5px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:13px;cursor:pointer;color:' + C.fg + '">收起 ▲</button>' +
         (siteConfig.allowSubmit && !siteConfig.maintenance
           ? '<button id="pet-mine-submit" style="padding:5px 14px;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600">🆕 投稿</button>'
@@ -237,7 +238,12 @@
       $all('.pet-resubmit-btn', sec).forEach(btn => {
         btn.onclick = async () => {
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
-          if (!confirm('🔁 确定将该投稿重新提交审核吗？提交后需重新等待审核结果。')) return;
+          const confirmed = await confirmAction({
+            title: '重新提交审核？',
+            message: '该投稿会重新进入待审核队列，审核通过前不会出现在图鉴中。',
+            confirmText: '重新提交',
+          });
+          if (!confirmed) return;
           const r = await apiSubmissionAction('POST', '/api/submissions/' + encodeURIComponent(btn.dataset.id) + '/resubmit', { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
           showToast(r.data.message || (r.ok ? '已重新提交' : '操作失败'), !r.ok);
           if (r.ok) {
@@ -250,7 +256,13 @@
         btn.onclick = async () => {
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，删除功能暂时关闭', true); return; }
           if (!siteConfig.allowDelete) { showToast('⚠️ 当前已关闭投稿删除功能，请联系站长', true); return; }
-          if (!confirm('确认删除该投稿吗？删除后将不再显示在“我的投稿”中；如需恢复，请在七天内通过站长 QQ 联系站长处理。')) return;
+          const confirmed = await confirmAction({
+            title: '删除投稿？',
+            message: '删除后不会再显示在“我的投稿”中。需要恢复时，请在七天内联系站长处理。',
+            confirmText: '删除投稿',
+            variant: 'danger',
+          });
+          if (!confirmed) return;
           const r = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(btn.dataset.id), { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
           showToast(r.data.message || (r.ok ? '已删除。七天内可联系站长 QQ 申请恢复。' : '删除失败'), !r.ok);
           if (r.ok) {
@@ -290,19 +302,25 @@
       if (!r.ok) { showToast((r.data && r.data.message) || '加载修订失败', true); return; }
       const revisions = (r.data && r.data.revisions) || [];
       const modal = $('#pet-detail-modal');
-      openPetModal(modal, { label: '公开修订' });
+      openPetModal(modal, { label: '已公开内容的修改记录' });
       // 修订卡片 HTML 由渲染层（pet-views.js）生成
       modal.innerHTML =
         '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:620px;width:100%;padding:24px;position:relative;max-height:90vh;overflow-y:auto">' +
         '<button id="pet-detail-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
-        '<h2 style="margin:0 0 5px;font-size:19px;color:' + C.fgDark + '">📝 公开修订</h2>' +
+        '<h2 style="margin:0 0 5px;font-size:19px;color:' + C.fgDark + '">📝 修改审核记录</h2>' +
         '<p style="font-size:12px;color:' + C.muted + ';line-height:1.6;margin:0 0 14px">待审核修订不会改变当前公开内容；审核通过后才会替换。</p>' +
         views().mineRevisionsHtml(revisions, id) + '</div>';
       $('#pet-detail-close').onclick = () => { closePetModal(modal); };
       modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
       $all('.pet-revision-withdraw', modal).forEach(btn => {
         btn.onclick = async () => {
-          if (!confirm('确定撤回这条待审修订吗？')) return;
+          const confirmed = await confirmAction({
+            title: '撤回待审修改？',
+            message: '撤回后这条修改不会进入审核，当前公开内容保持不变。',
+            confirmText: '撤回修改',
+            variant: 'danger',
+          });
+          if (!confirmed) return;
           const result = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(btn.dataset.submission) + '/revisions/' + encodeURIComponent(btn.dataset.id), {
             rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.submission,
           });

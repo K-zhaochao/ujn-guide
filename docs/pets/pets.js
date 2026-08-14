@@ -121,6 +121,7 @@
   const petSubmitModule = window.UJNGuidePetSubmit;
   const safeHttpUrl = petClient && petClient.safeHttpUrl;
   let modalController = null;
+  let confirmController = null;
 
   // 纯工具函数（pet-format.js）：本地别名让全部既有调用点保持不变
   const {
@@ -248,12 +249,16 @@
     modalController.close(modal);
   }
 
+  function confirmPetAction(options) {
+    return confirmController.confirm(options);
+  }
+
   // ================== API ==================
 
   if (!petClient || typeof petClient.createApiClient !== 'function' || typeof petClient.createAuthSession !== 'function' ||
       !petViewModel || typeof petViewModel.projectContentSchema !== 'function' ||
       !petOAuth || typeof petOAuth.createOAuthTransaction !== 'function' ||
-      !petModal || typeof petModal.createModalController !== 'function' ||
+      !petModal || typeof petModal.createModalController !== 'function' || typeof petModal.createConfirmController !== 'function' ||
       !petFormat || typeof petFormat.esc !== 'function' ||
       !petViews || typeof petViews.createPetViews !== 'function' ||
       !petLikesModule || typeof petLikesModule.createPetLikes !== 'function' ||
@@ -261,6 +266,12 @@
     throw new Error('缺少宠物前端基础模块，无法初始化宠物页面');
   }
   modalController = petModal.createModalController({
+    document,
+    requestAnimationFrame: typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : undefined,
+    registerListener: addPetGlobal,
+    unregisterListener: removePetGlobal,
+  });
+  confirmController = petModal.createConfirmController({
     document,
     requestAnimationFrame: typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame.bind(window) : undefined,
     registerListener: addPetGlobal,
@@ -975,6 +986,7 @@
     api, apiSubmissionAction,
     showToast,
     openPetModal, closePetModal,
+    confirmAction: confirmPetAction,
     onLoginRequired: openLoginPop,
     onSubmit: openSubmitModal,
     onEdit: openEditModal,
@@ -1024,6 +1036,14 @@
     const typeName = sub.type && sub.type.name ? sub.type.name : sub.category;
     const schemaVersion = sub.formSchemaVersionId || sub.schemaVersion;
     const readOnlyCount = definitions.filter(field => field.readOnly || field.archivedNow).length;
+    const isApproved = sub.status === 'approved';
+    const isRejected = sub.status === 'rejected';
+    const editGuide = isApproved
+      ? '提交后会生成待审核修改；审核通过前，图鉴继续显示当前公开版本。'
+      : (isRejected
+        ? '保存只会更新当前被拒绝稿；确认内容后，请在“我的投稿”中重新提交审核。'
+        : '保存会更新当前待审核投稿，审核结果以管理员最终审核为准。');
+    const saveLabel = isApproved ? '提交修改供审核' : '保存修改';
     // P1-05：既有图回显（详情接口返回 [{url,key}]；兼容旧 string 数组）
     const editImages = Array.isArray(sub.images) && sub.images.length
       ? sub.images.map(img => typeof img === 'string' ? { url: img, key: '' } : { url: img.url || '', key: img.key || '' })
@@ -1036,7 +1056,7 @@
       '<button id="pet-edit-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
       '<h2 style="margin:0 0 4px;font-size:19px;color:' + C.fgDark + '">✏️ 编辑投稿</h2>' +
       '<div style="font-size:13px;color:' + C.muted + ';margin-bottom:8px">' + (sub.name ? esc(sub.name) : '未命名宠物') + ' · ' + esc(typeName || '未分类') + (schemaVersion ? ' · schema v' + esc(schemaVersion) : '') + '</div>' +
-      '<div style="font-size:12px;color:' + C.muted + ';margin-bottom:16px">按该投稿保存时的字段版本编辑；保存后“最近更新”排序会置顶。' + (readOnlyCount ? '其中 ' + readOnlyCount + ' 个字段因归档或权限调整为只读。' : '') + '</div>' +
+      '<div style="font-size:12px;color:' + C.muted + ';margin-bottom:16px">按该投稿保存时的字段版本编辑；' + editGuide + (readOnlyCount ? '其中 ' + readOnlyCount + ' 个字段因归档或权限调整为只读。' : '') + '</div>' +
       // P1-05：图片区（删除 ✕ / 排序 ⇅ / 替换重选 / 追加新图）
       '<div style="margin-bottom:16px">' +
         '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，单张不超过 ' + imageLimitLabel() + '，点 ✕ 删除，⇅ 调整顺序）</span></label>' +
@@ -1051,7 +1071,7 @@
       '</div>' +
 
       '<div style="display:flex;gap:10px">' +
-      '<button id="pet-edit-save" style="flex:1;padding:11px 0;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">保存修改</button>' +
+      '<button id="pet-edit-save" style="flex:1;padding:11px 0;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">' + saveLabel + '</button>' +
       '<button id="pet-edit-cancel" style="padding:11px 20px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:14px;cursor:pointer;color:' + C.fg + '">取消</button>' +
       '</div>' +
       '</div>';
@@ -1156,13 +1176,11 @@
         _id: id,
       });
       saveButton.disabled = false;
-      saveButton.textContent = '保存修改';
-      showToast(up.data.message || (up.ok ? '已保存' : '保存失败'), !up.ok);
+      saveButton.textContent = saveLabel;
+      showToast(up.data.message || (up.ok ? (isApproved ? '修改已提交审核，审核前公开内容保持不变。' : '已保存') : '保存失败'), !up.ok);
       if (up.ok) {
         closePetModal(modal);
-        petCache.clear();
         await refreshMineSubmissions();
-        loadPets();
       }
     };
   }
@@ -1267,6 +1285,7 @@
   // 非 Material 环境回退到 DOMContentLoaded。订阅存于 window.__petSub，
   // 避免脚本被重复执行时叠加订阅。
   function bootPets() {
+    if (confirmController) confirmController.dispose();
     disposePetGlobals();
     if (!isPetPage()) return; // 非宠物页：零请求、零渲染
     registerPopupClose();

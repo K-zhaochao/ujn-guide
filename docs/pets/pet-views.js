@@ -322,6 +322,8 @@
       const meta = mineStatusMeta(s.status);
       const thumb = s.thumbnail || (s.images && s.images[0]) || '';
       const actions = Array.isArray(s.availableActions) ? s.availableActions : [];
+      const pendingRevisionCount = Number(s.pendingRevisionCount || 0);
+      const hasPendingRevision = pendingRevisionCount > 0;
       // 完整拒绝原因：若超过单行则列表内截断，悬停标题仍可查看全文。
       const rejectFull = s.status === 'rejected' && s.rejectReason ? s.rejectReason : '';
       return '<div class="pet-mine-row" data-id="' + esc(s.id) + '" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid ' + C.border + ';border-radius:10px;background:' + C.soft + ';min-width:0;flex-wrap:wrap">' +
@@ -330,13 +332,13 @@
         '<button class="pet-mine-shortid" title="点击复制投稿 ID：' + esc(s.id) + '" style="font-size:11px;padding:2px 7px;border:1px dashed ' + C.border + ';border-radius:8px;background:' + C.bg + ';color:' + C.muted + ';cursor:pointer">#' + esc(s.shortId || String(s.id).replace(/^pet_/, '')) + '</button></div>' +
         '<div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') +
         (s.reviewAgeMs > 0 ? ' · 已等待 ' + esc(humanizeDuration(s.reviewAgeMs)) : '') + '</div>' +
-        (s.pendingRevisionCount ? '<div style="font-size:12px;color:' + C.primary + ';margin-top:3px">📝 有 ' + Number(s.pendingRevisionCount) + ' 个公开修订待审核，当前页面仍展示已公开版本</div>' : '') +
+        (hasPendingRevision ? '<div style="font-size:12px;color:' + C.primary + ';margin-top:3px">📝 有 ' + pendingRevisionCount + ' 条修改待审核；图鉴继续显示当前公开版本</div>' : '') +
         (rejectFull ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(rejectFull) + '">🚫 ' + esc(rejectFull) + '</div>' : '') +
         ((s.summaryFields && s.summaryFields.length) ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.summaryFields.map(f => esc(f.label) + ': ' + (typeof f.value === 'string' ? esc(f.value) : JSON.stringify(f.value))).join(' · ') + '</div>' : '') +
         '</div>' +
         '<div class="pet-mine-row-actions" style="display:flex;gap:5px;flex:none;margin-left:auto;flex-wrap:wrap">' +
         (actions.includes('history') ? '<button class="pet-history-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.fg + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">🕘 历史</button>' : '') +
-        ((s.pendingRevisionCount || s.latestRevision) ? '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">📝 修订</button>' : '') +
+        ((hasPendingRevision || s.latestRevision) ? '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">📝 ' + (hasPendingRevision ? '查看待审修改' : '查看修改记录') + '</button>' : '') +
         (actions.includes('edit') ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
         (actions.includes('resubmit') ? '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">🔁 重新提交审核</button>' : '') +
         (actions.includes('delete') ? '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.dangerBg + ';border-radius:7px;font-size:12px;cursor:pointer">🗑️ 删除</button>' : '') +

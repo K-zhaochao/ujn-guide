@@ -87,6 +87,26 @@ describe('宠物弹窗控制器', () => {
     return { controller, entries };
   }
 
+  function createConfirmController() {
+    const entries = [];
+    const controller = modal.createConfirmController({
+      document,
+      requestAnimationFrame: callback => callback(),
+      registerListener(target, type, fn) {
+        const entry = { target, type, fn };
+        entries.push(entry);
+        target.addEventListener(type, fn);
+        return entry;
+      },
+      unregisterListener(entry) {
+        entry.target.removeEventListener(entry.type, entry.fn);
+        const index = entries.indexOf(entry);
+        if (index >= 0) entries.splice(index, 1);
+      },
+    });
+    return { controller, entries };
+  }
+
   it('设置无障碍语义、聚焦首个控件，并在 Esc 后恢复触发焦点', () => {
     document.body.innerHTML = '<button id="trigger">打开</button><div id="modal"><button id="close">关闭</button></div>';
     const trigger = document.querySelector('#trigger');
@@ -138,6 +158,37 @@ describe('宠物弹窗控制器', () => {
     controller.open(dialog, { style: 'display:flex' });
     controller.close(dialog);
     callbacks.forEach(callback => callback());
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('站内确认弹窗可取消、Esc 关闭并恢复触发焦点', async () => {
+    document.body.innerHTML = '<button id="trigger">删除</button>';
+    const trigger = document.querySelector('#trigger');
+    const { controller, entries } = createConfirmController();
+    trigger.focus();
+
+    const dismissed = controller.confirm({
+      title: '删除投稿？', message: '删除后可在七天内联系站长恢复。', confirmText: '删除投稿', variant: 'danger',
+    });
+    const dialog = document.querySelector('#pet-confirm-modal');
+    const panel = dialog.querySelector('[role="alertdialog"]');
+    const buttons = Array.from(dialog.querySelectorAll('button'));
+    expect(panel.getAttribute('aria-modal')).toBe('true');
+    expect(panel.textContent).toContain('删除投稿？');
+    expect(buttons[0].style.minHeight).toBe('44px');
+    expect(buttons[1].style.minHeight).toBe('44px');
+    expect(document.activeElement).toBe(buttons[1]);
+    expect(entries).toHaveLength(1);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await expect(dismissed).resolves.toBe(false);
+    expect(dialog.style.display).toBe('none');
+    expect(document.activeElement).toBe(trigger);
+    expect(entries).toHaveLength(0);
+
+    const accepted = controller.confirm({ title: '重新提交审核？', message: '提交后需等待审核。', confirmText: '重新提交' });
+    dialog.querySelectorAll('button')[1].click();
+    await expect(accepted).resolves.toBe(true);
     expect(document.activeElement).toBe(trigger);
   });
 });

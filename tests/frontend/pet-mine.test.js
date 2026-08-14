@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const mine = require('../../docs/pets/pet-mine.js');
@@ -17,7 +17,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
 
 /** 构造可控的 pet-mine 实例与 DOM 环境 */
 function makeMine(overrides) {
-  const calls = { api: [], submissionAction: [], toast: [], openModal: [], closeModal: [], onListChanged: 0 };
+  const calls = { api: [], submissionAction: [], toast: [], openModal: [], closeModal: [], confirm: [], onListChanged: 0 };
   const user = { provider: 'github', username: 'tester', nickname: '测试' };
   let siteConfig = { allowSubmit: true, allowEdit: true, allowDelete: true, maintenance: false };
   const petCache = new Map();
@@ -61,6 +61,7 @@ function makeMine(overrides) {
     showToast: (msg, isError) => calls.toast.push({ msg, isError }),
     openPetModal: (modal, opts) => { calls.openModal.push(opts); },
     closePetModal: () => calls.closeModal.push(1),
+    confirmAction: async options => { calls.confirm.push(options); return true; },
     onLoginRequired: () => calls.toast.push({ msg: 'openLoginPop', isError: true }),
     onSubmit: () => calls.toast.push({ msg: 'submit', isError: false }),
     onEdit: id => calls.toast.push({ msg: 'edit:' + id, isError: false }),
@@ -228,17 +229,18 @@ describe('宠物「我的投稿」交互控制器', () => {
     });
     mountSection();
     await controller.openMineSection();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     document.querySelector('.pet-del-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('七天内'));
+    expect(calls.confirm).toContainEqual(expect.objectContaining({
+      title: '删除投稿？', confirmText: '删除投稿', variant: 'danger',
+    }));
     expect(calls.submissionAction.some(s => s.method === 'DELETE' && s.path.includes('/api/submissions/s1'))).toBe(true);
     expect(calls.onListChanged).toBe(1);
-    confirmSpy.mockRestore();
   });
 
   it('删除投稿：取消确认不调用接口', async () => {
     const { controller, calls } = makeMine({
+      confirmAction: async () => false,
       api: async (path) => {
         if (path.startsWith('/api/my/submissions?')) {
           return { ok: true, data: { items: [{ id: 's1', name: '小白', status: 'approved' }], total: 1, totalPages: 1, statusCounts: {} } };
@@ -248,12 +250,10 @@ describe('宠物「我的投稿」交互控制器', () => {
     });
     mountSection();
     await controller.openMineSection();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     document.querySelector('.pet-del-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(calls.submissionAction.length).toBe(0);
     expect(calls.onListChanged).toBe(0);
-    confirmSpy.mockRestore();
   });
 
   it('维护模式下删除和重新提交被拦截', async () => {
@@ -287,12 +287,35 @@ describe('宠物「我的投稿」交互控制器', () => {
     });
     mountSection();
     await controller.openMineSection();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     document.querySelector('.pet-resubmit-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
+    expect(calls.confirm).toContainEqual(expect.objectContaining({
+      title: '重新提交审核？', confirmText: '重新提交',
+    }));
     expect(calls.onListChanged).toBe(0);
     expect(calls.submissionAction.some(s => s.path.includes('/resubmit'))).toBe(true);
-    confirmSpy.mockRestore();
+  });
+
+  it('撤回待审修改：确认后调用撤回接口', async () => {
+    const { controller, calls } = makeMine({
+      api: async (path) => {
+        if (path.startsWith('/api/my/submissions?')) {
+          return { ok: true, data: { items: [{ id: 's1', name: '小白', status: 'approved' }], total: 1, totalPages: 1, statusCounts: {} } };
+        }
+        if (path.includes('/revisions')) return { ok: true, data: { revisions: [{ id: 'rev_1', canWithdraw: true }] } };
+        return { ok: true, data: {} };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    document.querySelector('.pet-revisions-btn').onclick();
+    await new Promise(r => setTimeout(r, 0));
+    document.querySelector('.pet-revision-withdraw').onclick();
+    await new Promise(r => setTimeout(r, 0));
+    expect(calls.confirm).toContainEqual(expect.objectContaining({
+      title: '撤回待审修改？', confirmText: '撤回修改', variant: 'danger',
+    }));
+    expect(calls.submissionAction.some(s => s.method === 'DELETE' && s.path.includes('/revisions/rev_1'))).toBe(true);
   });
 
   it('我的投稿状态筛选不展示已删除记录', async () => {
