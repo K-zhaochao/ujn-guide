@@ -228,8 +228,9 @@ describe('宠物前端渲染层', () => {
       id: 'pet_10', name: '小黄', status: 'approved', category: '猫猫',
       pendingRevisionCount: 2, latestRevision: { id: 'rev_1' }, availableActions: ['edit'],
     });
-    expect(pendingRevision).toContain('有 2 条修改待审核');
-    expect(pendingRevision).toContain('图鉴继续显示当前公开版本');
+    expect(pendingRevision).toContain('📝 修改待审核');
+    expect(pendingRevision).toContain('2 条候选修改正在待审核');
+    expect(pendingRevision).toContain('图鉴仍显示当前公开版本');
     expect(pendingRevision).toContain('查看待审修改');
 
     const revisionHistory = v.mineRowHtml({

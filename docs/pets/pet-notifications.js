@@ -37,14 +37,14 @@
         ? '<a href="' + esc(profileUrl) + '" target="_blank" rel="noopener noreferrer" style="color:' + C.primary + ';font-weight:700;text-decoration:none">' + actorName + '</a>'
         : '<span style="font-weight:700;color:' + C.fgDark + '">' + actorName + '</span>';
       const action = item.eventType === 'unliked' ? '取消了对你的点赞' : '点赞了你的投稿';
-      const tone = item.eventType === 'unliked' ? C.muted : C.primary;
+      const tone = item.eventType === 'unliked' ? C.muted : C.fg;
       const submission = item.submission || {};
       return '<div class="pet-notification-item" style="padding:11px 12px;border-bottom:1px solid ' + C.border + ';background:' + (item.readAt ? 'transparent' : C.soft) + '">' +
         '<div style="display:flex;align-items:flex-start;gap:8px">' +
           (actor && actor.avatarUrl ? '<img src="' + esc(actor.avatarUrl) + '" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex:none">' : '<span style="width:28px;height:28px;border-radius:50%;background:' + C.avatarBg + ';display:inline-flex;align-items:center;justify-content:center;flex:none">🐾</span>') +
           '<div style="min-width:0;flex:1;font-size:13px;line-height:1.55;color:' + C.fg + '">' +
             '<div>' + actorHtml + ' <span style="color:' + tone + '">' + action + '</span></div>' +
-            '<button type="button" class="pet-notification-submission" data-submission="' + esc(submission.id || '') + '" style="padding:0;margin:2px 0 0;background:none;border:none;color:' + C.primary + ';font-size:12px;cursor:pointer;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(submission.name || '未命名宠物') + '</button>' +
+            '<button type="button" class="pet-notification-submission" data-submission="' + esc(submission.id || '') + '" style="padding:0;margin:2px 0 0;background:none;border:none;border-bottom:1px solid ' + C.border + ';color:' + C.fgDark + ';font-size:12px;cursor:pointer;text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(submission.name || '未命名宠物') + '</button>' +
             '<div style="font-size:11px;color:' + C.faint + ';margin-top:2px">' + esc(formatDateTime(item.createdAt)) + '</div>' +
           '</div>' +
         '</div>' +

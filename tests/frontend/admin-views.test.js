@@ -185,13 +185,16 @@ describe('管理后台渲染层（admin-ui-views）', () => {
       const v = makeViews();
       const html = v.pendingRevisionQueueHtml([{
         id: 'rev_1', createdAt: '2026-08-12T03:00:00Z', canApprove: true,
-        diff: { changes: [{ key: 'name' }], fieldChanges: [], imagesChanged: false },
+        diff: { changes: [{ key: 'name', from: '旧名字', to: '新名字' }], fieldChanges: [], imagesChanged: false },
         candidate: { name: '新名字', category: '猫猫' }, candidateType: { name: '猫猫', icon: '🐱' },
         submission: { id: 'pet_1', name: '旧名字', category: '猫猫' },
         contributor: { username: 'alice', nickname: '', avatarUrl: '' },
-      }]);
+      }], { name: '宠物昵称' });
       expect(html).toContain('公开稿修改');
       expect(html).toContain('新名字');
+      expect(html).toContain('旧名字');
+      expect(html).toContain('宠物昵称');
+      expect(html).toContain('查看完整对比并审核');
       expect(html).toContain('data-action="revisions"');
       expect(html).not.toContain('data-check');
       expect(v.pendingRevisionQueueHtml([])).toBe('');

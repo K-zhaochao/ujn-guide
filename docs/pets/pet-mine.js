@@ -360,6 +360,12 @@
       await loadMineSubmissions();
     }
 
+    async function focusPendingReview() {
+      mineStatus = 'pending';
+      minePage = 1;
+      await loadMineSubmissions();
+    }
+
     async function openMineSection() {
       if (!getUser()) { showToast('请先登录', true); onLoginRequired(); return; }
       const sec = $('#pet-mine-section');
@@ -381,6 +387,7 @@
       openMineRevisions,
       loadMineSubmissions,
       refreshMineSubmissions,
+      focusPendingReview,
       openMineSection,
     };
   }

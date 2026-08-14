@@ -346,6 +346,19 @@ describe('宠物「我的投稿」交互控制器', () => {
     expect(calls.api[calls.api.length - 1]).not.toContain('page=2');
   });
 
+  it('公开稿修改提交后可切换到待审核，查询会包含候选修订', async () => {
+    const { controller, calls } = makeMine({
+      api: async (path) => {
+        calls.api.push(path);
+        return { ok: true, data: { items: [], total: 0, totalPages: 1, statusCounts: { pending: 1 } } };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    await controller.focusPendingReview();
+    expect(calls.api[calls.api.length - 1]).toContain('status=pending');
+  });
+
   it('类型选项加载：填充下拉并保持已选筛选', async () => {
     const { controller } = makeMine({
       api: async (path) => {

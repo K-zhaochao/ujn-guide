@@ -324,15 +324,18 @@
       const actions = Array.isArray(s.availableActions) ? s.availableActions : [];
       const pendingRevisionCount = Number(s.pendingRevisionCount || 0);
       const hasPendingRevision = pendingRevisionCount > 0;
+      const revisionWorkflowBadge = hasPendingRevision && s.status === 'approved'
+        ? '<span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.primary + '">📝 修改待审核</span>'
+        : '';
       // 完整拒绝原因：若超过单行则列表内截断，悬停标题仍可查看全文。
       const rejectFull = s.status === 'rejected' && s.rejectReason ? s.rejectReason : '';
       return '<div class="pet-mine-row" data-id="' + esc(s.id) + '" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid ' + C.border + ';border-radius:10px;background:' + C.soft + ';min-width:0;flex-wrap:wrap">' +
         (thumb ? '<img src="' + esc(resolveImage(thumb)) + '" alt="" loading="lazy" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none">' : '<span style="width:46px;height:46px;border-radius:8px;background:' + C.imgBg + ';display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">' + esc(mineTypeIcon(s)) + '</span>') +
-        '<div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><strong style="font-size:14px;color:' + C.fgDark + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">' + (s.name ? esc(s.name) : '<span style="color:' + C.muted + '">🐾 未命名宠物</span>') + '</strong><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span>' +
+        '<div style="min-width:0;flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><strong style="font-size:14px;color:' + C.fgDark + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">' + (s.name ? esc(s.name) : '<span style="color:' + C.muted + '">🐾 未命名宠物</span>') + '</strong><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:' + meta.bg + ';color:' + meta.color + '">' + meta.label + '</span>' + revisionWorkflowBadge +
         '<button class="pet-mine-shortid" title="点击复制投稿 ID：' + esc(s.id) + '" style="font-size:11px;padding:2px 7px;border:1px dashed ' + C.border + ';border-radius:8px;background:' + C.bg + ';color:' + C.muted + ';cursor:pointer">#' + esc(s.shortId || String(s.id).replace(/^pet_/, '')) + '</button></div>' +
         '<div style="font-size:12px;color:' + C.muted + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(mineTypeLabel(s)) + ' · 投稿 ' + esc(formatDate(s.createdAt)) + (s.updatedAt && s.updatedAt !== s.createdAt ? ' · 更新 ' + esc(formatDate(s.updatedAt)) : '') +
         (s.reviewAgeMs > 0 ? ' · 已等待 ' + esc(humanizeDuration(s.reviewAgeMs)) : '') + '</div>' +
-        (hasPendingRevision ? '<div style="font-size:12px;color:' + C.primary + ';margin-top:3px">📝 有 ' + pendingRevisionCount + ' 条修改待审核；图鉴继续显示当前公开版本</div>' : '') +
+        (hasPendingRevision ? '<div style="font-size:12px;color:' + C.primary + ';margin-top:3px">📝 ' + pendingRevisionCount + ' 条候选修改正在待审核；图鉴仍显示当前公开版本</div>' : '') +
         (rejectFull ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(rejectFull) + '">🚫 ' + esc(rejectFull) + '</div>' : '') +
         ((s.summaryFields && s.summaryFields.length) ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.summaryFields.map(f => esc(f.label) + ': ' + (typeof f.value === 'string' ? esc(f.value) : JSON.stringify(f.value))).join(' · ') + '</div>' : '') +
         '</div>' +

@@ -1205,10 +1205,14 @@
       });
       saveButton.disabled = false;
       saveButton.textContent = saveLabel;
-      showToast(up.data.message || (up.ok ? (isApproved ? '修改已提交审核，审核前公开内容保持不变。' : '已保存') : '保存失败'), !up.ok);
+      showToast(up.data.message || (up.ok ? (isApproved ? '修改已提交审核，已切换到“待审核”。' : '已保存') : '保存失败'), !up.ok);
       if (up.ok) {
         closePetModal(modal);
-        await refreshMineSubmissions();
+        if (isApproved && petMine && typeof petMine.focusPendingReview === 'function') {
+          await petMine.focusPendingReview();
+        } else {
+          await refreshMineSubmissions();
+        }
       }
     };
   }

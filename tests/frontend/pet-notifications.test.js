@@ -55,10 +55,40 @@ describe('宠物前端互动通知控制器', () => {
     expect(panel.textContent).toContain('阿狸');
     expect(panel.textContent).toContain('点赞了你的投稿');
     expect(panel.querySelector('a').href).toBe('https://github.com/alice');
+    expect(panel.querySelector('a').getAttribute('style')).toContain('color:#06c');
+    const action = [...panel.querySelectorAll('span')].find(element => element.textContent === '点赞了你的投稿');
+    expect(action.getAttribute('style')).toContain('color:#333');
+    expect(panel.querySelector('.pet-notification-submission').getAttribute('style')).toContain('color:#111');
+    expect(panel.querySelector('.pet-notification-submission').getAttribute('style')).not.toContain('color:#06c');
     expect(api).toHaveBeenCalledWith('/api/my/notifications?page=1&pageSize=20');
     expect(api).toHaveBeenCalledWith('/api/my/notifications/read', { method: 'POST', body: { ids: [9] } });
     expect(controller.unreadCount()).toBe(0);
     expect(onUnreadCountChange).toHaveBeenCalled();
+  });
+
+  it('取消点赞使用弱化文字色，和用户名链接区分', async () => {
+    const { controller } = setup({
+      api: vi.fn(async (path) => {
+        if (path === '/api/my/notifications?page=1&pageSize=20') {
+          return {
+            ok: true,
+            data: {
+              total: 1, unreadCount: 0, page: 1, totalPages: 1,
+              notifications: [{
+                id: 10, eventType: 'unliked', createdAt: '2026-08-14T10:00:00Z', readAt: '2026-08-14T10:01:00Z',
+                submission: { id: 'pet_1', name: '小白' },
+                actor: { username: 'alice', nickname: '阿狸', avatarUrl: '', profileUrl: 'https://github.com/alice' },
+              }],
+            },
+          };
+        }
+        return { ok: true, data: { updated: 0, unreadCount: 0 } };
+      }),
+    });
+    await controller.toggleNotifications(document.getElementById('trigger'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const action = [...document.querySelectorAll('#pet-notification-pop span')].find(element => element.textContent === '取消了对你的点赞');
+    expect(action.getAttribute('style')).toContain('color:#777');
   });
 
   it('点击投稿名打开详情并收起通知面板', async () => {
