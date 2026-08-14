@@ -1130,7 +1130,7 @@
       (fieldsHtml || '<div style="grid-column:1/-1;color:' + C.muted + ';font-size:13px;padding:8px 0">该历史版本没有可编辑字段</div>') +
       '</div>' +
 
-      '<div style="display:flex;gap:10px">' +
+      '<div class="pet-edit-actions" style="display:flex;gap:10px">' +
       '<button id="pet-edit-save" style="flex:1;padding:11px 0;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">' + saveLabel + '</button>' +
       '<button id="pet-edit-cancel" style="padding:11px 20px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:14px;cursor:pointer;color:' + C.fg + '">取消</button>' +
       '</div>' +

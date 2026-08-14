@@ -38,8 +38,8 @@ function makeMine(overrides) {
       mineRowHtml: s => '<div class="pet-mine-row" data-id="' + esc(s.id) + '"><button class="pet-edit-btn" data-id="' + esc(s.id) + '">编辑</button>' +
         '<button class="pet-history-btn" data-id="' + esc(s.id) + '">历史</button>' +
         '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '">修订</button>' +
-        '<button class="pet-revision-review-btn" data-id="' + esc(s.id) + '">审核意见</button>' +
         '<button class="pet-rejected-revision-edit-btn" data-id="' + esc(s.id) + '" data-revision="rev_rejected">按意见重新修改</button>' +
+        '<button class="pet-rejected-revision-withdraw" data-id="' + esc(s.id) + '" data-revision="rev_rejected" data-row="3">撤回修改</button>' +
         '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="2">重新提交</button>' +
         '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="2">删除</button></div>',
       mineHistoryHtml: () => '<div>历史</div>',
@@ -220,7 +220,7 @@ describe('宠物「我的投稿」交互控制器', () => {
     expect(document.querySelector('#pet-detail-modal').textContent).toContain('修订');
   });
 
-  it('被拒修订：查看审核意见并以该候选版本重新编辑', async () => {
+  it('被拒修订：可按意见重新编辑或直接撤回', async () => {
     const { controller, calls } = makeMine({
       api: async (path) => {
         calls.api.push(path);
@@ -233,13 +233,16 @@ describe('宠物「我的投稿」交互控制器', () => {
     });
     mountSection();
     await controller.openMineSection();
-    document.querySelector('.pet-revision-review-btn').onclick();
-    await new Promise(resolve => setTimeout(resolve, 0));
-    expect(calls.api.some(path => path === '/api/my/submissions/s1/revisions')).toBe(true);
     document.querySelector('.pet-rejected-revision-edit-btn').onclick();
     expect(calls.toast).toContainEqual(expect.objectContaining({
       msg: 'edit:s1', options: { revisionId: 'rev_rejected' },
     }));
+    document.querySelector('.pet-rejected-revision-withdraw').onclick();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(calls.confirm).toContainEqual(expect.objectContaining({
+      title: '撤回这次被拒修改？', confirmText: '撤回修改', variant: 'danger',
+    }));
+    expect(calls.submissionAction.some(s => s.method === 'DELETE' && s.path.includes('/revisions/rev_rejected'))).toBe(true);
   });
 
   it('删除投稿：确认后调用删除接口并刷新公开列表', async () => {

@@ -57,7 +57,7 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
     '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, revision: 1 }, policy: [], runtime: {} }),
     '/api/admin/settings/history?page=1&pageSize=10': () => jsonResponse({ items: [], total: 0 }),
     '/api/admin/backups?limit=5': () => jsonResponse({ exports: [] }),
-    '/api/admin/audit?action=&actor=&start=&end=&page=1&pageSize=50': () => jsonResponse({ total: 1, audit: [{ id: 1, action: 'submission.approve', actor_username: 'root', created_at: '2026-08-01T10:00:00Z', target_id: 'sub_1', detail: '通过投稿' }] }),
+    '/api/admin/audit?action=&actor=&targetUser=&start=&end=&page=1&pageSize=50': () => jsonResponse({ total: 1, audit: [{ id: 1, action: 'submission.approve', actor_username: 'root', created_at: '2026-08-01T10:00:00Z', target_id: 'sub_1', target_username: 'tester', target_avatar: '', detail: '通过投稿' }] }),
     '/api/admin/audit-cleanup/tasks?limit=8&offset=0': () => jsonResponse({ tasks: [], total: 0 }),
     '/api/admin/audit/actions': () => jsonResponse({ actions: [{ action: 'submission.approve' }] }),
     '/api/admin/media-assets?status=orphan%2Cdelete_pending%2Cdelete_failed&provider=&limit=50&offset=0': () => jsonResponse({ total: 0, assets: [] }),
@@ -260,6 +260,19 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     await waitFor(document, '.table-wrap');
     expect(document.getElementById('view-root').textContent).toContain('submission.approve');
     expect(document.querySelector('select[data-af-action]')).toBeTruthy();
+    expect(document.querySelector('input[data-af-target-user]')).toBeTruthy();
+    expect(document.getElementById('view-root').textContent).toContain('@tester');
+  });
+
+  it('审计日志目标用户筛选：请求与清理范围保持一致', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="audit"]');
+    document.querySelector('.nav-item[data-view="audit"]').click();
+    await waitFor(document, '[data-af-target-user]');
+    document.querySelector('[data-af-target-user]').value = '测试投稿人';
+    document.querySelector('[data-action="auditfilter"]').click();
+    await settle();
+    expect(fetchCalls.some(call => call.url.includes('targetUser=%E6%B5%8B%E8%AF%95%E6%8A%95%E7%A8%BF%E4%BA%BA'))).toBe(true);
   });
 
   it('媒体清理加载成功：渲染资源表格（空态）', async () => {

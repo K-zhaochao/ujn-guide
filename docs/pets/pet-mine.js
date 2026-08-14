@@ -77,8 +77,20 @@
         st.id = 'pet-mine-style';
         st.textContent = '@media (max-width:640px){' +
           '#pet-mine-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}' +
-          '#pet-mine-filters #pet-mine-search{grid-column:1/-1}' +
+          '#pet-mine-filters #pet-mine-search,#pet-mine-filters .pet-mine-date-range{grid-column:1/-1}' +
           '#pet-mine-filters select,#pet-mine-filters input[type=date]{width:100%;min-width:0}' +
+          '#pet-mine-filters .pet-mine-date-range{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}' +
+          '#pet-mine-filters .pet-mine-date-range label{display:grid!important;gap:4px;font-size:11px;color:' + C.muted + '}' +
+          '#pet-mine-section .pet-mine-row{align-items:flex-start!important;gap:9px!important;padding:10px!important}' +
+          '#pet-mine-section .pet-mine-row>div:nth-of-type(1){flex:1 1 calc(100% - 56px)!important}' +
+          '#pet-mine-section .pet-mine-row-actions{width:100%;flex:1 0 100%!important;margin-left:0!important}' +
+          '#pet-mine-section .pet-mine-row-actions button{flex:1 1 calc(50% - 3px);min-height:38px;white-space:normal;line-height:1.3}' +
+          '#pet-mine-section .pet-mine-row-actions .pet-rejected-revision-edit-btn{flex-basis:100%}' +
+          '#pet-mine-section .pet-mine-row [role=alert]{width:100%;word-break:break-word}' +
+          '#pet-detail-modal .pet-scroll,#pet-edit-modal .pet-scroll{width:calc(100% - 20px)!important;max-height:calc(100dvh - 20px)!important;padding:18px 16px!important;border-radius:12px!important}' +
+          '#pet-edit-dynamic-fields{grid-template-columns:1fr!important}' +
+          '#pet-edit-modal .pet-edit-actions{flex-direction:column!important}' +
+          '#pet-edit-modal .pet-edit-actions button{width:100%}' +
           '}';
         document.head.appendChild(st);
       }
@@ -237,7 +249,15 @@
         };
       });
       $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
-      $all('.pet-revisions-btn, .pet-revision-review-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
+      $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
+      $all('.pet-rejected-revision-withdraw', sec).forEach(btn => {
+        btn.onclick = () => withdrawRevision({
+          submissionId: btn.dataset.id,
+          revisionId: btn.dataset.revision,
+          rowVersion: Number(btn.dataset.row || 1),
+          status: 'rejected',
+        });
+      });
       $all('.pet-resubmit-btn', sec).forEach(btn => {
         btn.onclick = async () => {
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
@@ -300,6 +320,28 @@
     // 已公开投稿的候选版本在服务端单独保存。这个视图让投稿人知道哪些
     // 变更仍在审核、哪些被拒绝，而不会把候选内容误当作当前公开内容。
 
+    async function withdrawRevision({ submissionId, revisionId, rowVersion, status = 'pending' }) {
+      const rejected = status === 'rejected';
+      const confirmed = await confirmAction({
+        title: rejected ? '撤回这次被拒修改？' : '撤回待审修改？',
+        message: rejected
+          ? '撤回后会保留为“已撤回”记录，当前公开内容保持不变。'
+          : '撤回后这条修改不会进入审核，当前公开内容保持不变。',
+        confirmText: '撤回修改',
+        variant: 'danger',
+      });
+      if (!confirmed) return false;
+      const result = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(submissionId) + '/revisions/' + encodeURIComponent(revisionId), {
+        rowVersion: Number(rowVersion || 1), _id: submissionId,
+      });
+      showToast(result.data.message || (result.ok ? '已撤回修改' : '撤回失败'), !result.ok);
+      if (result.ok) {
+        petCache.clear();
+        await loadMineSubmissions();
+      }
+      return result.ok;
+    }
+
     async function openMineRevisions(id) {
       const r = await api('/api/my/submissions/' + encodeURIComponent(id) + '/revisions');
       if (!r.ok) { showToast((r.data && r.data.message) || '加载修订失败', true); return; }
@@ -317,18 +359,13 @@
       modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
       $all('.pet-revision-withdraw', modal).forEach(btn => {
         btn.onclick = async () => {
-          const confirmed = await confirmAction({
-            title: '撤回待审修改？',
-            message: '撤回后这条修改不会进入审核，当前公开内容保持不变。',
-            confirmText: '撤回修改',
-            variant: 'danger',
+          const withdrawn = await withdrawRevision({
+            submissionId: btn.dataset.submission,
+            revisionId: btn.dataset.id,
+            rowVersion: Number(btn.dataset.row || 1),
+            status: btn.dataset.status || 'pending',
           });
-          if (!confirmed) return;
-          const result = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(btn.dataset.submission) + '/revisions/' + encodeURIComponent(btn.dataset.id), {
-            rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.submission,
-          });
-          showToast(result.data.message || (result.ok ? '已撤回修订' : '撤回失败'), !result.ok);
-          if (result.ok) { closePetModal(modal); petCache.clear(); await loadMineSubmissions(); }
+          if (withdrawn) closePetModal(modal);
         };
       });
     }
