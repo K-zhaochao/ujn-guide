@@ -74,11 +74,12 @@ describe('管理后台渲染层（admin-ui-views）', () => {
       expect(v.profileLink({}, '<b>inner</b>')).toBe('<b>inner</b>');
     });
 
-    it('imagesHTML：字符串与对象数组均可渲染', () => {
+    it('imagesHTML：字符串与对象数组均可渲染，并过滤重复地址', () => {
       const v = makeViews();
-      const html = v.imagesHTML(['https://a.com/1.jpg', { url: '/uploads/2.jpg' }]);
+      const html = v.imagesHTML(['https://a.com/1.jpg', { url: 'https://a.com/1.jpg' }, { url: '/uploads/2.jpg' }]);
       expect(html).toContain('data-lightbox="https://a.com/1.jpg"');
       expect(html).toContain('data-lightbox="/uploads/2.jpg"');
+      expect((html.match(/https:\/\/a\.com\/1\.jpg/g) || []).length).toBe(2);
       expect(v.imagesHTML(null)).toContain('images-preview');
     });
   });
