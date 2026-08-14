@@ -237,18 +237,6 @@
       $all('.pet-view-btn', sec).forEach(btn => { btn.onclick = () => openMineDetail(btn.dataset.id); });
       $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
       $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
-      $all('.pet-restore-btn', sec).forEach(btn => {
-        btn.onclick = async () => {
-          if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
-          if (!confirm('♻️ 撤销删除该投稿吗？将恢复为删除前的状态。')) return;
-          const r = await apiSubmissionAction('POST', '/api/my/submissions/' + encodeURIComponent(btn.dataset.id) + '/restore', { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
-          showToast(r.data.message || (r.ok ? '已撤销删除' : '操作失败'), !r.ok);
-          if (r.ok) {
-            petCache.clear();
-            await loadMineSubmissions();
-          }
-        };
-      });
       $all('.pet-resubmit-btn', sec).forEach(btn => {
         btn.onclick = async () => {
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
@@ -368,6 +356,11 @@
       renderMineRows(items, data);
     }
 
+    async function refreshMineSubmissions(options = {}) {
+      if (options.resetPage) minePage = 1;
+      await loadMineSubmissions();
+    }
+
     async function openMineSection() {
       if (!getUser()) { showToast('请先登录', true); onLoginRequired(); return; }
       const sec = $('#pet-mine-section');
@@ -389,6 +382,7 @@
       openMineHistory,
       openMineRevisions,
       loadMineSubmissions,
+      refreshMineSubmissions,
       openMineSection,
     };
   }

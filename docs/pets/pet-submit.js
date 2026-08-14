@@ -301,7 +301,7 @@
           discardDraft(); // P1-06：提交成功即丢弃草稿，避免再次恢复
           closeSubmitModal();
           petCache.clear();
-          onSubmitted();
+          await onSubmitted();
         } else {
           this.disabled = false;
           this.textContent = '📤 提交投稿';
@@ -311,7 +311,7 @@
             discardDraft();
             closeSubmitModal();
             petCache.clear();
-            onSubmitted();
+            await onSubmitted();
           } else {
             showToast(r.data.message || '投稿失败，请重试', true);
           }

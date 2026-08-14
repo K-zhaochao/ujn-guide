@@ -39,7 +39,6 @@ function makeMine(overrides) {
         '<button class="pet-view-btn" data-id="' + esc(s.id) + '">详情</button>' +
         '<button class="pet-history-btn" data-id="' + esc(s.id) + '">历史</button>' +
         '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '">修订</button>' +
-        '<button class="pet-restore-btn" data-id="' + esc(s.id) + '" data-row="2">撤销删除</button>' +
         '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="2">重新提交</button>' +
         '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="2">删除</button></div>',
       mineDetailHtml: s => '<button id="pet-detail-close">✕</button><div>详情 ' + esc(s.name || '') + '</div>',
@@ -261,7 +260,7 @@ describe('宠物「我的投稿」交互控制器', () => {
     confirmSpy.mockRestore();
   });
 
-  it('维护模式下删除/恢复/重新提交被拦截', async () => {
+  it('维护模式下删除和重新提交被拦截', async () => {
     const { controller, calls, setSiteConfig } = makeMine({
       api: async (path) => {
         if (path.startsWith('/api/my/submissions?')) {
@@ -276,19 +275,16 @@ describe('宠物「我的投稿」交互控制器', () => {
     document.querySelector('.pet-del-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(calls.submissionAction.length).toBe(0);
-    document.querySelector('.pet-restore-btn').onclick();
-    await new Promise(r => setTimeout(r, 0));
-    expect(calls.submissionAction.length).toBe(0);
     document.querySelector('.pet-resubmit-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(calls.submissionAction.length).toBe(0);
   });
 
-  it('恢复与重新提交成功后不刷新公开列表（保持原行为）', async () => {
+  it('重新提交成功后刷新我的投稿，但不刷新公开列表', async () => {
     const { controller, calls } = makeMine({
       api: async (path) => {
         if (path.startsWith('/api/my/submissions?')) {
-          return { ok: true, data: { items: [{ id: 's1', name: '小白', status: 'deleted' }], total: 1, totalPages: 1, statusCounts: {} } };
+          return { ok: true, data: { items: [{ id: 's1', name: '小白', status: 'rejected' }], total: 1, totalPages: 1, statusCounts: {} } };
         }
         return { ok: true, data: { submission: { id: 's1' } } };
       },
@@ -296,14 +292,25 @@ describe('宠物「我的投稿」交互控制器', () => {
     mountSection();
     await controller.openMineSection();
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
-    document.querySelector('.pet-restore-btn').onclick();
-    await new Promise(r => setTimeout(r, 0));
     document.querySelector('.pet-resubmit-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(calls.onListChanged).toBe(0);
-    expect(calls.submissionAction.some(s => s.path.includes('/restore'))).toBe(true);
     expect(calls.submissionAction.some(s => s.path.includes('/resubmit'))).toBe(true);
     confirmSpy.mockRestore();
+  });
+
+  it('刷新我的投稿可重置到第一页，确保新投稿立即可见', async () => {
+    const { controller, calls } = makeMine({
+      api: async (path) => {
+        calls.api.push(path);
+        return { ok: true, data: { items: [{ id: 's1', name: '小白', status: 'pending' }], total: 41, totalPages: 3, page: path.includes('page=2') ? 2 : 1, statusCounts: {} } };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    document.querySelector('.pet-mine-page-btn[data-page="2"]').onclick();
+    await controller.refreshMineSubmissions({ resetPage: true });
+    expect(calls.api[calls.api.length - 1]).not.toContain('page=2');
   });
 
   it('类型选项加载：填充下拉并保持已选筛选', async () => {

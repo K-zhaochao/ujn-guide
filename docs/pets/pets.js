@@ -845,6 +845,8 @@
   // ================== 投稿模态框（P1-01：交互逻辑已拆至 pet-submit.js） ==================
   // pets.js 仅保留实例化与委托调用；动态字段渲染/读取、图片压缩与登录区更新仍在本文件，
   // 经注入供 pet-submit.js 使用。状态（draftId/submitTypeId/submitIdempotencyKey 等）全部内聚于 pet-submit.js。
+  let petMine;
+
   const petSubmit = petSubmitModule.createPetSubmit({
     $, $all, document, C, esc,
     views,
@@ -856,7 +858,11 @@
     fileToWebP, assertImageWithinLimit,
     imageLimitLabel,
     petCache,
-    onSubmitted: function () { petCache.clear(); loadPets(); },
+    onSubmitted: async function () {
+      petCache.clear();
+      await refreshMineSubmissions({ resetPage: true });
+      loadPets();
+    },
     getUser: function () { return user; },
     getSiteConfig: function () { return siteConfig; },
     getContentSchema: function () { return contentSchema; },
@@ -868,6 +874,11 @@
 
   function openSubmitModal() { petSubmit.openSubmitModal(); }
   function closeSubmitModal() { petSubmit.closeSubmitModal(); }
+
+  async function refreshMineSubmissions(options) {
+    if (!petMine) return;
+    await petMine.refreshMineSubmissions(options);
+  }
 
   /** 投稿模态框内：登录区 / 已登录状态 */
   function updateAuthUI() {
@@ -959,7 +970,7 @@
     PAGE_SIZE,
   });
 
-  const petMine = petMineModule.createPetMine({
+  petMine = petMineModule.createPetMine({
     $, $all, document, C, esc,
     views,
     buildMineListQuery: petViewModel.buildMineListQuery,
@@ -1152,7 +1163,7 @@
       if (up.ok) {
         closePetModal(modal);
         petCache.clear();
-        petMine.openMineSection();
+        await refreshMineSubmissions();
         loadPets();
       }
     };

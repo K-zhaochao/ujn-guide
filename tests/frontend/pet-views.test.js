@@ -229,7 +229,7 @@ describe('宠物前端渲染层', () => {
       availableActions: ['restore'],
     });
     expect(deleted).toContain('🗑️ 已删除');
-    expect(deleted).toContain('class="pet-restore-btn"');
+    expect(deleted).not.toContain('class="pet-restore-btn"');
     expect(deleted).toContain('未命名宠物');
   });
 
