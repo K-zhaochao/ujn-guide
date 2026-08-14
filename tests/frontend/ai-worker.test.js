@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { createRequire } from 'node:module';
 import { readFileSync } from 'node:fs';
 
-// ai-worker.js 是 Cloudflare Worker 脚本（ESM 语法但仓库按 CJS 解析）。
+// ai-worker.js 是 Cloudflare Worker 脚本（ESM 语法但测试按 CJS 包装解析）。
 // 用 new Function 在 CommonJS 包装中执行源码：把 export default 换成 module.exports，
 // 避免 vite 对 ESM 语法和 import() 的干预。
 const require = createRequire(import.meta.url);
-const source = readFileSync(require.resolve('../../deploy/ai-worker.js'), 'utf8');
+const source = readFileSync(require.resolve('../../workers/ai-worker.js'), 'utf8');
 const moduleSrc = source.replace(/^export default/m, 'module.exports =');
 const mod = { exports: {} };
 new Function('module', 'exports', 'require', moduleSrc)(mod, mod.exports, require);
@@ -45,7 +45,7 @@ async function readBody(response) {
   return JSON.parse(await response.text());
 }
 
-describe('AI Worker（deploy/ai-worker.js）', () => {
+describe('AI Worker（workers/ai-worker.js）', () => {
   it('CORS 预检：OPTIONS 返回 204 与允许头', async () => {
     const res = await worker.fetch(new Request('https://ujn.matehub.top/api/ai', { method: 'OPTIONS' }), makeEnv());
     expect(res.status).toBe(204);

@@ -3,6 +3,25 @@
 const fs = require('fs');
 const path = require('path');
 
+const MEBIBYTE = 1024 * 1024;
+
+function boundedInteger(value, fallback, min, max) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
+}
+
+function uploadRequestPolicy(env = {}) {
+  const imageCount = boundedInteger(env.MAX_IMAGES_PER_SUBMISSION, 5, 1, 5);
+  const imageSizeMb = boundedInteger(env.MAX_IMAGE_SIZE_MB, 5, 1, 50);
+  const imageBytes = imageSizeMb * MEBIBYTE;
+  const encodedImageBytes = Math.ceil(imageBytes / 3) * 4 + 128;
+  const requestBodyBytes = imageCount * encodedImageBytes + MEBIBYTE;
+  return {
+    requestBodyBytes,
+    nginxBodyMb: Math.ceil(requestBodyBytes / MEBIBYTE),
+  };
+}
+
 function parseEnv(contents) {
   const result = {};
   for (const rawLine of String(contents).split(/\r?\n/)) {
@@ -39,6 +58,15 @@ function hasLocation(nginx, pattern) {
   return pattern.test(String(nginx || ''));
 }
 
+function nginxBodySizeBytes(nginxText) {
+  const match = String(nginxText || '').match(/(^|\n)\s*client_max_body_size\s+(\d+(?:\.\d+)?)\s*([kmg])?\s*;/im);
+  if (!match) return null;
+  const amount = Number(match[2]);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const multiplier = { k: 1024, m: MEBIBYTE, g: MEBIBYTE * 1024 }[(match[3] || '').toLowerCase()] || 1;
+  return Math.floor(amount * multiplier);
+}
+
 function validateConfig(env, nginxText) {
   const errors = [];
   const mainSite = parseHttpsOrigin('MAIN_SITE_URL', env.MAIN_SITE_URL, errors);
@@ -67,6 +95,13 @@ function validateConfig(env, nginxText) {
   }
   if (Number.isSafeInteger(port) && !new RegExp(`proxy_pass\\s+http://127\\.0\\.0\\.1:${port}(?:[;\\s])`).test(nginx)) {
     errors.push('Nginx 反向代理端口与 PORT 不一致');
+  }
+  const uploadPolicy = uploadRequestPolicy(env);
+  const nginxBodyBytes = nginxBodySizeBytes(nginx);
+  if (nginxBodyBytes === null) {
+    errors.push(`Nginx 缺少 client_max_body_size；当前上传策略至少需要 ${uploadPolicy.nginxBodyMb}m`);
+  } else if (nginxBodyBytes < uploadPolicy.requestBodyBytes) {
+    errors.push(`Nginx client_max_body_size 低于当前上传策略所需的 ${uploadPolicy.nginxBodyMb}m`);
   }
   return { ok: errors.length === 0, errors };
 }
@@ -109,4 +144,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { parseEnv, validateConfig, main };
+module.exports = { nginxBodySizeBytes, parseEnv, uploadRequestPolicy, validateConfig, main };

@@ -82,6 +82,7 @@ function writeRuntimeFiles(root) {
     'ADMIN_PATH=/admin',
   ].join('\n') + '\n');
   write(nginxConfig, [
+    'client_max_body_size 35m;',
     'root /srv/ujn-guide/current/site;',
     'location ^~ /api/ { proxy_pass http://127.0.0.1:3005; }',
     'location = /admin { proxy_pass http://127.0.0.1:3005; }',

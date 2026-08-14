@@ -160,6 +160,7 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
     'PORT=3100',
   ].join('\n'));
   const nginx = [
+    'client_max_body_size 35m;',
     'location ^~ /api/ { proxy_pass http://127.0.0.1:3100; }',
     'location = /admin { proxy_pass http://127.0.0.1:3100; }',
     'location ^~ /admin/ { proxy_pass http://127.0.0.1:3100; }',
@@ -178,6 +179,12 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
 
   const customAdminPath = validateConfig({ ...env, ADMIN_PATH: '/private-admin' }, nginx);
   assert.ok(customAdminPath.errors.includes('同源发布的 ADMIN_PATH 如保留必须为 /admin'));
+
+  const tooSmallBody = validateConfig(env, nginx.replace('35m', '15m'));
+  assert.ok(tooSmallBody.errors.includes('Nginx client_max_body_size 低于当前上传策略所需的 35m'));
+
+  const customUploadPolicy = validateConfig({ ...env, MAX_IMAGES_PER_SUBMISSION: '1', MAX_IMAGE_SIZE_MB: '1' }, nginx.replace('35m', '1m'));
+  assert.ok(customUploadPolicy.errors.includes('Nginx client_max_body_size 低于当前上传策略所需的 3m'));
 });
 
 test('部署脚本默认检查同源后端的 3005 health 端点', () => {
