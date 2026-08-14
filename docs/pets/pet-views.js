@@ -334,7 +334,7 @@
         (rejectFull ? '<div style="font-size:12px;color:' + C.danger + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + esc(rejectFull) + '">🚫 ' + esc(rejectFull) + '</div>' : '') +
         ((s.summaryFields && s.summaryFields.length) ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.summaryFields.map(f => esc(f.label) + ': ' + (typeof f.value === 'string' ? esc(f.value) : JSON.stringify(f.value))).join(' · ') + '</div>' : '') +
         '</div>' +
-        '<div style="display:flex;gap:5px;flex:none;margin-left:auto;flex-wrap:wrap">' +
+        '<div class="pet-mine-row-actions" style="display:flex;gap:5px;flex:none;margin-left:auto;flex-wrap:wrap">' +
         (actions.includes('view') ? '<button class="pet-view-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">👁️ 查看</button>' : '') +
         (actions.includes('history') ? '<button class="pet-history-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.fg + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">🕘 历史</button>' : '') +
         ((s.pendingRevisionCount || s.latestRevision) ? '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">📝 修订</button>' : '') +
@@ -350,7 +350,19 @@
       const typeName = sub.type && sub.type.name ? sub.type.name : (sub.category || '未分类');
       const meta = mineStatusMeta(sub.status);
       const rows = [];
+      const defs = Array.isArray(sub.fieldDefinitions) && sub.fieldDefinitions.length ? sub.fieldDefinitions : [];
+      const values = Object.assign({}, sub.dynamicFields && typeof sub.dynamicFields === 'object' ? sub.dynamicFields : {});
+      const definitionsByKey = new Map();
+      const renderedDynamicKeys = new Set();
+      defs.forEach(field => {
+        const key = field.key || field.fieldKey;
+        if (key && !definitionsByKey.has(key)) definitionsByKey.set(key, field);
+      });
       const pushRow = (label, emoji, value) => {
+        const legacyKeys = { '发现地点': 'location', '外貌特征': 'appearance', '性格特点': 'personality', '描述 / 留言': 'description' };
+        const legacyKey = legacyKeys[label];
+        // Dynamic definitions are authoritative when a migrated field is also stored in a legacy column.
+        if (legacyKey && definitionsByKey.has(legacyKey) && values[legacyKey] !== undefined && values[legacyKey] !== '') return;
         rows.push('<div style="display:flex;gap:10px;padding:10px 14px;background:' + C.soft + ';border-radius:10px;align-items:flex-start">' +
           '<span style="font-size:15px;line-height:1.5">' + esc(emoji) + '</span>' +
           '<div style="min-width:0;flex:1"><div style="font-size:12px;color:' + C.muted + ';margin-bottom:2px">' + esc(label) + '</div>' +
@@ -364,12 +376,11 @@
       pushRow('描述 / 留言', '📝', sub.description || '');
       if (sub.status === 'rejected' && sub.rejectReason) pushRow('拒绝原因', '🚫', sub.rejectReason);
       // 动态字段（与编辑弹窗一致的字段定义）
-      const defs = Array.isArray(sub.fieldDefinitions) && sub.fieldDefinitions.length ? sub.fieldDefinitions : [];
-      const values = Object.assign({}, sub.dynamicFields && typeof sub.dynamicFields === 'object' ? sub.dynamicFields : {});
       defs.forEach(field => {
         const key = field.key || field.fieldKey;
-        if (key === 'name') return;
+        if (!key || key === 'name' || renderedDynamicKeys.has(key)) return;
         if (values[key] === undefined || values[key] === '') return;
+        renderedDynamicKeys.add(key);
         pushRow(field.label || key, fieldIcon(field), typeof values[key] === 'string' ? values[key] : JSON.stringify(values[key]));
       });
 

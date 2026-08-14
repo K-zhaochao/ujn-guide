@@ -250,6 +250,8 @@ describe('宠物前端渲染层', () => {
       id: 'pet_12', name: '小黑', status: 'rejected', rejectReason: '照片模糊',
       category: '猫猫', type: { name: '猫猫' },
       location: '操场',
+      dynamicFields: { location: '操场' },
+      fieldDefinitions: [{ key: 'location', label: '常出没地点', dataType: 'location' }],
       images: ['https://a.com/x.jpg', 'https://a.com/x.jpg'],
       displayImages: ['https://a.com/x.jpg'],
       createdAt: '2026-08-01T00:00:00Z',
@@ -258,6 +260,7 @@ describe('宠物前端渲染层', () => {
     expect(html).toContain('拒绝原因');
     expect(html).toContain('照片模糊');
     expect(html).toContain('操场');
+    expect((html.match(/操场/g) || []).length).toBe(1);
     expect((html.match(/https:\/\/a\.com\/x\.jpg/g) || []).length).toBe(1);
     expect(html).toContain('https://a.com/x.jpg');
   });

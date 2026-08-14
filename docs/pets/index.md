@@ -86,6 +86,158 @@ hide:
     #pet-liked-list button { min-height: 44px; }
     #pet-mine-filters input[type=date] { min-height: 44px; }
   }
+
+  /* 登录后的个人导航：桌面端按账户、主操作、辅助操作分组，窄屏改为等宽操作区。 */
+  #pet-nav .pet-nav-shell {
+    justify-content: flex-start !important;
+    padding: 10px 0 14px !important;
+  }
+  #pet-nav .pet-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  #pet-nav .pet-nav-account { margin-right: auto; max-width: min(42%, 260px); }
+  #pet-nav .pet-nav-primary-action,
+  #pet-nav .pet-nav-secondary-action,
+  #pet-nav .pet-nav-login {
+    min-height: 38px;
+    border-radius: 8px !important;
+  }
+  #pet-nav .pet-nav-primary-action { white-space: nowrap; }
+  #pet-nav .pet-nav-login { margin-left: auto; }
+  #pet-nav .pet-nav-logout {
+    width: 38px;
+    height: 38px;
+    padding: 0 !important;
+    justify-content: center;
+  }
+
+  /* 我的投稿的筛选控件在桌面端紧凑同行，在日期范围内保持明确的起止关系。 */
+  #pet-mine-section > div {
+    margin: 22px 0 8px !important;
+    border-radius: 8px !important;
+  }
+  #pet-liked-section > div { margin: 24px 0 8px !important; }
+  #pet-mine-filters {
+    align-items: end !important;
+    gap: 9px !important;
+  }
+  #pet-mine-filters select,
+  #pet-mine-filters input,
+  #pet-mine-filters button {
+    min-height: 38px;
+    border-radius: 8px !important;
+    box-sizing: border-box;
+  }
+  #pet-mine-filters select,
+  #pet-mine-filters input[type="search"],
+  #pet-mine-filters input[type="date"] {
+    border-color: var(--pet-border) !important;
+    background-color: var(--pet-input-bg) !important;
+  }
+  #pet-mine-filters select:hover,
+  #pet-mine-filters input:hover { border-color: var(--pet-primary) !important; }
+  #pet-mine-filters select:focus,
+  #pet-mine-filters input:focus {
+    border-color: var(--pet-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 20%, transparent);
+  }
+  #pet-mine-filters input[type="date"] {
+    color-scheme: light dark;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  #pet-mine-filters input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: .72;
+  }
+  #pet-mine-filters .pet-mine-date-range {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(132px, 1fr));
+    gap: 8px;
+  }
+  #pet-mine-filters .pet-mine-date-range label {
+    display: grid;
+    gap: 3px;
+    color: var(--pet-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  #pet-mine-filters .pet-mine-date-range input { width: 100%; }
+
+  @media (max-width: 640px) {
+    #pet-nav .pet-nav-shell { align-items: stretch !important; }
+    #pet-nav .pet-nav-actions {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+    #pet-nav .pet-nav-account {
+      grid-column: 1 / -1;
+      max-width: none;
+      margin: 0;
+      min-height: 40px;
+      justify-content: flex-start;
+    }
+    #pet-nav .pet-nav-primary-action {
+      width: 100%;
+      min-width: 0;
+      min-height: 40px;
+      justify-content: center;
+      padding: 7px 5px !important;
+      font-size: 12px !important;
+    }
+    #pet-nav .pet-nav-secondary-action { min-height: 36px; font-size: 12px !important; }
+    #pet-nav #pet-admin-nav { grid-column: 1 / span 2; justify-content: center; }
+    #pet-nav #pet-logout-nav { grid-column: 3; width: 100%; height: 36px; }
+    #pet-nav .pet-nav-login { width: 100%; margin-left: 0; justify-content: center; }
+
+    #pet-mine-section > div { padding: 13px 12px !important; margin-top: 18px !important; }
+    #pet-liked-section > div { padding-top: 14px !important; margin-top: 20px !important; }
+    #pet-mine-section > div > div:first-child,
+    #pet-liked-section > div > div:first-child { gap: 8px !important; margin-bottom: 10px !important; }
+    #pet-mine-title { font-size: 16px !important; }
+    #pet-mine-close,
+    #pet-liked-close { width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important; }
+    #pet-mine-status-counts {
+      flex-wrap: nowrap !important;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: thin;
+    }
+    #pet-mine-status-counts button { flex: 0 0 auto; min-height: 36px !important; }
+    #pet-mine-filters {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 8px !important;
+    }
+    #pet-mine-filters #pet-mine-search,
+    #pet-mine-filters .pet-mine-date-range,
+    #pet-mine-filters #pet-mine-reset { grid-column: 1 / -1; }
+    #pet-mine-filters select,
+    #pet-mine-filters input,
+    #pet-mine-filters button { width: 100%; min-height: 40px !important; }
+    #pet-mine-filters .pet-mine-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #pet-mine-filters #pet-mine-reset { justify-content: center; }
+    #pet-mine-list .pet-mine-row { align-items: flex-start !important; }
+    #pet-mine-list .pet-mine-row-actions {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px !important;
+      flex: 0 0 100% !important;
+      width: 100%;
+      margin-left: 0 !important;
+    }
+    #pet-mine-list .pet-mine-row-actions button { width: 100%; min-height: 36px !important; }
+    #pet-liked-list .pet-grid { gap: 10px !important; }
+  }
+
+  @media (max-width: 380px) {
+    #pet-nav .pet-nav-primary-action { font-size: 11px !important; }
+    #pet-mine-filters .pet-mine-date-range { grid-template-columns: 1fr; }
+  }
 </style>
 
 !!! tip "📸 关于本栏目"

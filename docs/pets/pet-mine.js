@@ -99,9 +99,7 @@
         '<div id="pet-mine-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
         '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" aria-label="搜索我的投稿" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
         '<select id="pet-mine-category" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' + categoryOptions + '</select>' +
-        '<input id="pet-mine-date" type="date" title="按投稿日期范围（开始）筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
-        '<span style="font-size:12px;color:' + C.muted + '">至</span>' +
-        '<input id="pet-mine-date-end" type="date" title="按投稿日期范围（结束）筛选" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' +
+        '<div class="pet-mine-date-range"><label for="pet-mine-date">起始日期<input id="pet-mine-date" type="date" aria-label="投稿起始日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label><label for="pet-mine-date-end">结束日期<input id="pet-mine-date-end" type="date" aria-label="投稿结束日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label></div>' +
         '<select id="pet-mine-sort" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="updated">最近修改</option><option value="latest">最新投稿</option><option value="oldest">最早投稿</option><option value="name">名称</option><option value="status">状态</option></select>' +
         '<button id="pet-mine-reset" title="一键重置所有筛选" style="padding:8px 12px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;color:' + C.fg + ';font-size:13px;cursor:pointer">↺ 重置</button>' +
         '</div>' +
@@ -179,7 +177,7 @@
       if (!list) return;
       const siteConfig = getSiteConfig();
       const counts = data.statusCounts || {};
-      const allStatusCount = ['pending', 'approved', 'rejected', 'deleted'].reduce((sum, key) => sum + Number(counts[key] || 0), 0) || mineTotal;
+      const allStatusCount = ['pending', 'approved', 'rejected'].reduce((sum, key) => sum + Number(counts[key] || 0), 0) || mineTotal;
       const title = $('#pet-mine-title');
       if (title) title.textContent = '📋 我的投稿（' + mineTotal + '）';
       const countLabels = [
@@ -190,7 +188,7 @@
         ['deleted', '已删除', counts.deleted || 0],
       ];
       const countBox = $('#pet-mine-status-counts');
-      if (countBox) countBox.innerHTML = countLabels.map(c =>
+      if (countBox) countBox.innerHTML = countLabels.filter(c => c[0] !== 'deleted').map(c =>
         '<button class="pet-mine-count-btn" data-status="' + c[0] + '" aria-pressed="' + (mineStatus === c[0] ? 'true' : 'false') + '" style="padding:4px 9px;border:1px solid ' + (mineStatus === c[0] ? C.primary : C.border) + ';border-radius:14px;background:' + (mineStatus === c[0] ? C.primary : C.soft) + ';color:' + (mineStatus === c[0] ? '#fff' : C.fg) + ';font-size:12px;cursor:pointer">' + c[1] + ' ' + c[2] + '</button>'
       ).join('');
       $all('.pet-mine-count-btn', sec).forEach(btn => {
@@ -253,9 +251,9 @@
         btn.onclick = async () => {
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，删除功能暂时关闭', true); return; }
           if (!siteConfig.allowDelete) { showToast('⚠️ 当前已关闭投稿删除功能，请联系站长', true); return; }
-          if (!confirm('⚠️ 确认删除该投稿吗？删除后可在管理后台恢复（软删除）。')) return;
+          if (!confirm('确认删除该投稿吗？删除后将不再显示在“我的投稿”中；如需恢复，请在七天内通过站长 QQ 联系站长处理。')) return;
           const r = await apiSubmissionAction('DELETE', '/api/submissions/' + encodeURIComponent(btn.dataset.id), { rowVersion: Number(btn.dataset.row || 1), _id: btn.dataset.id });
-          showToast(r.data.message || (r.ok ? '已删除' : '删除失败'), !r.ok);
+          showToast(r.data.message || (r.ok ? '已删除。七天内可联系站长 QQ 申请恢复。' : '删除失败'), !r.ok);
           if (r.ok) {
             petCache.clear();
             if (minePage > mineTotalPages) minePage = mineTotalPages;

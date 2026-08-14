@@ -483,36 +483,34 @@
     if (!nav) return;
     // 管理后台与主站共用 Cookie 会话；后端仍会在管理 API 上校验管理员角色。
     const adminBtn = user && user.isAdmin
-      ? '<button id="pet-admin-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:none;border:1px solid ' + C.primary + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.primary + ';font-weight:600">⚙️ 管理后台</button>'
+      ? '<button id="pet-admin-nav" class="pet-nav-secondary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:none;border:1px solid ' + C.primary + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.primary + ';font-weight:600">⚙️ 管理后台</button>'
       : '';
     const loginBtn = !user
-      ? '<button id="pet-login-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">' + BRAND_ICONS.github + '<span>登录</span></button>'
-      : '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-          '<button id="pet-user-btn" title="点击修改昵称" style="display:inline-flex;align-items:center;gap:8px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:20px;padding:4px 12px 4px 4px;cursor:pointer;font-size:14px;color:' + C.fg + ';font-weight:600">' +
+      ? '<button id="pet-login-btn" class="pet-nav-login" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">' + BRAND_ICONS.github + '<span>登录</span></button>'
+      : '<div class="pet-nav-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+          '<button id="pet-user-btn" class="pet-nav-account" title="点击修改昵称" style="display:inline-flex;align-items:center;gap:8px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:20px;padding:4px 12px 4px 4px;cursor:pointer;font-size:14px;color:' + C.fg + ';font-weight:600">' +
             (user.avatarUrl
               ? '<img src="' + esc(user.avatarUrl) + '" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover">'
               : '<span style="width:26px;height:26px;border-radius:50%;background:' + C.avatarBg + ';display:inline-flex;align-items:center;justify-content:center;font-size:13px">🐾</span>') +
             '<span>' + esc(displayName(user)) + '</span>' +
             '<span style="font-size:11px;color:' + C.muted + '">✏️</span>' +
           '</button>' +
-          '<button id="pet-rename-nav" title="修改展示昵称" style="display:inline-flex;align-items:center;gap:4px;padding:8px 10px;background:none;border:1px dashed ' + C.border + ';border-radius:9px;font-size:13px;cursor:pointer;color:' + C.muted + '">✏️ 改昵称</button>' +
           (siteConfig.allowSubmit && !siteConfig.maintenance && contentSchemaReady && SUBMISSION_TYPES.length
-            ? '<button id="pet-submit-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">🆕 投稿</button>'
-            : '<button id="pet-submit-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.soft + ';color:' + C.muted + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;font-weight:600;cursor:not-allowed" title="' + (siteConfig.maintenance ? '宠物收集录正在维护中' : (!contentSchemaReady ? '投稿配置暂未加载' : '投稿功能已关闭')) + '">🆕 投稿</button>') +
-          '<button id="pet-mine-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">📋 我的投稿</button>' +
-          '<button id="pet-liked-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">❤️ 我的收藏</button>' +
+            ? '<button id="pet-submit-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">🆕 投稿</button>'
+            : '<button id="pet-submit-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.soft + ';color:' + C.muted + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;font-weight:600;cursor:not-allowed" title="' + (siteConfig.maintenance ? '宠物收集录正在维护中' : (!contentSchemaReady ? '投稿配置暂未加载' : '投稿功能已关闭')) + '">🆕 投稿</button>') +
+          '<button id="pet-mine-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">📋 我的投稿</button>' +
+          '<button id="pet-liked-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">❤️ 我的收藏</button>' +
           adminBtn +
-          '<button id="pet-logout-nav" style="padding:8px 12px;background:none;border:none;border-radius:8px;font-size:13px;cursor:pointer;color:' + C.muted + '">退出</button>' +
+          '<button id="pet-logout-nav" class="pet-nav-secondary-action pet-nav-logout" title="退出登录" aria-label="退出登录" style="padding:8px 12px;background:none;border:none;border-radius:8px;font-size:16px;cursor:pointer;color:' + C.muted + '">↪</button>' +
         '</div>';
 
     nav.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 4px;border-bottom:1px solid ' + C.border + ';margin-bottom:16px">' +
-      '<div>' + loginBtn + '</div>' +
+      '<div class="pet-nav-shell" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 4px;border-bottom:1px solid ' + C.border + ';margin-bottom:16px">' +
+      loginBtn +
       '</div>';
 
     const lb = $('#pet-login-btn'); if (lb) lb.onclick = openLoginPop;
     const ub = $('#pet-user-btn'); if (ub) ub.onclick = openRenamePop;
-    const rn = $('#pet-rename-nav'); if (rn) rn.onclick = openRenamePop;
     const sb = $('#pet-submit-nav'); if (sb) sb.onclick = openSubmitModal;    const mb = $('#pet-mine-nav');
     if (mb) mb.onclick = () => {
       const sec = $('#pet-mine-section');

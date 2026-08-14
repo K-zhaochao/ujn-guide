@@ -236,6 +236,7 @@ describe('宠物「我的投稿」交互控制器', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     document.querySelector('.pet-del-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('七天内'));
     expect(calls.submissionAction.some(s => s.method === 'DELETE' && s.path.includes('/api/submissions/s1'))).toBe(true);
     expect(calls.onListChanged).toBe(1);
     confirmSpy.mockRestore();
@@ -297,6 +298,20 @@ describe('宠物「我的投稿」交互控制器', () => {
     expect(calls.onListChanged).toBe(0);
     expect(calls.submissionAction.some(s => s.path.includes('/resubmit'))).toBe(true);
     confirmSpy.mockRestore();
+  });
+
+  it('我的投稿状态筛选不展示已删除记录', async () => {
+    const { controller } = makeMine({
+      api: async path => {
+        if (path.startsWith('/api/my/submissions?')) {
+          return { ok: true, data: { items: [], total: 0, totalPages: 1, statusCounts: { pending: 1, approved: 2, rejected: 3, deleted: 4 } } };
+        }
+        return { ok: true, data: {} };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    expect(document.querySelectorAll('[data-status="deleted"]')).toHaveLength(0);
   });
 
   it('刷新我的投稿可重置到第一页，确保新投稿立即可见', async () => {
