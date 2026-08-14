@@ -374,8 +374,9 @@
         pushRow(field.label || key, fieldIcon(field), typeof values[key] === 'string' ? values[key] : JSON.stringify(values[key]));
       });
 
-      const imagesHtml = (sub.images && sub.images.length)
-        ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' + sub.images.map(img => {
+      const displayImages = Array.isArray(sub.displayImages) ? sub.displayImages : sub.images;
+      const imagesHtml = (displayImages && displayImages.length)
+        ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">' + displayImages.map(img => {
             const url = typeof img === 'string' ? img : (img.url || '');
             return url ? '<img src="' + esc(resolveImage(url)) + '" alt="" loading="lazy" style="width:72px;height:72px;object-fit:cover;border-radius:8px">' : '';
           }).join('') + '</div>'
