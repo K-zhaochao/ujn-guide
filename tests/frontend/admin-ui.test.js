@@ -44,6 +44,7 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
       total: 1, submissions: [SAMPLE_SUB],
       schema: { schemaVersion: 1, types: [], fields: [] },
     }),
+    '/api/admin/submission-revisions?status=pending&page=1&pageSize=10&sort=oldest': () => jsonResponse({ total: 0, revisions: [] }),
     '/api/admin/submissions?status=approved&page=1&pageSize=10&sort=latest': () => jsonResponse({ total: 0, submissions: [] }),
     '/api/admin/submissions?status=rejected&page=1&pageSize=10&sort=latest': () => jsonResponse({ total: 0, submissions: [] }),
     '/api/admin/submissions?status=deleted&page=1&pageSize=10&sort=latest': () => jsonResponse({ total: 0, submissions: [] }),
@@ -168,6 +169,26 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     const text = document.getElementById('view-root').textContent;
     expect(text).toContain('小白');
     expect(text).toContain('@tester');
+  });
+
+  it('待审核页：公开稿修改进入独立队列且不出现批量选择框', async () => {
+    const { document } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/submission-revisions?status=pending&page=1&pageSize=10&sort=oldest': () => jsonResponse({
+        total: 1,
+        revisions: [{
+          id: 'rev_1', createdAt: '2026-08-01T10:00:00Z', source: 'user', canApprove: true,
+          diff: { changes: [{ key: 'name' }], fieldChanges: [], imagesChanged: false },
+          candidate: { name: '修改后的小白', category: '猫猫' }, candidateType: { name: '猫猫', icon: '🐱' },
+          submission: { id: 'sub_public', name: '小白', category: '猫猫' },
+          contributor: { provider: 'github', username: 'tester', nickname: '测试' },
+        }],
+      }),
+    } });
+    await waitFor(document, '#pending-revision-queue');
+    const queue = document.getElementById('pending-revision-queue');
+    expect(queue.textContent).toContain('修改后的小白');
+    expect(queue.querySelector('[data-check]')).toBeNull();
+    expect(queue.querySelector('[data-action="revisions"]')).toBeTruthy();
   });
 
   it('待审核列表加载失败：展示错误信息', async () => {

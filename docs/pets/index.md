@@ -17,6 +17,9 @@ hide:
 <!-- 改名小卡片 -->
 <div id="pet-rename-pop" style="display:none"></div>
 
+<!-- 导航栏互动通知面板 -->
+<div id="pet-notification-pop" style="display:none"></div>
+
 <style>
   /* ===== 宠物页 CSS 变量：自动适配 Material 浅色 / 深色（slate）主题 ===== */
   :root {
@@ -113,6 +116,7 @@ hide:
     padding: 0 !important;
     justify-content: center;
   }
+  #pet-nav #pet-notifications-nav { flex: 0 0 38px; }
 
   /* 我的投稿的筛选控件在桌面端紧凑同行，在日期范围内保持明确的起止关系。 */
   #pet-mine-section > div {
@@ -191,6 +195,7 @@ hide:
     }
     #pet-nav .pet-nav-secondary-action { min-height: 36px; font-size: 12px !important; }
     #pet-nav #pet-admin-nav { grid-column: 1 / span 2; justify-content: center; }
+    #pet-nav #pet-notifications-nav { width:100%; height:36px; }
     #pet-nav #pet-logout-nav { grid-column: 3; width: 100%; height: 36px; }
     #pet-nav .pet-nav-login { width: 100%; margin-left: 0; justify-content: center; }
 

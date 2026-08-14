@@ -73,6 +73,7 @@ not_in_nav: |
   /green-book/scholarship/appendix/
   /green-book/youth-league/appendix/
   /pets/cats/
+  /pets/投稿审核与互动说明.md
   /rules/appendix/
   /site-guide/main-campus/图书馆须知与问答/
   /site-guide/shungeng-campus/library-*.md
@@ -117,9 +118,10 @@ extra_javascript:
   - pets/pet-format.js?v=20260812-2
   - pets/pet-views.js?v=20260814-4
   - pets/pet-likes.js?v=20260814-1
+  - pets/pet-notifications.js?v=20260814-1
   - pets/pet-mine.js?v=20260814-4
   - pets/pet-submit.js?v=20260812-2
-  - pets/pets.js?v=20260814-4
+  - pets/pets.js?v=20260815-1
 
 nav:
   - 首页: index.md

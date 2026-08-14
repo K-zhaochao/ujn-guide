@@ -117,6 +117,7 @@
   const petFormat = window.UJNGuidePetFormat;
   const petViews = window.UJNGuidePetViews;
   const petLikesModule = window.UJNGuidePetLikes;
+  const petNotificationsModule = window.UJNGuidePetNotifications;
   const petMineModule = window.UJNGuidePetMine;
   const petSubmitModule = window.UJNGuidePetSubmit;
   const safeHttpUrl = petClient && petClient.safeHttpUrl;
@@ -262,6 +263,7 @@
       !petFormat || typeof petFormat.esc !== 'function' ||
       !petViews || typeof petViews.createPetViews !== 'function' ||
       !petLikesModule || typeof petLikesModule.createPetLikes !== 'function' ||
+      !petNotificationsModule || typeof petNotificationsModule.createPetNotifications !== 'function' ||
       !petMineModule || typeof petMineModule.createPetMine !== 'function') {
     throw new Error('缺少宠物前端基础模块，无法初始化宠物页面');
   }
@@ -343,11 +345,13 @@
     const r = await authSession.restore();
     if (r.ok && r.data.success) {
       user = authSession.getUser();
+      await petNotifications.refreshUnreadCount();
     } else {
       const msg = (r.data && r.data.message) || '';
       user = null;
       // P2-09：token 失效也会改变 liked / likeCount 展示，失效公开缓存
       petCache.clear();
+      await petNotifications.refreshUnreadCount();
       // 被拉黑时提示用户联系站长（其余情况静默清理过期 token）
       if (r.status === 403 && /拉黑/.test(msg)) {
         showToast('⚠️ ' + msg, true);
@@ -367,6 +371,7 @@
     oauthTransaction.clear();
     closePop('pet-login-pop');
     closePop('pet-rename-pop');
+    petNotifications.closeNotifications();
     $('#pet-mine-section').style.display = 'none';
     petLikes.closeLikedSection();
     renderNav();
@@ -476,13 +481,18 @@
     addPetGlobal(document, 'click', function (e) {
       const pop = $('#pet-login-pop');
       const rp = $('#pet-rename-pop');
+      const np = $('#pet-notification-pop');
       const isLoginAnchor = !!(e.target.closest && e.target.closest('#pet-login-btn'));
       const isRenameAnchor = !!(e.target.closest && (e.target.closest('#pet-user-btn') || e.target.closest('#pet-rename-nav')));
+      const isNotificationAnchor = !!(e.target.closest && e.target.closest('#pet-notifications-nav'));
       if (pop && pop.style.display !== 'none') {
         if (!pop.contains(e.target) && !isLoginAnchor) closePop('pet-login-pop');
       }
       if (rp && rp.style.display !== 'none') {
         if (!rp.contains(e.target) && !isRenameAnchor) closePop('pet-rename-pop');
+      }
+      if (np && np.style.display !== 'none') {
+        if (!np.contains(e.target) && !isNotificationAnchor) petNotifications.closeNotifications();
       }
     });
   }
@@ -511,6 +521,9 @@
             : '<button id="pet-submit-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.soft + ';color:' + C.muted + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;font-weight:600;cursor:not-allowed" title="' + (siteConfig.maintenance ? '宠物收集录正在维护中' : (!contentSchemaReady ? '投稿配置暂未加载' : '投稿功能已关闭')) + '">🆕 投稿</button>') +
           '<button id="pet-mine-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">📋 我的投稿</button>' +
           '<button id="pet-liked-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">❤️ 我的收藏</button>' +
+          '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="互动通知" aria-label="互动通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:17px;cursor:pointer;color:' + C.fg + '">🔔' +
+            (petNotifications && petNotifications.unreadCount() ? '<span style="position:absolute;right:-5px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:' + C.danger + ';color:#fff;font-size:10px;line-height:17px;font-weight:700">' + Math.min(99, petNotifications.unreadCount()) + '</span>' : '') +
+          '</button>' +
           adminBtn +
           '<button id="pet-logout-nav" class="pet-nav-secondary-action pet-nav-logout" title="退出登录" aria-label="退出登录" style="padding:8px 12px;background:none;border:none;border-radius:8px;font-size:16px;cursor:pointer;color:' + C.muted + '">↪</button>' +
         '</div>';
@@ -537,6 +550,8 @@
       if (sec.style.display === 'none') petLikes.openLikedSection();
       else petLikes.closeLikedSection();
     };
+    const notifications = $('#pet-notifications-nav');
+    if (notifications) notifications.onclick = () => petNotifications.toggleNotifications(notifications);
     const ab = $('#pet-admin-nav');
     if (ab) ab.onclick = () => window.open('/admin', '_blank', 'noopener');
     const lo = $('#pet-logout-nav'); if (lo) lo.onclick = logout;
@@ -977,6 +992,19 @@
     onOpenDetail: openDetail,
     getUser: () => user,
     PAGE_SIZE,
+  });
+
+  const petNotifications = petNotificationsModule.createPetNotifications({
+    $, $all, document, C, esc,
+    api,
+    showToast,
+    onLoginRequired: openLoginPop,
+    onOpenSubmission: openDetail,
+    onUnreadCountChange: renderNav,
+    getUser: () => user,
+    safeHttpUrl,
+    formatDateTime,
+    PAGE_SIZE: 20,
   });
 
   petMine = petMineModule.createPetMine({
