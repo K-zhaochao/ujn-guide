@@ -8,8 +8,21 @@ hide:
 
 # 🐾 宠物收集录
 
-<!-- 页面专属导航栏：登录 / 投稿 / 我的投稿 / 我的收藏 / 改名（由 pets.js 渲染） -->
+<!-- 页面专属导航栏与登录后个人工作区（由 pets.js 控制） -->
 <div id="pet-nav"></div>
+
+<!-- 登录后默认展开的个人工作区；投稿与收藏不再分散在导航按钮和页面底部。 -->
+<section id="pet-personal-workspace" aria-label="个人工作区" style="display:none">
+  <div class="pet-workspace-header">
+    <div id="pet-workspace-tabs" class="pet-workspace-tabs" role="tablist" aria-label="个人内容">
+      <button id="pet-workspace-mine-tab" class="pet-workspace-tab" type="button" role="tab" aria-selected="true" aria-controls="pet-mine-section">我的投稿</button>
+      <button id="pet-workspace-liked-tab" class="pet-workspace-tab" type="button" role="tab" aria-selected="false" aria-controls="pet-liked-section" tabindex="-1">我的收藏</button>
+    </div>
+    <button id="pet-workspace-submit" class="pet-workspace-submit" type="button">投稿</button>
+  </div>
+  <section id="pet-mine-section" role="tabpanel" aria-labelledby="pet-workspace-mine-tab"></section>
+  <section id="pet-liked-section" role="tabpanel" aria-labelledby="pet-workspace-liked-tab" hidden></section>
+</section>
 
 <!-- 登录小卡片（点击导航栏登录按钮弹出，GitHub / Gitee） -->
 <div id="pet-login-pop" style="display:none"></div>
@@ -38,6 +51,7 @@ hide:
     --pet-danger-bg: #fee2e2;
     --pet-success: #22c55e;
     --pet-input-bg: #fff;
+    --pet-workspace-bg: #fafbfd;
   }
   [data-md-color-scheme="slate"] {
     --pet-img-bg: #2b3038;
@@ -55,6 +69,7 @@ hide:
     --pet-danger-bg: rgba(239, 68, 68, .18);
     --pet-success: #4ade80;
     --pet-input-bg: #1f242d;
+    --pet-workspace-bg: #252b35;
   }
 
   /* 宠物卡片网格：桌面 4 列 → 中屏 3 列 → 窄屏 2 列 → 手机 1 列 */
@@ -90,7 +105,15 @@ hide:
     #pet-mine-filters input[type=date] { min-height: 44px; }
   }
 
-  /* 登录后的个人导航：桌面端按账户、主操作、辅助操作分组，窄屏改为等宽操作区。 */
+  /* 登录后的账号栏与个人工作区共用一套边框，视觉上是同一个工作区域。 */
+  #pet-nav.pet-nav-logged-in .pet-nav-shell {
+    background: var(--pet-workspace-bg);
+    border: 1px solid var(--pet-border) !important;
+    border-bottom: 0 !important;
+    border-radius: 8px 8px 0 0 !important;
+    margin-bottom: 0 !important;
+    padding: 10px 14px !important;
+  }
   #pet-nav .pet-nav-shell {
     justify-content: flex-start !important;
     padding: 10px 0 14px !important;
@@ -118,12 +141,77 @@ hide:
   }
   #pet-nav #pet-notifications-nav { flex: 0 0 38px; }
 
-  /* 我的投稿的筛选控件在桌面端紧凑同行，在日期范围内保持明确的起止关系。 */
-  #pet-mine-section > div {
-    margin: 22px 0 8px !important;
-    border-radius: 8px !important;
+  #pet-personal-workspace {
+    border: 1px solid var(--pet-border);
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    background: var(--pet-workspace-bg);
+    margin: 0 0 24px;
+    padding: 0 14px 16px;
   }
-  #pet-liked-section > div { margin: 24px 0 8px !important; }
+  #pet-personal-workspace[hidden] { display: none !important; }
+  .pet-workspace-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    border-bottom: 1px solid var(--pet-border);
+  }
+  .pet-workspace-tabs {
+    display: flex;
+    align-self: stretch;
+    min-width: 0;
+    gap: 18px;
+  }
+  .pet-workspace-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 52px;
+    padding: 0 2px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--pet-muted);
+    font-size: 14px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .pet-workspace-tab[aria-selected="true"] {
+    border-bottom-color: var(--pet-primary);
+    color: var(--pet-primary);
+  }
+  .pet-workspace-tab:hover { color: var(--pet-primary); }
+  .pet-workspace-submit {
+    min-height: 34px;
+    margin-left: auto;
+    padding: 6px 13px;
+    border: 1px solid var(--pet-primary);
+    border-radius: 7px;
+    background: var(--pet-primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .pet-workspace-submit:disabled {
+    border-color: var(--pet-border);
+    background: var(--pet-soft);
+    color: var(--pet-muted);
+    cursor: not-allowed;
+  }
+  #pet-mine-section,
+  #pet-liked-section { min-width: 0; }
+  #pet-mine-section .pet-mine-shell { padding-top: 14px; }
+  #pet-liked-section .pet-liked-shell { padding-top: 16px; }
+  #pet-liked-count {
+    display: block;
+    min-height: 18px;
+    margin: 0 0 10px;
+    color: var(--pet-muted);
+    font-size: 12px;
+  }
+
+  /* 我的投稿的筛选控件在桌面端紧凑同行，在日期范围内保持明确的起止关系。 */
   #pet-mine-filters {
     align-items: end !important;
     gap: 9px !important;
@@ -172,6 +260,7 @@ hide:
   #pet-mine-filters .pet-mine-date-range input { width: 100%; }
 
   @media (max-width: 640px) {
+    #pet-nav.pet-nav-logged-in .pet-nav-shell { padding: 10px 12px !important; }
     #pet-nav .pet-nav-shell { align-items: stretch !important; }
     #pet-nav .pet-nav-actions {
       display: grid !important;
@@ -185,27 +274,17 @@ hide:
       min-height: 40px;
       justify-content: flex-start;
     }
-    #pet-nav .pet-nav-primary-action {
-      width: 100%;
-      min-width: 0;
-      min-height: 40px;
-      justify-content: center;
-      padding: 7px 5px !important;
-      font-size: 12px !important;
-    }
     #pet-nav .pet-nav-secondary-action { min-height: 36px; font-size: 12px !important; }
     #pet-nav #pet-admin-nav { grid-column: 1 / span 2; justify-content: center; }
-    #pet-nav #pet-notifications-nav { width:100%; height:36px; }
+    #pet-nav #pet-notifications-nav { width: 100%; height: 36px; }
     #pet-nav #pet-logout-nav { grid-column: 3; width: 100%; height: 36px; }
     #pet-nav .pet-nav-login { width: 100%; margin-left: 0; justify-content: center; }
 
-    #pet-mine-section > div { padding: 13px 12px !important; margin-top: 18px !important; }
-    #pet-liked-section > div { padding-top: 14px !important; margin-top: 20px !important; }
-    #pet-mine-section > div > div:first-child,
-    #pet-liked-section > div > div:first-child { gap: 8px !important; margin-bottom: 10px !important; }
-    #pet-mine-title { font-size: 16px !important; }
-    #pet-mine-close,
-    #pet-liked-close { width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important; }
+    #pet-personal-workspace { margin-bottom: 20px; padding: 0 12px 14px; }
+    .pet-workspace-header { align-items: stretch; flex-direction: column; gap: 7px; padding: 8px 0 10px; }
+    .pet-workspace-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; width: 100%; }
+    .pet-workspace-tab { justify-content: center; min-height: 42px; padding: 0 5px; }
+    .pet-workspace-submit { width: 100%; min-height: 40px; margin: 0; }
     #pet-mine-status-counts {
       flex-wrap: nowrap !important;
       overflow-x: auto;
@@ -240,7 +319,6 @@ hide:
   }
 
   @media (max-width: 380px) {
-    #pet-nav .pet-nav-primary-action { font-size: 11px !important; }
     #pet-mine-filters .pet-mine-date-range { grid-template-columns: 1fr; }
   }
 </style>
@@ -255,12 +333,6 @@ hide:
 <div id="pet-gallery">
   <p style="text-align:center;color:#999;padding:40px">加载中...</p>
 </div>
-
-<!-- 我的收藏区（页面底部，登录后点击“我的收藏”展开） -->
-<div id="pet-liked-section" style="display:none"></div>
-
-<!-- 我的投稿区（页面底部，登录后点击“我的投稿”展开） -->
-<div id="pet-mine-section" style="display:none"></div>
 
 <!-- 弹窗容器 -->
 <div id="pet-detail-modal" style="display:none"></div>

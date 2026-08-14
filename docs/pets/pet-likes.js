@@ -24,15 +24,10 @@
       if (!sec || sec.dataset.likedShell === '1') return;
       sec.dataset.likedShell = '1';
       sec.innerHTML =
-        '<div style="border-top:1px solid ' + C.border + ';margin:28px 0 8px;padding-top:18px">' +
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">' +
-            '<span style="font-size:17px;font-weight:700;color:' + C.fgDark + '">❤️ 我的收藏</span>' +
-            '<span id="pet-liked-count" style="font-size:12px;color:' + C.muted + '"></span>' +
-            '<button id="pet-liked-close" title="收起我的收藏" aria-label="收起我的收藏" style="margin-left:auto;width:36px;height:36px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:18px;cursor:pointer;color:' + C.fg + '">×</button>' +
-          '</div>' +
+        '<div class="pet-liked-shell">' +
+          '<p id="pet-liked-count" aria-live="polite"></p>' +
           '<div id="pet-liked-list"></div>' +
         '</div>';
-      $('#pet-liked-close').onclick = closeLikedSection;
     }
 
     function renderLikedPets() {
@@ -85,14 +80,17 @@
       renderLikedPets();
     }
 
-    async function openLikedSection() {
+    async function openLikedSection(options = {}) {
       if (!getUser()) { showToast('请先登录后查看收藏', true); onLoginRequired(); return; }
       const sec = section();
       if (!sec) return;
+      sec.hidden = false;
       sec.style.display = 'block';
       renderShell();
       await loadLikedPets();
-      if (typeof sec.scrollIntoView === 'function') sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (options.scroll !== false && typeof sec.scrollIntoView === 'function') {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
     function closeLikedSection() {

@@ -37,6 +37,15 @@ describe('宠物前端我的收藏控制器', () => {
     expect(api).toHaveBeenCalledWith('/api/my/liked-pets?page=1&pageSize=1');
     expect(document.getElementById('pet-liked-section').style.display).toBe('block');
     expect(document.getElementById('pet-liked-list').textContent).toBe('1');
+    expect(document.getElementById('pet-liked-close')).toBeNull();
+  });
+
+  it('嵌入个人工作区时不强制滚动页面', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const { controller } = setup();
+    await controller.openLikedSection({ scroll: false });
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('取消点赞后立即移除已渲染卡片并重新查询', async () => {

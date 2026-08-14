@@ -6,7 +6,7 @@
  *   - 渲染层工厂 views()（HTML 生成由 pet-views.js 提供）
  *   - 查询参数构建 buildMineListQuery（pet-view-model.js）
  *   - API 客户端（api / apiSubmissionAction）、toast、弹窗控制器
- *   - 回调：onLoginRequired / onSubmit / onEdit / onListChanged
+ *   - 回调：onLoginRequired / onEdit / onListChanged
  *   - 可变状态 getter：getUser / getSiteConfig / getCategories / getCatEmoji
  * 状态（minePage 等）全部内聚于此；pets.js 只保留实例化与委托调用。
  */
@@ -28,7 +28,6 @@
       openPetModal, closePetModal,
       confirmAction = async () => false,
       onLoginRequired,
-      onSubmit,
       onEdit,
       onListChanged,
       petCache,
@@ -70,44 +69,12 @@
 
     function renderMineShell(sec) {
       if (sec.dataset.mineShell === '1') return;
-      const siteConfig = getSiteConfig();
-      // 手机端适配：筛选控件占满整行、触控区域更大；搜索框独占一行
-      if (!document.getElementById('pet-mine-style')) {
-        const st = document.createElement('style');
-        st.id = 'pet-mine-style';
-        st.textContent = '@media (max-width:640px){' +
-          '#pet-mine-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}' +
-          '#pet-mine-filters #pet-mine-search,#pet-mine-filters .pet-mine-date-range{grid-column:1/-1}' +
-          '#pet-mine-filters select,#pet-mine-filters input[type=date]{width:100%;min-width:0}' +
-          '#pet-mine-filters .pet-mine-date-range{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}' +
-          '#pet-mine-filters .pet-mine-date-range label{display:grid!important;gap:4px;font-size:11px;color:' + C.muted + '}' +
-          '#pet-mine-section .pet-mine-row{align-items:flex-start!important;gap:9px!important;padding:10px!important}' +
-          '#pet-mine-section .pet-mine-row>div:nth-of-type(1){flex:1 1 calc(100% - 56px)!important}' +
-          '#pet-mine-section .pet-mine-row-actions{width:100%;flex:1 0 100%!important;margin-left:0!important}' +
-          '#pet-mine-section .pet-mine-row-actions button{flex:1 1 calc(50% - 3px);min-height:38px;white-space:normal;line-height:1.3}' +
-          '#pet-mine-section .pet-mine-row-actions .pet-rejected-revision-edit-btn{flex-basis:100%}' +
-          '#pet-mine-section .pet-mine-row [role=alert]{width:100%;word-break:break-word}' +
-          '#pet-detail-modal .pet-scroll,#pet-edit-modal .pet-scroll{width:calc(100% - 20px)!important;max-height:calc(100dvh - 20px)!important;padding:18px 16px!important;border-radius:12px!important}' +
-          '#pet-edit-dynamic-fields{grid-template-columns:1fr!important}' +
-          '#pet-edit-modal .pet-edit-actions{flex-direction:column!important}' +
-          '#pet-edit-modal .pet-edit-actions button{width:100%}' +
-          '}';
-        document.head.appendChild(st);
-      }
       const catEmoji = getCatEmoji();
       const CATEGORIES = getCategories();
       const categoryOptions = '<option value="">全部类型</option>' + CATEGORIES.map(c => '<option value="' + esc(c.key) + '">' + (catEmoji[c.key] || '🐾') + ' ' + esc(c.key) + '</option>').join('');
       sec.dataset.mineShell = '1';
       sec.innerHTML =
-        '<div style="border:1px solid ' + C.border + ';border-radius:14px;padding:16px;margin:24px 0 8px">' +
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">' +
-        '<span id="pet-mine-title" style="font-size:17px;font-weight:700;color:' + C.fgDark + '">📋 我的投稿</span>' +
-        '<span style="font-size:12px;color:' + C.muted + '">支持关键词、状态、类型、日期筛选；已公开内容的修改需再次审核，审核前图鉴保持原公开版本</span>' +
-        '<button id="pet-mine-close" style="margin-left:auto;padding:5px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:13px;cursor:pointer;color:' + C.fg + '">收起 ▲</button>' +
-        (siteConfig.allowSubmit && !siteConfig.maintenance
-          ? '<button id="pet-mine-submit" style="padding:5px 14px;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600">🆕 投稿</button>'
-          : '') +
-        '</div>' +
+        '<div class="pet-mine-shell">' +
         '<div id="pet-mine-status-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>' +
         '<div id="pet-mine-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
         '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" aria-label="搜索我的投稿" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
@@ -119,10 +86,6 @@
         '<div id="pet-mine-list" aria-live="polite"></div>' +
         '<div id="pet-mine-pager" style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px"></div>' +
         '</div>';
-
-      $('#pet-mine-close').onclick = () => { sec.style.display = 'none'; };
-      const mineSubmit = $('#pet-mine-submit');
-      if (mineSubmit) mineSubmit.onclick = onSubmit;
 
       const search = $('#pet-mine-search');
       // 关键词搜索改为显式触发：Enter 或失焦才请求，避免每次输入都打接口。
@@ -191,8 +154,6 @@
       const siteConfig = getSiteConfig();
       const counts = data.statusCounts || {};
       const allStatusCount = ['pending', 'approved', 'rejected'].reduce((sum, key) => sum + Number(counts[key] || 0), 0) || mineTotal;
-      const title = $('#pet-mine-title');
-      if (title) title.textContent = '📋 我的投稿（' + mineTotal + '）';
       const countLabels = [
         ['', '全部', allStatusCount],
         ['pending', '待审核', counts.pending || 0],
@@ -213,7 +174,7 @@
       });
 
       if (!items.length) {
-        list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:28px 12px">' + (mineQuery || mineStatus || mineCategory || mineDate || mineDateEnd ? '没有符合筛选条件的投稿' : '你还没有投稿过，点击右上角“投稿”开始吧！🐾') + '</p>';
+        list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:28px 12px">' + (mineQuery || mineStatus || mineCategory || mineDate || mineDateEnd ? '没有符合筛选条件的投稿' : '你还没有投稿过，点击“投稿”开始吧！🐾') + '</p>';
       } else {
         // 行 HTML 由渲染层（pet-views.js）生成
         list.innerHTML = '<div style="display:flex;flex-direction:column;gap:7px">' + items.map(s => views().mineRowHtml(s)).join('') + '</div>';
@@ -406,15 +367,18 @@
       await loadMineSubmissions();
     }
 
-    async function openMineSection() {
+    async function openMineSection(options = {}) {
       if (!getUser()) { showToast('请先登录', true); onLoginRequired(); return; }
       const sec = $('#pet-mine-section');
       if (!sec) return;
+      sec.hidden = false;
       sec.style.display = 'block';
       renderMineShell(sec);
       loadMineTypeOptions();
       await loadMineSubmissions();
-      sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (options.scroll !== false && typeof sec.scrollIntoView === 'function') {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
     return {

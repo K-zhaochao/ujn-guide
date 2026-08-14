@@ -2,11 +2,11 @@
  * 🐾 宠物收集录 — 前端脚本 v5
  * ===========================
  * 功能：
- *   - 页面专属导航栏：登录（GitHub/Gitee 小卡片）、改名、投稿、我的投稿
+ *   - 页面专属导航栏：登录（GitHub/Gitee 小卡片）、改名、通知与个人工作区
  *   - 动态拉取 /api/pets 渲染宠物卡片网格（按分类分组）
  *   - 搜索 / 分类筛选 / 排序（最新发布·最近更新·点赞最多）
  *   - 点赞（登录用户），卡片与详情弹窗均可
- *   - 投稿模态框、我的投稿（页面底部，编辑 / 删除）
+ *   - 投稿模态框、登录后常驻的个人工作区（投稿 / 收藏 / 编辑 / 删除）
  *   - 详情弹窗
  *   - 全部颜色使用 CSS 变量（适配 Material 深色主题）
  *
@@ -105,6 +105,7 @@
   let totalCount = 0;
   let user = null; // { provider, providerId, username, avatarUrl, nickname, isAdmin }
   let authProviders = ['github'];
+  let activePersonalTab = 'mine';
 
   // 站点系统配置（功能开关 / 维护模式），由 /api/pet-config 拉取，与后台设置实时同步
   let siteConfig = { allowSubmit: true, allowEdit: true, allowDelete: true, maintenance: false, schemaVersion: null };
@@ -359,6 +360,7 @@
     }
     renderNav();
     updateAuthUI();
+    if (user) await activatePersonalTab('mine', { scroll: false });
   }
 
   async function logout() {
@@ -372,8 +374,7 @@
     closePop('pet-login-pop');
     closePop('pet-rename-pop');
     petNotifications.closeNotifications();
-    $('#pet-mine-section').style.display = 'none';
-    petLikes.closeLikedSection();
+    activePersonalTab = 'mine';
     renderNav();
     updateAuthUI();
     // P2-09：退出后 liked / likeCount 随登录态变化，失效公开缓存并刷新
@@ -499,9 +500,88 @@
 
   // ================== 页面导航栏 ==================
 
+  function submitAvailability() {
+    if (siteConfig.maintenance) return { enabled: false, message: '宠物收集录正在维护中' };
+    if (!contentSchemaReady) return { enabled: false, message: '投稿配置暂未加载' };
+    if (!SUBMISSION_TYPES.length) return { enabled: false, message: '投稿功能已关闭' };
+    if (!siteConfig.allowSubmit) return { enabled: false, message: '投稿功能已关闭' };
+    return { enabled: true, message: '' };
+  }
+
+  function updatePersonalTabState() {
+    const mineTab = $('#pet-workspace-mine-tab');
+    const likedTab = $('#pet-workspace-liked-tab');
+    const mineSection = $('#pet-mine-section');
+    const likedSection = $('#pet-liked-section');
+    if (!mineTab || !likedTab || !mineSection || !likedSection) return;
+    const mineActive = activePersonalTab !== 'liked';
+    activePersonalTab = mineActive ? 'mine' : 'liked';
+    mineTab.setAttribute('aria-selected', String(mineActive));
+    mineTab.tabIndex = mineActive ? 0 : -1;
+    likedTab.setAttribute('aria-selected', String(!mineActive));
+    likedTab.tabIndex = mineActive ? -1 : 0;
+    mineSection.hidden = !mineActive;
+    mineSection.style.display = mineActive ? 'block' : 'none';
+    likedSection.hidden = mineActive;
+    likedSection.style.display = mineActive ? 'none' : 'block';
+  }
+
+  function renderPersonalWorkspaceControls() {
+    const workspace = $('#pet-personal-workspace');
+    const submit = $('#pet-workspace-submit');
+    const mineTab = $('#pet-workspace-mine-tab');
+    const likedTab = $('#pet-workspace-liked-tab');
+    if (!workspace || !submit || !mineTab || !likedTab) return;
+
+    if (!user) {
+      workspace.hidden = true;
+      workspace.style.display = 'none';
+      return;
+    }
+
+    workspace.hidden = false;
+    workspace.style.display = 'block';
+    const availability = submitAvailability();
+    submit.disabled = !availability.enabled;
+    submit.title = availability.message;
+    submit.onclick = availability.enabled ? openSubmitModal : null;
+    updatePersonalTabState();
+
+    mineTab.onclick = () => { void activatePersonalTab('mine', { scroll: false }); };
+    likedTab.onclick = () => { void activatePersonalTab('liked', { scroll: false }); };
+    const switchByKey = event => {
+      const tabs = [mineTab, likedTab];
+      const current = tabs.indexOf(event.currentTarget);
+      let next = current;
+      if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = (current + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = (current - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      tabs[next].focus();
+      void activatePersonalTab(next === 0 ? 'mine' : 'liked', { scroll: false });
+    };
+    mineTab.onkeydown = switchByKey;
+    likedTab.onkeydown = switchByKey;
+  }
+
+  async function activatePersonalTab(tab, options = {}) {
+    if (!user) return;
+    activePersonalTab = tab === 'liked' ? 'liked' : 'mine';
+    renderPersonalWorkspaceControls();
+    if (options.load === false) return;
+    if (activePersonalTab === 'mine') {
+      await petMine.openMineSection({ scroll: options.scroll === true });
+    } else {
+      await petLikes.openLikedSection({ scroll: options.scroll === true });
+    }
+  }
+
   function renderNav() {
     const nav = $('#pet-nav');
     if (!nav) return;
+    nav.classList.toggle('pet-nav-logged-in', !!user);
     // 管理后台与主站共用 Cookie 会话；后端仍会在管理 API 上校验管理员角色。
     const adminBtn = user && user.isAdmin
       ? '<button id="pet-admin-nav" class="pet-nav-secondary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:none;border:1px solid ' + C.primary + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.primary + ';font-weight:600">⚙️ 管理后台</button>'
@@ -516,11 +596,6 @@
             '<span>' + esc(displayName(user)) + '</span>' +
             '<span style="font-size:11px;color:' + C.muted + '">✏️</span>' +
           '</button>' +
-          (siteConfig.allowSubmit && !siteConfig.maintenance && contentSchemaReady && SUBMISSION_TYPES.length
-            ? '<button id="pet-submit-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">🆕 投稿</button>'
-            : '<button id="pet-submit-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.soft + ';color:' + C.muted + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;font-weight:600;cursor:not-allowed" title="' + (siteConfig.maintenance ? '宠物收集录正在维护中' : (!contentSchemaReady ? '投稿配置暂未加载' : '投稿功能已关闭')) + '">🆕 投稿</button>') +
-          '<button id="pet-mine-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">📋 我的投稿</button>' +
-          '<button id="pet-liked-nav" class="pet-nav-primary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">❤️ 我的收藏</button>' +
           '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="互动通知" aria-label="互动通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:17px;cursor:pointer;color:' + C.fg + '">🔔' +
             (petNotifications && petNotifications.unreadCount() ? '<span style="position:absolute;right:-5px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:' + C.danger + ';color:#fff;font-size:10px;line-height:17px;font-weight:700">' + Math.min(99, petNotifications.unreadCount()) + '</span>' : '') +
           '</button>' +
@@ -535,26 +610,12 @@
 
     const lb = $('#pet-login-btn'); if (lb) lb.onclick = openLoginPop;
     const ub = $('#pet-user-btn'); if (ub) ub.onclick = openRenamePop;
-    const sb = $('#pet-submit-nav'); if (sb) sb.onclick = openSubmitModal;    const mb = $('#pet-mine-nav');
-    if (mb) mb.onclick = () => {
-      const sec = $('#pet-mine-section');
-      if (sec.style.display === 'none' || !sec.dataset.loaded) {
-        petMine.openMineSection();
-      } else {
-        sec.style.display = 'none';
-      }
-    };
-    const liked = $('#pet-liked-nav');
-    if (liked) liked.onclick = () => {
-      const sec = $('#pet-liked-section');
-      if (sec.style.display === 'none') petLikes.openLikedSection();
-      else petLikes.closeLikedSection();
-    };
     const notifications = $('#pet-notifications-nav');
     if (notifications) notifications.onclick = () => petNotifications.toggleNotifications(notifications);
     const ab = $('#pet-admin-nav');
     if (ab) ab.onclick = () => window.open('/admin', '_blank', 'noopener');
     const lo = $('#pet-logout-nav'); if (lo) lo.onclick = logout;
+    renderPersonalWorkspaceControls();
   }
 
   // ================== 工具栏（静态，避免搜索框失焦） ==================
@@ -884,6 +945,7 @@
     petCache,
     onSubmitted: async function () {
       petCache.clear();
+      await activatePersonalTab('mine', { load: false });
       await refreshMineSubmissions({ resetPage: true });
       loadPets();
     },
@@ -980,7 +1042,7 @@
     });
   }
 
-  // ================== 我的投稿（页面底部） ==================
+  // ================== 个人工作区：投稿与收藏 ==================
   // 交互逻辑已拆至 pet-mine.js（createPetMine 工厂，状态与加载/筛选/分页/行操作全部内聚）。
   // pets.js 只保留实例化与委托调用；渲染 HTML 由 pet-views.js 提供。
   const petLikes = petLikesModule.createPetLikes({
@@ -1016,7 +1078,6 @@
     openPetModal, closePetModal,
     confirmAction: confirmPetAction,
     onLoginRequired: openLoginPop,
-    onSubmit: openSubmitModal,
     onEdit: openEditModal,
     onListChanged: loadPets,
     petCache,
@@ -1241,8 +1302,10 @@
       if (up.ok) {
         closePetModal(modal);
         if (isApproved && petMine && typeof petMine.focusPendingReview === 'function') {
+          await activatePersonalTab('mine', { load: false });
           await petMine.focusPendingReview();
         } else {
+          await activatePersonalTab('mine', { load: false });
           await refreshMineSubmissions();
         }
       }

@@ -117,11 +117,11 @@ extra_javascript:
   - pets/pet-modal.js?v=20260814-4
   - pets/pet-format.js?v=20260812-2
   - pets/pet-views.js?v=20260815-3
-  - pets/pet-likes.js?v=20260814-1
+  - pets/pet-likes.js?v=20260815-2
   - pets/pet-notifications.js?v=20260815-1
-  - pets/pet-mine.js?v=20260815-3
+  - pets/pet-mine.js?v=20260815-4
   - pets/pet-submit.js?v=20260812-2
-  - pets/pets.js?v=20260815-4
+  - pets/pets.js?v=20260815-5
 
 nav:
   - 首页: index.md

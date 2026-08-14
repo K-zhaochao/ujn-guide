@@ -65,7 +65,6 @@ function makeMine(overrides) {
     closePetModal: () => calls.closeModal.push(1),
     confirmAction: async options => { calls.confirm.push(options); return true; },
     onLoginRequired: () => calls.toast.push({ msg: 'openLoginPop', isError: true }),
-    onSubmit: () => calls.toast.push({ msg: 'submit', isError: false }),
     onEdit: (id, options) => calls.toast.push({ msg: 'edit:' + id, options, isError: false }),
     onListChanged: () => calls.onListChanged++,
     petCache,
@@ -122,7 +121,9 @@ describe('宠物「我的投稿」交互控制器', () => {
     await controller.openMineSection();
     expect(sec.style.display).toBe('block');
     expect(document.getElementById('pet-mine-list').innerHTML).toContain('pet-mine-row');
-    expect(document.querySelector('#pet-mine-title').textContent).toContain('（1）');
+    expect(document.getElementById('pet-mine-status-counts').textContent).toContain('已通过 1');
+    expect(document.getElementById('pet-mine-close')).toBeNull();
+    expect(document.getElementById('pet-mine-submit')).toBeNull();
   });
 
   it('加载失败：显示错误信息', async () => {
