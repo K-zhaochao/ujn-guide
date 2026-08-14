@@ -139,7 +139,8 @@ hide:
     padding: 0 !important;
     justify-content: center;
   }
-  #pet-nav #pet-notifications-nav { flex: 0 0 38px; }
+  #pet-nav #pet-notifications-nav,
+  #pet-nav #pet-workspace-toggle-nav { flex: 0 0 38px; }
 
   #pet-personal-workspace {
     border: 1px solid var(--pet-border);
@@ -277,6 +278,7 @@ hide:
     #pet-nav .pet-nav-secondary-action { min-height: 36px; font-size: 12px !important; }
     #pet-nav #pet-admin-nav { grid-column: 1 / span 2; justify-content: center; }
     #pet-nav #pet-notifications-nav { width: 100%; height: 36px; }
+    #pet-nav #pet-workspace-toggle-nav { width: 100%; height: 36px; }
     #pet-nav #pet-logout-nav { grid-column: 3; width: 100%; height: 36px; }
     #pet-nav .pet-nav-login { width: 100%; margin-left: 0; justify-content: center; }
 

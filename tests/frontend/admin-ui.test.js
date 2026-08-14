@@ -171,6 +171,23 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(text).toContain('@tester');
   });
 
+  it('topbar refresh reloads the current list and sidebar snapshot', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '#sub-list');
+    const listCallsBefore = fetchCalls.filter(call => call.url === '/api/admin/submissions?status=pending&page=1&pageSize=10&sort=oldest').length;
+    const statsCallsBefore = fetchCalls.filter(call => call.url === '/api/admin/stats').length;
+    const refresh = document.querySelector('[data-action="view-refresh"]');
+
+    expect(refresh).toBeTruthy();
+    refresh.click();
+    await settle();
+
+    expect(fetchCalls.filter(call => call.url === '/api/admin/submissions?status=pending&page=1&pageSize=10&sort=oldest').length).toBeGreaterThan(listCallsBefore);
+    expect(fetchCalls.filter(call => call.url === '/api/admin/stats').length).toBeGreaterThan(statsCallsBefore);
+    expect(fetchCalls.every(call => call.opts && call.opts.cache === 'no-store')).toBe(true);
+    expect(document.querySelector('.nav-item[data-view="pending"]').classList.contains('active')).toBe(true);
+  });
+
   it('待审核页：公开稿修改进入独立队列且不出现批量选择框', async () => {
     const { document } = bootTracked({ user: ADMIN, overrides: {
       '/api/admin/submission-revisions?status=pending&page=1&pageSize=10&sort=oldest': () => jsonResponse({

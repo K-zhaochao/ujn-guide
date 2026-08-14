@@ -106,6 +106,7 @@
   let user = null; // { provider, providerId, username, avatarUrl, nickname, isAdmin }
   let authProviders = ['github'];
   let activePersonalTab = 'mine';
+  let personalWorkspaceCollapsed = false;
 
   // 站点系统配置（功能开关 / 维护模式），由 /api/pet-config 拉取，与后台设置实时同步
   let siteConfig = { allowSubmit: true, allowEdit: true, allowDelete: true, maintenance: false, schemaVersion: null };
@@ -346,6 +347,7 @@
     const r = await authSession.restore();
     if (r.ok && r.data.success) {
       user = authSession.getUser();
+      personalWorkspaceCollapsed = false;
       await petNotifications.refreshUnreadCount();
     } else {
       const msg = (r.data && r.data.message) || '';
@@ -370,6 +372,7 @@
       return;
     }
     user = null;
+    personalWorkspaceCollapsed = false;
     oauthTransaction.clear();
     closePop('pet-login-pop');
     closePop('pet-rename-pop');
@@ -531,6 +534,7 @@
     const submit = $('#pet-workspace-submit');
     const mineTab = $('#pet-workspace-mine-tab');
     const likedTab = $('#pet-workspace-liked-tab');
+    const toggle = $('#pet-workspace-toggle-nav');
     if (!workspace || !submit || !mineTab || !likedTab) return;
 
     if (!user) {
@@ -539,8 +543,16 @@
       return;
     }
 
-    workspace.hidden = false;
-    workspace.style.display = 'block';
+    if (toggle) {
+      toggle.title = personalWorkspaceCollapsed ? '展开个人工作区' : '收起个人工作区';
+      toggle.setAttribute('aria-label', toggle.title);
+      toggle.setAttribute('aria-expanded', String(!personalWorkspaceCollapsed));
+      toggle.textContent = personalWorkspaceCollapsed ? '⌄' : '⌃';
+      toggle.onclick = () => { void togglePersonalWorkspace(); };
+    }
+    workspace.hidden = personalWorkspaceCollapsed;
+    workspace.style.display = personalWorkspaceCollapsed ? 'none' : 'block';
+    if (personalWorkspaceCollapsed) return;
     const availability = submitAvailability();
     submit.disabled = !availability.enabled;
     submit.title = availability.message;
@@ -564,6 +576,15 @@
     };
     mineTab.onkeydown = switchByKey;
     likedTab.onkeydown = switchByKey;
+  }
+
+  async function togglePersonalWorkspace() {
+    if (!user) return;
+    personalWorkspaceCollapsed = !personalWorkspaceCollapsed;
+    renderPersonalWorkspaceControls();
+    if (!personalWorkspaceCollapsed) {
+      await activatePersonalTab(activePersonalTab, { scroll: false });
+    }
   }
 
   async function activatePersonalTab(tab, options = {}) {
@@ -599,6 +620,7 @@
           '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="互动通知" aria-label="互动通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:17px;cursor:pointer;color:' + C.fg + '">🔔' +
             (petNotifications && petNotifications.unreadCount() ? '<span style="position:absolute;right:-5px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:' + C.danger + ';color:#fff;font-size:10px;line-height:17px;font-weight:700">' + Math.min(99, petNotifications.unreadCount()) + '</span>' : '') +
           '</button>' +
+          '<button id="pet-workspace-toggle-nav" class="pet-nav-secondary-action" title="收起个人工作区" aria-label="收起个人工作区" aria-controls="pet-personal-workspace" aria-expanded="true" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:18px;cursor:pointer;color:' + C.fg + '">⌃</button>' +
           adminBtn +
           '<button id="pet-logout-nav" class="pet-nav-secondary-action pet-nav-logout" title="退出登录" aria-label="退出登录" style="padding:8px 12px;background:none;border:none;border-radius:8px;font-size:16px;cursor:pointer;color:' + C.muted + '">↪</button>' +
         '</div>';
