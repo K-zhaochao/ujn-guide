@@ -1030,7 +1030,7 @@
 
   // ================== 编辑投稿模态框 ==================
 
-  async function openEditModal(id) {
+  async function openEditModal(id, options = {}) {
     if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，编辑功能暂时关闭', true); return; }
     if (!siteConfig.allowEdit) { showToast('⚠️ 当前已关闭投稿编辑功能，请联系站长', true); return; }
     // 详情按 ID 懒加载，避免再次下载整份投稿列表（旧实现最多只取 200 条）。
@@ -1042,6 +1042,35 @@
       sub = r.ok && r.data ? (r.data.submissions || r.data.items || []).find(s => s.id === id) : null;
     }
     if (!sub) { showToast((r.data && r.data.message) || '未找到投稿', true); return; }
+
+    let rejectedRevision = null;
+    const revisionId = String(options.revisionId || '').trim();
+    if (revisionId) {
+      const revisionResponse = await api('/api/my/submissions/' + encodeURIComponent(id) + '/revisions');
+      const revisions = revisionResponse.ok && revisionResponse.data && Array.isArray(revisionResponse.data.revisions)
+        ? revisionResponse.data.revisions
+        : [];
+      rejectedRevision = revisions.find(revision => revision && revision.id === revisionId && revision.status === 'rejected') || null;
+      if (!rejectedRevision || !rejectedRevision.candidate) {
+        showToast('未找到可重新编辑的被拒修订，请从当前公开版本重新修改', true);
+        return;
+      }
+      const candidate = rejectedRevision.candidate;
+      const candidateFields = {};
+      (candidate.fieldValues || []).forEach(field => {
+        if (field && field.key) candidateFields[field.key] = field.value;
+      });
+      sub = Object.assign({}, sub, {
+        name: candidate.name || '',
+        category: candidate.category || sub.category,
+        location: candidate.location || '',
+        appearance: candidate.appearance || '',
+        personality: candidate.personality || '',
+        description: candidate.description || '',
+        dynamicFields: Object.assign({}, sub.dynamicFields || {}, candidateFields),
+        images: Array.isArray(candidate.images) && candidate.images.length ? candidate.images : sub.images,
+      });
+    }
 
     const legacyDefinitions = [
       { key: 'name', label: '名称', dataType: 'text', maxLength: 20, placeholder: '例：小白（也可留空）' },
@@ -1066,24 +1095,27 @@
     const readOnlyCount = definitions.filter(field => field.readOnly || field.archivedNow).length;
     const isApproved = sub.status === 'approved';
     const isRejected = sub.status === 'rejected';
-    const editGuide = isApproved
+    const editGuide = rejectedRevision
+      ? '已载入上次被拒绝的候选修改。请根据审核意见调整后重新提交；审核通过前图鉴继续显示当前公开版本。'
+      : (isApproved
       ? '提交后会生成待审核修改；审核通过前，图鉴继续显示当前公开版本。'
       : (isRejected
         ? '保存只会更新当前被拒绝稿；确认内容后，请在“我的投稿”中重新提交审核。'
-        : '保存会更新当前待审核投稿，审核结果以管理员最终审核为准。');
-    const saveLabel = isApproved ? '提交修改供审核' : '保存修改';
+        : '保存会更新当前待审核投稿，审核结果以管理员最终审核为准。'));
+    const saveLabel = rejectedRevision ? '重新提交修改审核' : (isApproved ? '提交修改供审核' : '保存修改');
     // P1-05：既有图回显（详情接口返回 [{url,key}]；兼容旧 string 数组）
     const editImages = Array.isArray(sub.images) && sub.images.length
       ? sub.images.map(img => typeof img === 'string' ? { url: img, key: '' } : { url: img.url || '', key: img.key || '' })
       : [];
 
     const modal = $('#pet-edit-modal');
-    openPetModal(modal, { label: '编辑投稿' });
+    openPetModal(modal, { label: rejectedRevision ? '按审核意见重新修改' : '编辑投稿' });
     modal.innerHTML =
       '<div class="pet-scroll" style="background:' + C.bg + ';border-radius:16px;max-width:560px;width:100%;padding:24px;position:relative;max-height:90vh;overflow-y:auto">' +
       '<button id="pet-edit-close" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:24px;cursor:pointer;color:' + C.muted + '">✕</button>' +
-      '<h2 style="margin:0 0 4px;font-size:19px;color:' + C.fgDark + '">✏️ 编辑投稿</h2>' +
+      '<h2 style="margin:0 0 4px;font-size:19px;color:' + C.fgDark + '">' + (rejectedRevision ? '⚠️ 按审核意见重新修改' : '✏️ 编辑投稿') + '</h2>' +
       '<div style="font-size:13px;color:' + C.muted + ';margin-bottom:8px">' + (sub.name ? esc(sub.name) : '未命名宠物') + ' · ' + esc(typeName || '未分类') + (schemaVersion ? ' · schema v' + esc(schemaVersion) : '') + '</div>' +
+      (rejectedRevision ? '<div role="alert" style="margin:0 0 10px;padding:9px 10px;background:' + C.dangerBg + ';color:' + C.danger + ';border:1px solid ' + C.danger + ';border-radius:8px;font-size:12px;line-height:1.55"><strong>上次修改未通过</strong><br>审核意见：' + esc(rejectedRevision.reviewReason || '管理员未填写具体说明') + '</div>' : '') +
       '<div style="font-size:12px;color:' + C.muted + ';margin-bottom:16px">按该投稿保存时的字段版本编辑；' + editGuide + (readOnlyCount ? '其中 ' + readOnlyCount + ' 个字段因归档或权限调整为只读。' : '') + '</div>' +
       // P1-05：图片区（删除 ✕ / 排序 ⇅ / 替换重选 / 追加新图）
       '<div style="margin-bottom:16px">' +

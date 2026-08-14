@@ -38,6 +38,8 @@ function makeMine(overrides) {
       mineRowHtml: s => '<div class="pet-mine-row" data-id="' + esc(s.id) + '"><button class="pet-edit-btn" data-id="' + esc(s.id) + '">编辑</button>' +
         '<button class="pet-history-btn" data-id="' + esc(s.id) + '">历史</button>' +
         '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '">修订</button>' +
+        '<button class="pet-revision-review-btn" data-id="' + esc(s.id) + '">审核意见</button>' +
+        '<button class="pet-rejected-revision-edit-btn" data-id="' + esc(s.id) + '" data-revision="rev_rejected">按意见重新修改</button>' +
         '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="2">重新提交</button>' +
         '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="2">删除</button></div>',
       mineHistoryHtml: () => '<div>历史</div>',
@@ -64,7 +66,7 @@ function makeMine(overrides) {
     confirmAction: async options => { calls.confirm.push(options); return true; },
     onLoginRequired: () => calls.toast.push({ msg: 'openLoginPop', isError: true }),
     onSubmit: () => calls.toast.push({ msg: 'submit', isError: false }),
-    onEdit: id => calls.toast.push({ msg: 'edit:' + id, isError: false }),
+    onEdit: (id, options) => calls.toast.push({ msg: 'edit:' + id, options, isError: false }),
     onListChanged: () => calls.onListChanged++,
     petCache,
     fallbackCopy: (text, btn) => calls.toast.push({ msg: 'copy:' + text, isError: false }),
@@ -216,6 +218,28 @@ describe('宠物「我的投稿」交互控制器', () => {
     document.querySelector('.pet-revisions-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(document.querySelector('#pet-detail-modal').textContent).toContain('修订');
+  });
+
+  it('被拒修订：查看审核意见并以该候选版本重新编辑', async () => {
+    const { controller, calls } = makeMine({
+      api: async (path) => {
+        calls.api.push(path);
+        if (path.startsWith('/api/my/submissions?')) {
+          return { ok: true, data: { items: [{ id: 's1', name: '小白', status: 'approved' }], total: 1, totalPages: 1, statusCounts: {} } };
+        }
+        if (path.includes('/revisions')) return { ok: true, data: { revisions: [] } };
+        return { ok: true, data: {} };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    document.querySelector('.pet-revision-review-btn').onclick();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(calls.api.some(path => path === '/api/my/submissions/s1/revisions')).toBe(true);
+    document.querySelector('.pet-rejected-revision-edit-btn').onclick();
+    expect(calls.toast).toContainEqual(expect.objectContaining({
+      msg: 'edit:s1', options: { revisionId: 'rev_rejected' },
+    }));
   });
 
   it('删除投稿：确认后调用删除接口并刷新公开列表', async () => {

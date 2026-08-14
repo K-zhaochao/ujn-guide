@@ -238,6 +238,17 @@ describe('宠物前端渲染层', () => {
     });
     expect(revisionHistory).toContain('查看修改记录');
 
+    const rejectedRevision = v.mineRowHtml({
+      id: 'pet_13', name: '小黑', status: 'approved', category: '猫猫',
+      latestRevision: { id: 'rev_rejected', status: 'rejected', reviewReason: '请补充清晰的发现地点' }, availableActions: ['edit'],
+    });
+    expect(rejectedRevision).toContain('修改审核未通过');
+    expect(rejectedRevision).toContain('请补充清晰的发现地点');
+    expect(rejectedRevision).toContain('class="pet-revision-review-btn"');
+    expect(rejectedRevision).toContain('class="pet-rejected-revision-edit-btn"');
+    expect(rejectedRevision).toContain('data-revision="rev_rejected"');
+    expect(rejectedRevision).toContain('按意见重新修改');
+
     const deleted = v.mineRowHtml({
       id: 'pet_11', status: 'deleted', createdAt: '2026-08-01T00:00:00Z',
       availableActions: ['restore'],

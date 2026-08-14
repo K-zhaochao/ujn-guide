@@ -224,6 +224,9 @@
       }
 
       $all('.pet-edit-btn', sec).forEach(btn => { btn.onclick = () => onEdit(btn.dataset.id); });
+      $all('.pet-rejected-revision-edit-btn', sec).forEach(btn => {
+        btn.onclick = () => onEdit(btn.dataset.id, { revisionId: btn.dataset.revision });
+      });
       $all('.pet-mine-shortid', sec).forEach(btn => {
         btn.onclick = (e) => {
           e.stopPropagation();
@@ -234,7 +237,7 @@
         };
       });
       $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
-      $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
+      $all('.pet-revisions-btn, .pet-revision-review-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
       $all('.pet-resubmit-btn', sec).forEach(btn => {
         btn.onclick = async () => {
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
