@@ -232,10 +232,12 @@ describe('管理后台渲染层（admin-ui-views）', () => {
         environment: { mainSiteUrl: 'https://pets.example.com', oauthConfigured: true, lskyConfigured: false, maxImagesPerSubmission: 3 },
         contentModel: { publishedVersion: 5, hasUnpublishedChanges: true, draftRevision: 6 },
       });
-      expect(html).toContain('主站：https://pets.example.com');
-      expect(html).toContain('OAuth：已配置');
+      expect(html).toContain('主站 / 后台');
+      expect(html).toContain('https://pets.example.com');
+      expect(html).toContain('OAuth 已配置');
       expect(html).toContain('图床：未配置');
-      expect(html).toContain('已发布版本：v5');
+      expect(html).toContain('已发布 Schema');
+      expect(html).toContain('v5');
       expect(html).toContain('有待发布草稿（修订 6）');
     });
 
