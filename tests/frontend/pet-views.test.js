@@ -218,7 +218,7 @@ describe('宠物前端渲染层', () => {
       availableActions: ['view', 'edit', 'delete'],
     });
     expect(row).toContain('✅ 已通过');
-    expect(row).toContain('class="pet-view-btn"');
+    expect(row).not.toContain('pet-view-btn');
     expect(row).toContain('class="pet-edit-btn"');
     expect(row).toContain('class="pet-del-btn"');
     expect(row).not.toContain('pet-restore-btn');
@@ -242,27 +242,6 @@ describe('宠物前端渲染层', () => {
     const single = v.minePaginationNumbersHtml(1, 1);
     expect(single).toContain('data-page="1"');
     expect(single).not.toContain('…');
-  });
-
-  it('我的投稿详情：字段行、图片、拒绝原因', () => {
-    const v = makeViews();
-    const html = v.mineDetailHtml({
-      id: 'pet_12', name: '小黑', status: 'rejected', rejectReason: '照片模糊',
-      category: '猫猫', type: { name: '猫猫' },
-      location: '操场',
-      dynamicFields: { location: '操场' },
-      fieldDefinitions: [{ key: 'location', label: '常出没地点', dataType: 'location' }],
-      images: ['https://a.com/x.jpg', 'https://a.com/x.jpg'],
-      displayImages: ['https://a.com/x.jpg'],
-      createdAt: '2026-08-01T00:00:00Z',
-    });
-    expect(html).toContain('👁️ 投稿详情');
-    expect(html).toContain('拒绝原因');
-    expect(html).toContain('照片模糊');
-    expect(html).toContain('操场');
-    expect((html.match(/操场/g) || []).length).toBe(1);
-    expect((html.match(/https:\/\/a\.com\/x\.jpg/g) || []).length).toBe(1);
-    expect(html).toContain('https://a.com/x.jpg');
   });
 
   it('我的投稿历史与修订：时间线、字段差异、撤回按钮', () => {

@@ -322,7 +322,7 @@
       const meta = mineStatusMeta(s.status);
       const thumb = s.thumbnail || (s.images && s.images[0]) || '';
       const actions = Array.isArray(s.availableActions) ? s.availableActions : [];
-      // 完整拒绝原因：若超过单行则列表内截断，但 title 与详情弹窗给出全文。
+      // 完整拒绝原因：若超过单行则列表内截断，悬停标题仍可查看全文。
       const rejectFull = s.status === 'rejected' && s.rejectReason ? s.rejectReason : '';
       return '<div class="pet-mine-row" data-id="' + esc(s.id) + '" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid ' + C.border + ';border-radius:10px;background:' + C.soft + ';min-width:0;flex-wrap:wrap">' +
         (thumb ? '<img src="' + esc(resolveImage(thumb)) + '" alt="" loading="lazy" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex:none">' : '<span style="width:46px;height:46px;border-radius:8px;background:' + C.imgBg + ';display:flex;align-items:center;justify-content:center;font-size:20px;flex:none">' + esc(mineTypeIcon(s)) + '</span>') +
@@ -335,7 +335,6 @@
         ((s.summaryFields && s.summaryFields.length) ? '<div style="font-size:12px;color:' + C.fg + ';margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + s.summaryFields.map(f => esc(f.label) + ': ' + (typeof f.value === 'string' ? esc(f.value) : JSON.stringify(f.value))).join(' · ') + '</div>' : '') +
         '</div>' +
         '<div class="pet-mine-row-actions" style="display:flex;gap:5px;flex:none;margin-left:auto;flex-wrap:wrap">' +
-        (actions.includes('view') ? '<button class="pet-view-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">👁️ 查看</button>' : '') +
         (actions.includes('history') ? '<button class="pet-history-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.fg + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">🕘 历史</button>' : '') +
         ((s.pendingRevisionCount || s.latestRevision) ? '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '" style="padding:6px 9px;background:' + C.soft + ';color:' + C.primary + ';border:1px solid ' + C.border + ';border-radius:7px;font-size:12px;cursor:pointer">📝 修订</button>' : '') +
         (actions.includes('edit') ? '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="' + (s.rowVersion || 1) + '" style="padding:6px 9px;background:' + C.primary + ';color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer">✏️ 编辑</button>' : '') +
@@ -465,7 +464,6 @@
       mineTypeIcon,
       minePaginationNumbersHtml,
       mineRowHtml,
-      mineDetailHtml,
       mineHistoryHtml,
       revisionValue,
       mineRevisionsHtml,

@@ -232,7 +232,6 @@
           } else fallbackCopy(fullId, btn);
         };
       });
-      $all('.pet-view-btn', sec).forEach(btn => { btn.onclick = () => openMineDetail(btn.dataset.id); });
       $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
       $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
       $all('.pet-resubmit-btn', sec).forEach(btn => {
@@ -262,22 +261,6 @@
           }
         };
       });
-    }
-
-    // ================== 我的投稿：纯查看详情（P2-13） ==================
-    // 不依赖编辑权限：维护模式 / 关闭编辑 / 已删除状态下也能查看完整内容。
-
-    async function openMineDetail(id) {
-      let r = await api('/api/my/submissions/' + encodeURIComponent(id));
-      let sub = r.ok && r.data ? (r.data.submission || r.data.item) : null;
-      if (!sub) { showToast((r.data && r.data.message) || '未找到投稿', true); return; }
-
-      const modal = $('#pet-detail-modal');
-      openPetModal(modal, { label: '投稿详情' });
-      // 详情 HTML 由渲染层（pet-views.js）生成
-      modal.innerHTML = views().mineDetailHtml(sub);
-      $('#pet-detail-close').onclick = () => { closePetModal(modal); };
-      modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
     }
 
     // ================== 我的投稿：历史弹窗（P2-13） ==================
@@ -376,7 +359,6 @@
       renderMineShell,
       loadMineTypeOptions,
       renderMineRows,
-      openMineDetail,
       openMineHistory,
       openMineRevisions,
       loadMineSubmissions,

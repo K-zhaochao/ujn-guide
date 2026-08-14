@@ -36,12 +36,10 @@ function makeMine(overrides) {
       mineTypeLabel: s => (s && s.type && s.type.name) || s.category || '',
       mineTypeIcon: () => '🐾',
       mineRowHtml: s => '<div class="pet-mine-row" data-id="' + esc(s.id) + '"><button class="pet-edit-btn" data-id="' + esc(s.id) + '">编辑</button>' +
-        '<button class="pet-view-btn" data-id="' + esc(s.id) + '">详情</button>' +
         '<button class="pet-history-btn" data-id="' + esc(s.id) + '">历史</button>' +
         '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '">修订</button>' +
         '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="2">重新提交</button>' +
         '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="2">删除</button></div>',
-      mineDetailHtml: s => '<button id="pet-detail-close">✕</button><div>详情 ' + esc(s.name || '') + '</div>',
       mineHistoryHtml: () => '<div>历史</div>',
       mineRevisionsHtml: (revisions, id) => revisions.map(r =>
         '<div><button class="pet-revision-withdraw" data-submission="' + esc(id) + '" data-id="' + esc(r.id) + '" data-row="1">撤回</button></div>').join('') || '<p>无修订</p>',
@@ -196,7 +194,7 @@ describe('宠物「我的投稿」交互控制器', () => {
     expect(calls.api[calls.api.length - 1]).toContain('page=2');
   });
 
-  it('行内操作委托回调：编辑/详情/历史/修订', async () => {
+  it('行内操作委托回调：编辑、历史与修订', async () => {
     const { controller, calls } = makeMine({
       api: async (path) => {
         if (path.startsWith('/api/my/submissions?')) {
@@ -204,16 +202,13 @@ describe('宠物「我的投稿」交互控制器', () => {
         }
         if (path.includes('/history')) return { ok: true, data: { history: [] } };
         if (path.includes('/revisions')) return { ok: true, data: { revisions: [] } };
-        return { ok: true, data: { submission: { id: 's1', name: '小白' } } };
+        return { ok: true, data: {} };
       },
     });
     mountSection();
     await controller.openMineSection();
     document.querySelector('.pet-edit-btn').onclick();
     expect(calls.toast.some(t => t.msg === 'edit:s1')).toBe(true);
-    document.querySelector('.pet-view-btn').onclick();
-    await new Promise(r => setTimeout(r, 0));
-    expect(document.getElementById('pet-detail-modal')).toBeTruthy();
     document.querySelector('.pet-history-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(document.querySelector('#pet-detail-modal').textContent).toContain('历史');
