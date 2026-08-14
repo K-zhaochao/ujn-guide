@@ -129,6 +129,19 @@ describe('宠物前端渲染层', () => {
     expect(html).toContain('data-page="5"');
   });
 
+  it('我的收藏：复用公开卡片，使用独立分页类名与空状态', () => {
+    const v = makeViews();
+    const html = v.likedPetsHtml({
+      pets: [{ id: 'liked_1', name: '收藏宠物', category: '猫猫', type: { name: '猫猫' } }],
+      currentPage: 2, totalPages: 3, totalCount: 25,
+    });
+    expect(html).toContain('data-id="liked_1"');
+    expect(html).toContain('pet-liked-page-btn');
+    expect(html).not.toContain('class="pet-page-btn"');
+    expect(html).toContain('共 25 只 · 第 2/3 页');
+    expect(v.likedPetsHtml({ pets: [], totalCount: 0 })).toContain('还没有收藏');
+  });
+
   it('详情弹窗：字段行、投稿人、时间、点赞按钮与灯箱缩略图', () => {
     const v = makeViews({
       publicFieldEntries: p => [

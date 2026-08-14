@@ -116,6 +116,7 @@
   const petModal = window.UJNGuidePetModal;
   const petFormat = window.UJNGuidePetFormat;
   const petViews = window.UJNGuidePetViews;
+  const petLikesModule = window.UJNGuidePetLikes;
   const petMineModule = window.UJNGuidePetMine;
   const petSubmitModule = window.UJNGuidePetSubmit;
   const safeHttpUrl = petClient && petClient.safeHttpUrl;
@@ -255,6 +256,7 @@
       !petModal || typeof petModal.createModalController !== 'function' ||
       !petFormat || typeof petFormat.esc !== 'function' ||
       !petViews || typeof petViews.createPetViews !== 'function' ||
+      !petLikesModule || typeof petLikesModule.createPetLikes !== 'function' ||
       !petMineModule || typeof petMineModule.createPetMine !== 'function') {
     throw new Error('缺少宠物前端基础模块，无法初始化宠物页面');
   }
@@ -355,6 +357,7 @@
     closePop('pet-login-pop');
     closePop('pet-rename-pop');
     $('#pet-mine-section').style.display = 'none';
+    petLikes.closeLikedSection();
     renderNav();
     updateAuthUI();
     // P2-09：退出后 liked / likeCount 随登录态变化，失效公开缓存并刷新
@@ -497,6 +500,7 @@
             ? '<button id="pet-submit-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">🆕 投稿</button>'
             : '<button id="pet-submit-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:' + C.soft + ';color:' + C.muted + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;font-weight:600;cursor:not-allowed" title="' + (siteConfig.maintenance ? '宠物收集录正在维护中' : (!contentSchemaReady ? '投稿配置暂未加载' : '投稿功能已关闭')) + '">🆕 投稿</button>') +
           '<button id="pet-mine-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">📋 我的投稿</button>' +
+          '<button id="pet-liked-nav" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.fg + '">❤️ 我的收藏</button>' +
           adminBtn +
           '<button id="pet-logout-nav" style="padding:8px 12px;background:none;border:none;border-radius:8px;font-size:13px;cursor:pointer;color:' + C.muted + '">退出</button>' +
         '</div>';
@@ -517,6 +521,12 @@
       } else {
         sec.style.display = 'none';
       }
+    };
+    const liked = $('#pet-liked-nav');
+    if (liked) liked.onclick = () => {
+      const sec = $('#pet-liked-section');
+      if (sec.style.display === 'none') petLikes.openLikedSection();
+      else petLikes.closeLikedSection();
     };
     const ab = $('#pet-admin-nav');
     if (ab) ab.onclick = () => window.open('/admin', '_blank', 'noopener');
@@ -692,7 +702,7 @@
     const r = await api('/api/pets/' + petId + '/like', { method: 'POST' });
     if (!r.ok || !r.data.success) {
       showToast(r.data.message || '点赞失败', true);
-      return;
+      return null;
     }
     const liked = r.data.liked;
     const count = r.data.likeCount;
@@ -715,7 +725,9 @@
     // P2-09：点赞改变 liked / likeCount，任何排序下都应失效缓存，避免切页/搜索时回旧值
     petCache.clear();
     if (sortMode === 'likes') loadPets();
+    if (!liked) petLikes.removeLikedPet(petId);
     showToast(r.data.message || (liked ? '已点赞' : '已取消点赞'));
+    return r.data;
   }
 
   // ================== 详情弹窗 ==================
@@ -936,6 +948,17 @@
   // ================== 我的投稿（页面底部） ==================
   // 交互逻辑已拆至 pet-mine.js（createPetMine 工厂，状态与加载/筛选/分页/行操作全部内聚）。
   // pets.js 只保留实例化与委托调用；渲染 HTML 由 pet-views.js 提供。
+  const petLikes = petLikesModule.createPetLikes({
+    $, $all, C, esc,
+    views,
+    api,
+    showToast,
+    onLoginRequired: openLoginPop,
+    onOpenDetail: openDetail,
+    getUser: () => user,
+    PAGE_SIZE,
+  });
+
   const petMine = petMineModule.createPetMine({
     $, $all, document, C, esc,
     views,

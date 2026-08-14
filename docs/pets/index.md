@@ -8,7 +8,7 @@ hide:
 
 # 🐾 宠物收集录
 
-<!-- 页面专属导航栏：登录 / 投稿 / 我的投稿 / 改名（由 pets.js 渲染） -->
+<!-- 页面专属导航栏：登录 / 投稿 / 我的投稿 / 我的收藏 / 改名（由 pets.js 渲染） -->
 <div id="pet-nav"></div>
 
 <!-- 登录小卡片（点击导航栏登录按钮弹出，GitHub / Gitee） -->
@@ -83,12 +83,13 @@ hide:
     #pet-mine-status-counts button,
     #pet-mine-filters button,
     #pet-mine-pager button { min-height: 44px; }
+    #pet-liked-list button { min-height: 44px; }
     #pet-mine-filters input[type=date] { min-height: 44px; }
   }
 </style>
 
 !!! tip "📸 关于本栏目"
-    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现，也可以为喜欢的宠物点赞！
+    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看仍公开的记录。
 
 <!-- 工具栏（搜索 / 分类 / 排序）— 静态容器，搜索输入时不会重建，避免输入框失焦 -->
 <div id="pet-toolbar"></div>
@@ -98,7 +99,10 @@ hide:
   <p style="text-align:center;color:#999;padding:40px">加载中...</p>
 </div>
 
-<!-- 我的投稿区（页面底部，登录后点击"我的投稿"展开） -->
+<!-- 我的收藏区（页面底部，登录后点击“我的收藏”展开） -->
+<div id="pet-liked-section" style="display:none"></div>
+
+<!-- 我的投稿区（页面底部，登录后点击“我的投稿”展开） -->
 <div id="pet-mine-section" style="display:none"></div>
 
 <!-- 弹窗容器 -->

@@ -130,6 +130,21 @@
       return result + pager;
     }
 
+    function likedPetsHtml({ pets = [], currentPage = 1, totalPages = 1, totalCount = 0 } = {}) {
+      const list = pets.length
+        ? '<div class="pet-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">' + pets.map(pet => petCardHtml(pet)).join('') + '</div>'
+        : '<p class="pet-liked-empty" style="text-align:center;color:' + C.muted + ';padding:32px 0">还没有收藏，去图鉴里点亮喜欢的宠物吧。</p>';
+      const pager = totalPages > 1
+        ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin:24px 0 4px;flex-wrap:wrap">' +
+            '<button class="pet-liked-page-btn" data-page="' + (currentPage - 1) + '" ' + (currentPage <= 1 ? 'disabled style="opacity:.4;cursor:not-allowed"' : '') + ' style="padding:7px 14px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.bg + ';font-size:14px;cursor:pointer;color:' + C.fg + '">‹ 上一页</button>' +
+            paginationNumbersHtml(totalPages, currentPage).replaceAll('pet-page-btn', 'pet-liked-page-btn') +
+            '<button class="pet-liked-page-btn" data-page="' + (currentPage + 1) + '" ' + (currentPage >= totalPages ? 'disabled style="opacity:.4;cursor:not-allowed"' : '') + ' style="padding:7px 14px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.bg + ';font-size:14px;cursor:pointer;color:' + C.fg + '">下一页 ›</button>' +
+            '<span style="font-size:13px;color:' + C.muted + ';margin-left:8px">共 ' + totalCount + ' 只 · 第 ' + currentPage + '/' + totalPages + ' 页</span>' +
+          '</div>'
+        : (totalCount ? '<div style="text-align:center;font-size:13px;color:' + C.muted + ';margin:24px 0 4px">共 ' + totalCount + ' 只宠物</div>' : '');
+      return list + pager;
+    }
+
     // ================== 详情弹窗主体 ==================
 
     function detailModalHtml(p) {
@@ -429,6 +444,7 @@
       paginationNumbersHtml,
       petCardHtml,
       galleryHtml,
+      likedPetsHtml,
       detailModalHtml,
       schemaFieldsForType,
       dynamicFieldHtml,

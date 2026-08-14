@@ -1,0 +1,119 @@
+/*
+ * 宠物前端“我的收藏”交互控制器。
+ * 已登录用户可按点赞时间查看仍公开的收藏；详情中取消点赞会即时移除卡片。
+ */
+(function (root, factory) {
+  const likes = factory();
+  if (typeof module === 'object' && module.exports) module.exports = likes;
+  if (root) root.UJNGuidePetLikes = likes;
+}(typeof window !== 'undefined' ? window : globalThis, function () {
+  'use strict';
+
+  function createPetLikes(deps) {
+    const { $, $all, C, esc, views, api, showToast, onLoginRequired, onOpenDetail, getUser, PAGE_SIZE = 24 } = deps;
+    let pets = [];
+    let page = 1;
+    let total = 0;
+    let totalPages = 1;
+    let requestId = 0;
+
+    function section() { return $('#pet-liked-section'); }
+
+    function renderShell() {
+      const sec = section();
+      if (!sec || sec.dataset.likedShell === '1') return;
+      sec.dataset.likedShell = '1';
+      sec.innerHTML =
+        '<div style="border-top:1px solid ' + C.border + ';margin:28px 0 8px;padding-top:18px">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">' +
+            '<span style="font-size:17px;font-weight:700;color:' + C.fgDark + '">❤️ 我的收藏</span>' +
+            '<span id="pet-liked-count" style="font-size:12px;color:' + C.muted + '"></span>' +
+            '<button id="pet-liked-close" title="收起我的收藏" aria-label="收起我的收藏" style="margin-left:auto;width:36px;height:36px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:18px;cursor:pointer;color:' + C.fg + '">×</button>' +
+          '</div>' +
+          '<div id="pet-liked-list"></div>' +
+        '</div>';
+      $('#pet-liked-close').onclick = closeLikedSection;
+    }
+
+    function renderLikedPets() {
+      const list = $('#pet-liked-list');
+      const count = $('#pet-liked-count');
+      if (!list) return;
+      if (count) count.textContent = total ? '共 ' + total + ' 只' : '';
+      list.innerHTML = views().likedPetsHtml({ pets, currentPage: page, totalPages, totalCount: total });
+      $all('.pet-liked-page-btn', list).forEach(button => {
+        button.onclick = () => {
+          if (button.disabled) return;
+          const nextPage = Number(button.dataset.page);
+          if (!Number.isInteger(nextPage) || nextPage < 1 || nextPage > totalPages || nextPage === page) return;
+          page = nextPage;
+          loadLikedPets();
+        };
+      });
+      $all('.pet-card', list).forEach(card => {
+        card.onclick = () => onOpenDetail(card.dataset.id);
+        card.onkeydown = event => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpenDetail(card.dataset.id); }
+        };
+      });
+    }
+
+    async function loadLikedPets() {
+      if (!getUser()) return;
+      const sec = section();
+      if (!sec) return;
+      renderShell();
+      const list = $('#pet-liked-list');
+      const currentRequestId = ++requestId;
+      if (list && !list.innerHTML) list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:24px">正在加载收藏…</p>';
+      const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
+      const result = await api('/api/my/liked-pets?' + query.toString());
+      if (currentRequestId !== requestId || !list) return;
+      if (!result.ok) {
+        list.innerHTML = '<p style="color:' + C.danger + ';text-align:center;padding:24px">⚠️ ' + esc(result.data.message || '加载失败') + '</p>';
+        return;
+      }
+      const data = result.data || {};
+      pets = Array.isArray(data.pets) ? data.pets : [];
+      total = Math.max(0, Number(data.total) || 0);
+      totalPages = Math.max(1, Number(data.totalPages) || Math.ceil(total / PAGE_SIZE) || 1);
+      if (page > totalPages && total > 0) {
+        page = totalPages;
+        return loadLikedPets();
+      }
+      page = Math.max(1, Number(data.page) || page);
+      renderLikedPets();
+    }
+
+    async function openLikedSection() {
+      if (!getUser()) { showToast('请先登录后查看收藏', true); onLoginRequired(); return; }
+      const sec = section();
+      if (!sec) return;
+      sec.style.display = 'block';
+      renderShell();
+      await loadLikedPets();
+      if (typeof sec.scrollIntoView === 'function') sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeLikedSection() {
+      const sec = section();
+      if (sec) sec.style.display = 'none';
+    }
+
+    function removeLikedPet(id) {
+      const sec = section();
+      if (!sec || sec.style.display === 'none' || !pets.some(pet => pet.id === id)) return;
+      pets = pets.filter(pet => pet.id !== id);
+      total = Math.max(0, total - 1);
+      totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (page > totalPages) page = totalPages;
+      renderLikedPets();
+      // 补齐分页留下的位置，并确认下一页边界。
+      loadLikedPets();
+    }
+
+    return { closeLikedSection, loadLikedPets, openLikedSection, removeLikedPet, renderLikedPets, renderShell };
+  }
+
+  return { createPetLikes };
+}));
