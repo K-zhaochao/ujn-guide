@@ -207,10 +207,19 @@ describe('宠物前端渲染层', () => {
 
   it('我的投稿：状态徽章、操作按钮按 availableActions 渲染、删除禁用语义', () => {
     const v = makeViews();
-    expect(v.mineStatusMeta('approved')).toMatchObject({ label: '✅ 已通过' });
-    expect(v.mineStatusMeta('rejected')).toMatchObject({ label: '❌ 已拒绝' });
-    expect(v.mineStatusMeta('deleted')).toMatchObject({ label: '🗑️ 已删除' });
-    expect(v.mineStatusMeta('pending')).toMatchObject({ label: '⏳ 待审核' });
+    // 徽章文字与底色：四种状态都应有可见的浅色底（浅色/深色主题由 CSS 变量适配）
+    const approved = v.mineStatusMeta('approved');
+    expect(approved).toMatchObject({ label: '✅ 已通过', color: '#22c55e' });
+    expect(approved.bg).toBe('var(--pet-success-bg,#dcfce7)');
+    const rejected = v.mineStatusMeta('rejected');
+    expect(rejected).toMatchObject({ label: '❌ 已拒绝', color: '#ef4444', bg: '#fee2e2' });
+    const deletedMeta = v.mineStatusMeta('deleted');
+    expect(deletedMeta).toMatchObject({ label: '🗑️ 已删除' });
+    expect(deletedMeta.bg).toBe('var(--pet-muted-bg,#f3f4f6)');
+    const pending = v.mineStatusMeta('pending');
+    expect(pending).toMatchObject({ label: '⏳ 待审核' });
+    expect(pending.bg).toBe('var(--pet-pending-bg,#fef3c7)');
+    expect(pending.color).toBe('var(--pet-pending-fg,#92400e)');
 
     const row = v.mineRowHtml({
       id: 'pet_10', name: '小黄', status: 'approved', category: '猫猫',
