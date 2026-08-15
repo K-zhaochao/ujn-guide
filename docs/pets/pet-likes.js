@@ -42,7 +42,13 @@
           const nextPage = Number(button.dataset.page);
           if (!Number.isInteger(nextPage) || nextPage < 1 || nextPage > totalPages || nextPage === page) return;
           page = nextPage;
-          loadLikedPets();
+          void loadLikedPets().then(() => {
+            // 滚动到我的收藏列表顶部（第一个作品位置），而不是页面最顶部
+            const listEl = $('#pet-liked-list');
+            if (listEl && typeof listEl.scrollIntoView === 'function') {
+              listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
         };
       });
       $all('.pet-card', list).forEach(card => {

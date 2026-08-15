@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const mine = require('../../docs/pets/pet-mine.js');
@@ -192,7 +192,9 @@ describe('宠物「我的投稿」交互控制器', () => {
     expect(document.getElementById('pet-mine-category').value).toBe('');
   });
 
-  it('分页：上一页/下一页触发请求并带上页码', async () => {
+  it('分页：上一页/下一页触发请求并带上页码，且滚动到投稿列表顶部', async () => {
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
     const { controller, calls } = makeMine({
       api: async (path) => {
         calls.api.push(path);
@@ -204,6 +206,9 @@ describe('宠物「我的投稿」交互控制器', () => {
     // 渲染分页按钮后触发下一页
     document.querySelector('.pet-mine-page-btn[data-page="2"]').onclick();
     expect(calls.api[calls.api.length - 1]).toContain('page=2');
+    // 数据加载完成后滚动到我的投稿列表顶部（第一个作品位置）而非页面顶部
+    await new Promise(r => setTimeout(r, 0));
+    expect(scrollSpy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth', block: 'start' }));
   });
 
   it('筛选作用于全部数据而非当前页：翻页后再筛选回到第 1 页并带筛选参数', async () => {

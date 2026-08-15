@@ -202,7 +202,13 @@
             const p = Number(btn.dataset.page);
             if (p < 1 || p > mineTotalPages || p === minePage) return;
             minePage = p;
-            loadMineSubmissions();
+            void loadMineSubmissions().then(() => {
+              // 滚动到我的投稿列表顶部（第一个作品位置），而不是页面最顶部
+              const listEl = $('#pet-mine-list');
+              if (listEl && typeof listEl.scrollIntoView === 'function') {
+                listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            });
           };
         });
       }

@@ -787,8 +787,13 @@
         const page = parseInt(this.dataset.page, 10);
         if (page < 1 || page > totalPages || page === currentPage) return;
         currentPage = page;
-        loadPets();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        void loadPets().then(() => {
+          // 滚动到图鉴列表顶部（第一个作品位置），而不是页面最顶部
+          const galleryEl = $('#pet-gallery');
+          if (galleryEl && typeof galleryEl.scrollIntoView === 'function') {
+            galleryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
       });
     });
     $all('.pet-card').forEach(card => {

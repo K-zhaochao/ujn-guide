@@ -101,10 +101,14 @@ describe('宠物前端我的收藏控制器', () => {
     await controller.openLikedSection();
     expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=1');
     expect(document.getElementById('pet-liked-list').textContent).toContain('共 25 只 · 第 1/25 页');
-    // 点击“下一页” → 再次请求且 page=2
+    // 点击“下一页” → 再次请求且 page=2，且滚动到收藏列表顶部（第一个作品位置）而非页面顶部
+    const scrollSpy = vi.fn();
+    Element.prototype.scrollIntoView = scrollSpy;
     document.querySelector('.pet-liked-page-btn').onclick();
     await new Promise(r => setTimeout(r, 0));
     expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=2&pageSize=1');
     expect(document.getElementById('pet-liked-list').textContent).toContain('第 2/25 页');
+    expect(scrollSpy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth', block: 'start' }));
+    expect(scrollSpy.mock.calls[0][0].target || scrollSpy.mock.instances[0]).toBeTruthy();
   });
 });
