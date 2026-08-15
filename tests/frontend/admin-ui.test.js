@@ -7,7 +7,9 @@ import { JSDOM } from 'jsdom';
 const require = createRequire(import.meta.url);
 const stateModule = require('../../server/public/admin-ui-state.js');
 const viewsModule = require('../../server/public/admin-ui-views.js');
-const adminUiCode = readFileSync('server/public/admin-ui.js', 'utf8');
+const pickerModule = require('../../server/public/admin-picker.js');
+// 显式基于本文件定位源码，避免依赖进程 cwd（vitest --root 可能改变 cwd）
+const adminUiCode = readFileSync(require.resolve('../../server/public/admin-ui.js'), 'utf8');
 
 /** 构造 HTTP 风格响应（与脚本内 api() 的解析方式一致） */
 const jsonResponse = (data, status = 200) => ({
@@ -57,6 +59,8 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
     '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, revision: 1 }, policy: [], runtime: {} }),
     '/api/admin/settings/history?page=1&pageSize=10': () => jsonResponse({ items: [], total: 0 }),
     '/api/admin/backups?limit=5': () => jsonResponse({ exports: [] }),
+    '/api/admin/banned-users?q=&page=1&pageSize=10': () => jsonResponse({ users: [], total: 0 }),
+    '/api/admin/banned-ips?ip=&reason=&start=&end=&page=1&pageSize=10': () => jsonResponse({ bannedIPs: [], total: 0 }),
     '/api/admin/audit?action=&actor=&targetUser=&start=&end=&page=1&pageSize=50': () => jsonResponse({ total: 1, audit: [{ id: 1, action: 'submission.approve', actor_username: 'root', created_at: '2026-08-01T10:00:00Z', target_id: 'sub_1', target_username: 'tester', target_avatar: '', detail: '通过投稿' }] }),
     '/api/admin/audit-cleanup/tasks?limit=8&offset=0': () => jsonResponse({ tasks: [], total: 0 }),
     '/api/admin/audit/actions': () => jsonResponse({ actions: [{ action: 'submission.approve' }] }),
@@ -83,6 +87,7 @@ function boot({ user = ADMIN, fetchImpl, overrides = {} } = {}) {
   const { window } = dom;
   window.AdminUiState = stateModule;
   window.AdminUiViews = viewsModule;
+  window.AdminPicker = pickerModule;
   window.__ADMIN_CFG = { LOGO: '/admin/assets/favicon.svg', MAIN_SITE: 'http://localhost:3005' };
   const fetchCalls = [];
   const impl = fetchImpl || standardRoutes({ user, overrides });
@@ -436,5 +441,118 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(retry).toBeTruthy();
     expect(retry.opts.method).toBe('POST');
     expect(document.getElementById('pet-toast').textContent).toContain('任务已重新排队');
+  });
+
+  it('封禁管理：IP 封禁列表加载并渲染筛选控件与表格', async () => {
+    const { document } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/banned-ips?ip=&reason=&start=&end=&page=1&pageSize=10': () => jsonResponse({
+        total: 2,
+        bannedIPs: [
+          { ip_hash: 'a'.repeat(64), reason: '恶意投稿', created_at: '2026-08-01T10:00:00Z' },
+          { ip_hash: 'b'.repeat(64), reason: '刷屏', created_at: '2026-08-02T10:00:00Z' },
+        ],
+      }),
+    } });
+    await waitFor(document, '.nav-item[data-view="banned"]');
+    document.querySelector('.nav-item[data-view="banned"]').click();
+    // 切到「IP 封禁」tab
+    await waitFor(document, '[data-ban-tab="ips"]');
+    document.querySelector('[data-ban-tab="ips"]').click();
+    await waitFor(document, '[data-banip-input]');
+    const text = document.getElementById('view-root').textContent;
+    expect(text).toContain('恶意投稿');
+    expect(document.querySelectorAll('[data-action="unban"]').length).toBe(2);
+    // 筛选控件齐全（IP/原因/起止日期）
+    expect(document.querySelector('[data-banip-reason]')).toBeTruthy();
+    expect(document.querySelector('[data-banip-start]')).toBeTruthy();
+    expect(document.querySelector('[data-banip-end]')).toBeTruthy();
+    // 有数据时渲染宠物风分页条
+    expect(document.querySelector('[data-nav="banned"]')).toBeTruthy();
+  });
+
+  it('封禁管理：空列表展示引导文案且日期筛选无结果时提示精确匹配', async () => {
+    const { document } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="banned"]');
+    document.querySelector('.nav-item[data-view="banned"]').click();
+    await waitFor(document, '[data-ban-tab="ips"]');
+    document.querySelector('[data-ban-tab="ips"]').click();
+    await waitFor(document, '[data-banip-input]');
+    expect(document.getElementById('view-root').textContent).toContain('暂无封禁 IP');
+  });
+
+  it('封禁管理：筛选请求携带 IP/原因/时间范围（ISO 边界）', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="banned"]');
+    document.querySelector('.nav-item[data-view="banned"]').click();
+    await waitFor(document, '[data-ban-tab="ips"]');
+    document.querySelector('[data-ban-tab="ips"]').click();
+    await waitFor(document, '[data-banip-input]');
+    document.querySelector('[data-banip-input]').value = '203.0.113.10';
+    document.querySelector('[data-banip-reason]').value = '恶意';
+    document.querySelector('[data-banip-start]').value = '2026-08-01';
+    document.querySelector('[data-banip-end]').value = '2026-08-10';
+    document.querySelector('[data-action="banipfilter"]').click();
+    await settle();
+    // 取最后一次 banned-ips 请求（首次为初始加载的空参数请求）
+    const calls = fetchCalls.filter(c => c.url.includes('/api/admin/banned-ips?'));
+    const call = calls[calls.length - 1];
+    expect(call).toBeTruthy();
+    expect(call.url).toContain('ip=203.0.113.10');
+    expect(call.url).toContain('reason=%E6%81%B6%E6%84%8F');
+    expect(call.url).toContain('start=2026-08-01T00%3A00%3A00.000Z');
+    expect(call.url).toContain('end=2026-08-10T23%3A59%3A59.999Z');
+    expect(call.url).toContain('page=1');
+  });
+
+  it('内容模型：数据安全列正确渲染对象数组原因（不出现 [object Object]）', async () => {
+    const { document } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/content-model/draft': () => jsonResponse({
+        draft: {
+          draftRevision: 5,
+          types: [{
+            id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1,
+            deletionEligibility: { deletable: false, reasons: [
+              { code: 'SUBMISSION_REFERENCED', count: 3 },
+              { code: 'SCHEMA_VERSION_REFERENCED', versions: [1, 2] },
+            ] },
+          }],
+          fields: [], bindings: [],
+        },
+        diff: null, validation: null,
+      }),
+    } });
+    await waitFor(document, '.nav-item[data-view="model"]');
+    document.querySelector('.nav-item[data-view="model"]').click();
+    await waitFor(document, '.model-delete-state.protected');
+    const cell = document.querySelector('.model-delete-state.protected');
+    expect(cell.textContent).not.toContain('[object Object]');
+    expect(cell.textContent).toContain('仅可归档');
+    expect(cell.textContent).toContain('已有投稿引用（3 处）');
+    expect(cell.textContent).toContain('已发布 Schema 引用（1, 2）');
+    expect(cell.title).toContain('已有投稿引用（3 处）');
+  });
+
+  it('系统设置：创建备份弹窗口令一致后按钮可用', async () => {
+    const { window, document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '.nav-item[data-view="settings"]');
+    document.querySelector('.nav-item[data-view="settings"]').click();
+    await waitFor(document, '[data-action="backup-export-create"]');
+    document.querySelector('[data-action="backup-export-create"]').click();
+    await waitFor(document, '[data-backup-create]');
+    const pass = document.querySelector('[data-backup-pass]');
+    const confirm = document.querySelector('[data-backup-confirm]');
+    const create = document.querySelector('[data-backup-create]');
+    expect(create.disabled).toBe(true);
+    pass.value = 'correct-horse-battery';
+    confirm.value = 'correct-horse-battery';
+    pass.dispatchEvent(new window.Event('input', { bubbles: true }));
+    confirm.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(create.disabled).toBe(false);
+    // 点击创建：POST /admin/backups 携带口令
+    create.click();
+    await settle();
+    const post = fetchCalls.find(c => c.url === '/api/admin/backups' && c.opts && String(c.opts.method).toUpperCase() === 'POST');
+    expect(post).toBeTruthy();
+    expect(JSON.parse(post.opts.body).passphrase).toBe('correct-horse-battery');
   });
 });
