@@ -7,7 +7,7 @@
   if (typeof module === 'object' && module.exports) module.exports = viewModel;
   if (root) root.UJNGuidePetViewModel = viewModel;
 }(typeof window !== 'undefined' ? window : globalThis, function () {
-  const DEFAULT_MAX_IMAGES = 5;
+  const DEFAULT_MAX_IMAGES = 10;
   const LEGACY_PUBLIC_FIELDS = [
     { key: 'location', label: '常出没地点', dataType: 'location' },
     { key: 'appearance', label: '外貌特征', dataType: 'textarea' },
@@ -129,7 +129,7 @@
   function buildMineListQuery({
     query = '', status = '', category = '', start = '', end = '', sort = 'updated', page = 1, pageSize = 10,
   } = {}) {
-    const result = { sort, page, pageSize, includeDeleted: 1 };
+    const result = { sort, page, pageSize };
     if (query) result.q = query;
     if (status) result.status = status;
     if (category) {

@@ -504,6 +504,35 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(call.url).toContain('page=1');
   });
 
+  it('回收站：进入时间筛选下拉渲染、搜索携带 deletedDays、清除重置', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/submissions?status=deleted&page=1&pageSize=10&sort=latest&deletedDays=30': () => jsonResponse({
+        total: 0, submissions: [], schema: { schemaVersion: 1, types: [], fields: [] },
+      }),
+    } });
+    await waitFor(document, '.nav-item[data-view="deleted"]');
+    document.querySelector('.nav-item[data-view="deleted"]').click();
+    await waitFor(document, '[data-subsearch-deleted-days]');
+    const select = document.querySelector('[data-subsearch-deleted-days]');
+    // 三个档位齐全，默认「全部」
+    expect(select.querySelector('option[value=""]').textContent).toContain('全部');
+    expect(select.querySelector('option[value="7"]').textContent).toContain('7 日');
+    expect(select.querySelector('option[value="30"]').textContent).toContain('30 日');
+    expect(select.querySelector('option[value="90"]').textContent).toContain('90 日');
+    // 选择 30 日并搜索 → 请求携带 deletedDays=30
+    select.value = '30';
+    document.querySelector('[data-action="subsearch"]').click();
+    await waitFor(document, '.empty');
+    await settle();
+    expect(fetchCalls.some(call => call.url.includes('status=deleted') && call.url.includes('deletedDays=30'))).toBe(true);
+    // 清除 → 回到不带 deletedDays 的默认请求
+    document.querySelector('[data-action="subsearch-clear"]').click();
+    await settle();
+    const lastDeletedCall = fetchCalls.filter(call => call.url.includes('status=deleted')).pop();
+    expect(lastDeletedCall).toBeTruthy();
+    expect(lastDeletedCall.url).not.toContain('deletedDays');
+  });
+
   it('内容模型：数据安全列正确渲染对象数组原因（不出现 [object Object]）', async () => {
     const { document } = bootTracked({ user: ADMIN, overrides: {
       '/api/admin/content-model/draft': () => jsonResponse({

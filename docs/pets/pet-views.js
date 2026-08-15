@@ -21,7 +21,7 @@
       CATEGORIES = [],
       SUBMISSION_TYPES = [],
       contentSchema = { types: [], fields: [], bindings: [] },
-      maxImagesLimit = 5,
+      maxImagesLimit = 10,
       maxImageBytesLimit = 5 * 1024 * 1024,
       safeHttpUrl = url => url || '',
       fieldKey = f => (f && (f.key || f.fieldKey)) || '',

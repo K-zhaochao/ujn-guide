@@ -93,10 +93,10 @@ describe('宠物前端视图模型', () => {
       sort: 'updated', page: 2, pageSize: 10,
     })).toEqual({
       q: '图书馆', status: 'approved', typeId: '12', start: '2026-08-01', end: '2026-08-10',
-      sort: 'updated', page: 2, pageSize: 10, includeDeleted: 1,
+      sort: 'updated', page: 2, pageSize: 10,
     });
     expect(viewModel.buildMineListQuery({ category: '历史分类' })).toEqual({
-      category: '历史分类', type: '历史分类', sort: 'updated', page: 1, pageSize: 10, includeDeleted: 1,
+      category: '历史分类', type: '历史分类', sort: 'updated', page: 1, pageSize: 10,
     });
   });
 

@@ -50,7 +50,7 @@
   // ================== 配置（无任何硬编码密钥） ==================
   // P0-04：生产环境固定走同源反向代理，禁止把开发机地址编入发布产物。
   const API_BASE = '';
-  const MAX_IMAGES = 5; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
+  const MAX_IMAGES = 10; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
   let maxImagesLimit = MAX_IMAGES;
   let maxImageBytesLimit = 5 * 1024 * 1024;
   const PAGE_SIZE = 24;
