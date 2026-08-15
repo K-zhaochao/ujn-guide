@@ -788,10 +788,10 @@
         if (page < 1 || page > totalPages || page === currentPage) return;
         currentPage = page;
         void loadPets().then(() => {
-          // 滚动到图鉴列表顶部（第一个作品位置），而不是页面最顶部
-          const galleryEl = $('#pet-gallery');
-          if (galleryEl && typeof galleryEl.scrollIntoView === 'function') {
-            galleryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // 滚动到工具栏（搜索框）位置，而不是页面最顶部或列表顶部
+          const toolbarEl = $('#pet-toolbar');
+          if (toolbarEl && typeof toolbarEl.scrollIntoView === 'function') {
+            toolbarEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         });
       });
