@@ -209,21 +209,34 @@ describe('管理后台渲染层（admin-ui-views）', () => {
   });
 
   describe('分页组件', () => {
-    it('paginationHtml：多页输出页码与当前页', () => {
+    it('paginationHtml：多页输出页码、当前页与每页下拉', () => {
       const v = makeViews();
       const html = v.paginationHtml('pending', 25, 2, 10, '');
       expect(html).toContain('data-nav="pending"');
       expect(html).toContain('page="1"');
-      expect(html).toContain('cur');
+      expect(html).toContain('is-active');
       expect(html).toContain('共 25 条');
       expect(html).toContain('第 2 / 3 页');
+      expect(html).toContain('pet-pager-size');
+      expect(html).toContain('🐾 上一页');
+      expect(html).toContain('下一页 🐾');
     });
 
-    it('paginationHtml：单页且无额外内容时返回空串', () => {
+    it('paginationHtml：空数据也渲染分页条（含每页下拉）', () => {
       const v = makeViews();
-      expect(v.paginationHtml('pending', 3, 1, 10, '')).toBe('');
-      // 有左侧内容时仍渲染 pager 容器
-      expect(v.paginationHtml('pending', 3, 1, 10, '<b>x</b>')).toContain('pager');
+      const html = v.paginationHtml('pending', 0, 1, 10, '');
+      expect(html).toContain('pager');
+      expect(html).toContain('共 0 条');
+      expect(html).toContain('第 1 / 1 页');
+      expect(html).toContain('pet-pager-size');
+    });
+
+    it('pageSizeSelectHtml：按当前值选中并带 data-nav', () => {
+      const v = makeViews();
+      const html = v.pageSizeSelectHtml('audit', 50, [10, 20, 50, 100]);
+      expect(html).toContain('data-nav="audit"');
+      expect(html).toContain('value="50" selected');
+      expect(html).not.toContain('value="10" selected');
     });
   });
 
