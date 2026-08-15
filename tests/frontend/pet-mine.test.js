@@ -42,6 +42,14 @@ function makeMine(overrides) {
         '<button class="pet-rejected-revision-withdraw" data-id="' + esc(s.id) + '" data-revision="rev_rejected" data-row="3">撤回修改</button>' +
         '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="2">重新提交</button>' +
         '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="2">删除</button></div>',
+      mineCardHtml: s => '<div class="pet-mine-card" data-id="' + esc(s.id) + '">' +
+        '<button class="pet-edit-btn" data-id="' + esc(s.id) + '" data-row="1">编辑</button>' +
+        '<button class="pet-history-btn" data-id="' + esc(s.id) + '">历史</button>' +
+        '<button class="pet-revisions-btn" data-id="' + esc(s.id) + '">修订</button>' +
+        '<button class="pet-rejected-revision-edit-btn" data-id="' + esc(s.id) + '" data-revision="rev_rejected">按意见重新修改</button>' +
+        '<button class="pet-rejected-revision-withdraw" data-id="' + esc(s.id) + '" data-revision="rev_rejected" data-row="3">撤回修改</button>' +
+        '<button class="pet-resubmit-btn" data-id="' + esc(s.id) + '" data-row="2">重新提交</button>' +
+        '<button class="pet-del-btn" data-id="' + esc(s.id) + '" data-row="2">删除</button></div>',
       mineHistoryHtml: () => '<div>历史</div>',
       mineRevisionsHtml: (revisions, id) => revisions.map(r =>
         '<div><button class="pet-revision-withdraw" data-submission="' + esc(id) + '" data-id="' + esc(r.id) + '" data-row="1">撤回</button></div>').join('') || '<p>无修订</p>',
@@ -120,7 +128,7 @@ describe('宠物「我的投稿」交互控制器', () => {
     const sec = mountSection();
     await controller.openMineSection();
     expect(sec.style.display).toBe('block');
-    expect(document.getElementById('pet-mine-list').innerHTML).toContain('pet-mine-row');
+    expect(document.getElementById('pet-mine-list').innerHTML).toContain('pet-mine-card');
     expect(document.getElementById('pet-mine-status-counts').textContent).toContain('已通过 1');
     expect(document.getElementById('pet-mine-close')).toBeNull();
     expect(document.getElementById('pet-mine-submit')).toBeNull();
@@ -196,6 +204,27 @@ describe('宠物「我的投稿」交互控制器', () => {
     // 渲染分页按钮后触发下一页
     document.querySelector('.pet-mine-page-btn[data-page="2"]').onclick();
     expect(calls.api[calls.api.length - 1]).toContain('page=2');
+  });
+
+  it('筛选作用于全部数据而非当前页：翻页后再筛选回到第 1 页并带筛选参数', async () => {
+    const { controller, calls } = makeMine({
+      api: async (path) => {
+        calls.api.push(path);
+        const hasStatus = path.includes('status=pending');
+        return { ok: true, data: { items: [{}], total: hasStatus ? 3 : 60, totalPages: hasStatus ? 1 : 3, page: 1, statusCounts: { pending: 3, approved: 57, rejected: 0, deleted: 0 } } };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    // 先翻到第 2 页
+    document.querySelector('.pet-mine-page-btn[data-page="2"]').onclick();
+    expect(calls.api[calls.api.length - 1]).toContain('page=2');
+    // 再点「待审核」状态筛选 → 应回到第 1 页（URL 无 page=2）且带上 status=pending（对全部数据筛选，不是仅第 2 页）
+    const pendingBtn = Array.from(document.querySelectorAll('.pet-mine-count-btn')).find(b => b.dataset.status === 'pending');
+    pendingBtn.onclick();
+    const last = calls.api[calls.api.length - 1];
+    expect(last).toContain('status=pending');
+    expect(last).not.toContain('page=2');
   });
 
   it('行内操作委托回调：编辑、历史与修订', async () => {

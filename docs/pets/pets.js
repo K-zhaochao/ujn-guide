@@ -121,6 +121,7 @@
   const petLikesModule = window.UJNGuidePetLikes;
   const petNotificationsModule = window.UJNGuidePetNotifications;
   const petMineModule = window.UJNGuidePetMine;
+  const petPickerModule = window.UJNGuidePetPicker;
   const petSubmitModule = window.UJNGuidePetSubmit;
   const safeHttpUrl = petClient && petClient.safeHttpUrl;
   let modalController = null;
@@ -266,7 +267,8 @@
       !petViews || typeof petViews.createPetViews !== 'function' ||
       !petLikesModule || typeof petLikesModule.createPetLikes !== 'function' ||
       !petNotificationsModule || typeof petNotificationsModule.createPetNotifications !== 'function' ||
-      !petMineModule || typeof petMineModule.createPetMine !== 'function') {
+      !petMineModule || typeof petMineModule.createPetMine !== 'function' ||
+      !petPickerModule || typeof petPickerModule.createPetPicker !== 'function') {
     throw new Error('缺少宠物前端基础模块，无法初始化宠物页面');
   }
   modalController = petModal.createModalController({
@@ -547,7 +549,7 @@
       toggle.title = personalWorkspaceCollapsed ? '展开个人工作区' : '收起个人工作区';
       toggle.setAttribute('aria-label', toggle.title);
       toggle.setAttribute('aria-expanded', String(!personalWorkspaceCollapsed));
-      toggle.textContent = personalWorkspaceCollapsed ? '⌄' : '⌃';
+      toggle.textContent = personalWorkspaceCollapsed ? '展开' : '收起';
       toggle.onclick = () => { void togglePersonalWorkspace(); };
     }
     workspace.hidden = personalWorkspaceCollapsed;
@@ -605,24 +607,24 @@
     nav.classList.toggle('pet-nav-logged-in', !!user);
     // 管理后台与主站共用 Cookie 会话；后端仍会在管理 API 上校验管理员角色。
     const adminBtn = user && user.isAdmin
-      ? '<button id="pet-admin-nav" class="pet-nav-secondary-action" style="display:inline-flex;align-items:center;gap:5px;padding:8px 14px;background:none;border:1px solid ' + C.primary + ';border-radius:9px;font-size:14px;cursor:pointer;color:' + C.primary + ';font-weight:600">⚙️ 管理后台</button>'
+      ? '<button id="pet-admin-nav" class="pet-nav-secondary-action" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;background:none;border:1px solid ' + C.primary + ';border-radius:8px;font-size:13px;cursor:pointer;color:' + C.primary + ';font-weight:600">⚙️ 管理后台</button>'
       : '';
     const loginBtn = !user
-      ? '<button id="pet-login-btn" class="pet-nav-login" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:' + C.primary + ';color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer">' + BRAND_ICONS.github + '<span>登录</span></button>'
+      ? '<button id="pet-login-btn" class="pet-nav-login" style="display:inline-flex;align-items:center;gap:6px;padding:7px 15px;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">' + BRAND_ICONS.github + '<span>登录</span></button>'
       : '<div class="pet-nav-actions" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-          '<button id="pet-user-btn" class="pet-nav-account" title="点击修改昵称" style="display:inline-flex;align-items:center;gap:8px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:20px;padding:4px 12px 4px 4px;cursor:pointer;font-size:14px;color:' + C.fg + ';font-weight:600">' +
+          '<button id="pet-user-btn" class="pet-nav-account" title="点击修改昵称" style="display:inline-flex;align-items:center;gap:7px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:20px;padding:3px 11px 3px 3px;cursor:pointer;font-size:13px;color:' + C.fg + ';font-weight:600">' +
             (user.avatarUrl
-              ? '<img src="' + esc(user.avatarUrl) + '" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover">'
-              : '<span style="width:26px;height:26px;border-radius:50%;background:' + C.avatarBg + ';display:inline-flex;align-items:center;justify-content:center;font-size:13px">🐾</span>') +
+              ? '<img src="' + esc(user.avatarUrl) + '" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover">'
+              : '<span style="width:24px;height:24px;border-radius:50%;background:' + C.avatarBg + ';display:inline-flex;align-items:center;justify-content:center;font-size:12px">🐾</span>') +
             '<span>' + esc(displayName(user)) + '</span>' +
             '<span style="font-size:11px;color:' + C.muted + '">✏️</span>' +
           '</button>' +
-          '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="互动通知" aria-label="互动通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:17px;cursor:pointer;color:' + C.fg + '">🔔' +
-            (petNotifications && petNotifications.unreadCount() ? '<span style="position:absolute;right:-5px;top:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:' + C.danger + ';color:#fff;font-size:10px;line-height:17px;font-weight:700">' + Math.min(99, petNotifications.unreadCount()) + '</span>' : '') +
+          '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="互动通知" aria-label="互动通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:16px;cursor:pointer;color:' + C.fg + '">🔔' +
+            (petNotifications && petNotifications.unreadCount() ? '<span style="position:absolute;right:-4px;top:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:' + C.danger + ';color:#fff;font-size:10px;line-height:16px;font-weight:700">' + Math.min(99, petNotifications.unreadCount()) + '</span>' : '') +
           '</button>' +
-          '<button id="pet-workspace-toggle-nav" class="pet-nav-secondary-action" title="收起个人工作区" aria-label="收起个人工作区" aria-controls="pet-personal-workspace" aria-expanded="true" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:18px;cursor:pointer;color:' + C.fg + '">⌃</button>' +
+          '<button id="pet-workspace-toggle-nav" class="pet-nav-secondary-action" title="收起个人工作区" aria-label="收起个人工作区" aria-controls="pet-personal-workspace" aria-expanded="true" style="display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 10px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:13px;cursor:pointer;color:' + C.fg + '">收起</button>' +
           adminBtn +
-          '<button id="pet-logout-nav" class="pet-nav-secondary-action pet-nav-logout" title="退出登录" aria-label="退出登录" style="padding:8px 12px;background:none;border:none;border-radius:8px;font-size:16px;cursor:pointer;color:' + C.muted + '">↪</button>' +
+          '<button id="pet-logout-nav" class="pet-nav-secondary-action pet-nav-logout" title="退出登录" aria-label="退出登录" style="padding:4px 11px;background:none;border:1px dashed ' + C.muted + ';border-radius:8px;font-size:13px;cursor:pointer;color:' + C.muted + '">退出</button>' +
         '</div>';
 
     nav.innerHTML =
@@ -1109,6 +1111,8 @@
     getCategories: () => CATEGORIES,
     getCatEmoji: () => catEmoji,
     MINE_PAGE_SIZE: 20,
+    // 自定义可爱风下拉 / 日历面板（pet-picker.js）：鼠标点击时替代原生系统 UI
+    picker: petPickerModule.createPetPicker({ document, C }),
   });
 
   // ================== 编辑投稿模态框 ==================

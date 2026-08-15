@@ -37,6 +37,7 @@
       getCategories,
       getCatEmoji,
       MINE_PAGE_SIZE = 20,
+      picker = null, // 可选：自定义下拉 / 日历面板（pet-picker.js），未注入时保留原生控件
     } = deps;
 
     // ================== 状态 ==================
@@ -78,9 +79,9 @@
         '<div id="pet-mine-status-counts" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>' +
         '<div id="pet-mine-filters" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
         '<input id="pet-mine-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" aria-label="搜索我的投稿" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
-        '<select id="pet-mine-category" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' + categoryOptions + '</select>' +
-        '<div class="pet-mine-date-range"><label for="pet-mine-date">起始日期<input id="pet-mine-date" type="date" aria-label="投稿起始日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label><label for="pet-mine-date-end">结束日期<input id="pet-mine-date-end" type="date" aria-label="投稿结束日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label></div>' +
-        '<select id="pet-mine-sort" style="padding:9px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="updated">最近修改</option><option value="latest">最新投稿</option><option value="oldest">最早投稿</option><option value="name">名称</option><option value="status">状态</option></select>' +
+        '<select id="pet-mine-category" class="pet-select" style="padding:8px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px">' + categoryOptions + '</select>' +
+        '<div class="pet-mine-date-range"><label for="pet-mine-date">起始日期<input id="pet-mine-date" class="pet-date" type="date" aria-label="投稿起始日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label><label for="pet-mine-date-end">结束日期<input id="pet-mine-date-end" class="pet-date" type="date" aria-label="投稿结束日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label></div>' +
+        '<select id="pet-mine-sort" class="pet-select" style="padding:8px 10px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"><option value="updated">最近修改</option><option value="latest">最新投稿</option><option value="oldest">最早投稿</option><option value="name">名称</option><option value="status">状态</option></select>' +
         '<button id="pet-mine-reset" title="一键重置所有筛选" style="padding:8px 12px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;color:' + C.fg + ';font-size:13px;cursor:pointer">↺ 重置</button>' +
         '</div>' +
         '<div id="pet-mine-list" aria-live="polite"></div>' +
@@ -112,6 +113,16 @@
         minePage = 1; loadMineSubmissions();
       };
       $('#pet-mine-sort').onchange = e => { mineSort = e.target.value; minePage = 1; loadMineSubmissions(); };
+      // 自定义可爱风下拉 / 日历面板（pet-picker.js）：仅接管鼠标/触控点击，键盘仍走原生，
+      // 选中后同步原生元素 value 并派发 change，上面的 onchange 逻辑保持不变。
+      if (picker && typeof picker.attachSelect === 'function') {
+        picker.attachSelect($('#pet-mine-category'));
+        picker.attachSelect($('#pet-mine-sort'));
+        if (typeof picker.attachDate === 'function') {
+          picker.attachDate($('#pet-mine-date'));
+          picker.attachDate($('#pet-mine-date-end'));
+        }
+      }
       // P2-13：一键重置所有筛选（含日期范围、排序），恢复到默认列表。
       const mineReset = $('#pet-mine-reset');
       if (mineReset) mineReset.onclick = () => {
@@ -176,8 +187,8 @@
       if (!items.length) {
         list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:28px 12px">' + (mineQuery || mineStatus || mineCategory || mineDate || mineDateEnd ? '没有符合筛选条件的投稿' : '你还没有投稿过，点击“投稿”开始吧！🐾') + '</p>';
       } else {
-        // 行 HTML 由渲染层（pet-views.js）生成
-        list.innerHTML = '<div style="display:flex;flex-direction:column;gap:7px">' + items.map(s => views().mineRowHtml(s)).join('') + '</div>';
+        // 卡片 HTML 由渲染层（pet-views.js）生成；复用图鉴 pet-grid：桌面 4 列 → 窄屏 2 列
+        list.innerHTML = '<div class="pet-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">' + items.map(s => views().mineCardHtml(s)).join('') + '</div>';
       }
 
       const pager = $('#pet-mine-pager');
@@ -196,9 +207,9 @@
         });
       }
 
-      $all('.pet-edit-btn', sec).forEach(btn => { btn.onclick = () => onEdit(btn.dataset.id); });
+      $all('.pet-edit-btn', sec).forEach(btn => { btn.onclick = (e) => { if (e) e.stopPropagation(); onEdit(btn.dataset.id); }; });
       $all('.pet-rejected-revision-edit-btn', sec).forEach(btn => {
-        btn.onclick = () => onEdit(btn.dataset.id, { revisionId: btn.dataset.revision });
+        btn.onclick = (e) => { if (e) e.stopPropagation(); onEdit(btn.dataset.id, { revisionId: btn.dataset.revision }); };
       });
       $all('.pet-mine-shortid', sec).forEach(btn => {
         btn.onclick = (e) => {
@@ -209,18 +220,22 @@
           } else fallbackCopy(fullId, btn);
         };
       });
-      $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = () => openMineHistory(btn.dataset.id); });
-      $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = () => openMineRevisions(btn.dataset.id); });
+      $all('.pet-history-btn', sec).forEach(btn => { btn.onclick = (e) => { if (e) e.stopPropagation(); openMineHistory(btn.dataset.id); }; });
+      $all('.pet-revisions-btn', sec).forEach(btn => { btn.onclick = (e) => { if (e) e.stopPropagation(); openMineRevisions(btn.dataset.id); }; });
       $all('.pet-rejected-revision-withdraw', sec).forEach(btn => {
-        btn.onclick = () => withdrawRevision({
-          submissionId: btn.dataset.id,
-          revisionId: btn.dataset.revision,
-          rowVersion: Number(btn.dataset.row || 1),
-          status: 'rejected',
-        });
+        btn.onclick = (e) => {
+          if (e) e.stopPropagation();
+          withdrawRevision({
+            submissionId: btn.dataset.id,
+            revisionId: btn.dataset.revision,
+            rowVersion: Number(btn.dataset.row || 1),
+            status: 'rejected',
+          });
+        };
       });
       $all('.pet-resubmit-btn', sec).forEach(btn => {
-        btn.onclick = async () => {
+        btn.onclick = async (e) => {
+          if (e) e.stopPropagation();
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，请稍后再试', true); return; }
           const confirmed = await confirmAction({
             title: '重新提交审核？',
@@ -237,7 +252,8 @@
         };
       });
       $all('.pet-del-btn', sec).forEach(btn => {
-        btn.onclick = async () => {
+        btn.onclick = async (e) => {
+          if (e) e.stopPropagation();
           if (siteConfig.maintenance) { showToast('⚠️ 宠物收集录正在维护中，删除功能暂时关闭', true); return; }
           if (!siteConfig.allowDelete) { showToast('⚠️ 当前已关闭投稿删除功能，请联系站长', true); return; }
           const confirmed = await confirmAction({

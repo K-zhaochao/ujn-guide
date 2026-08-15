@@ -50,6 +50,11 @@ hide:
     --pet-danger: #ef4444;
     --pet-danger-bg: #fee2e2;
     --pet-success: #22c55e;
+    --pet-success-bg: #dcfce7;      /* ✅ 已通过徽章浅绿底 */
+    --pet-pending-bg: #fef3c7;      /* ⏳ 待审核徽章浅琥珀底 */
+    --pet-pending-fg: #92400e;      /* ⏳ 待审核徽章棕褐字 */
+    --pet-muted-bg: #f3f4f6;        /* 🗑️ 已删除徽章浅灰底 */
+    --pet-muted-fg: #6b7280;        /* 🗑️ 已删除徽章灰字 */
     --pet-input-bg: #fff;
     --pet-workspace-bg: #fafbfd;
   }
@@ -68,19 +73,37 @@ hide:
     --pet-danger: #f87171;
     --pet-danger-bg: rgba(239, 68, 68, .18);
     --pet-success: #4ade80;
+    --pet-success-bg: rgba(34, 197, 94, .16);   /* ✅ 已通过徽章深色主题绿底 */
+    --pet-pending-bg: rgba(245, 158, 11, .18);  /* ⏳ 待审核徽章深色主题琥珀底 */
+    --pet-pending-fg: #fbbf24;                   /* ⏳ 待审核徽章深色主题亮琥珀字 */
+    --pet-muted-bg: rgba(255, 255, 255, .10);   /* 🗑️ 已删除徽章深色主题灰底 */
+    --pet-muted-fg: #a3aab5;                     /* 🗑️ 已删除徽章深色主题灰字 */
     --pet-input-bg: #1f242d;
     --pet-workspace-bg: #252b35;
   }
 
-  /* 宠物卡片网格：桌面 4 列 → 中屏 3 列 → 窄屏 2 列 → 手机 1 列 */
+  /* 宠物卡片网格：桌面 4 列 → 中屏 3 列 → 窄屏 2 列；手机 2 列紧凑小卡片，一屏可见更多 */
   .pet-grid { grid-template-columns: repeat(4, 1fr) !important; }
   @media (max-width: 1100px) { .pet-grid { grid-template-columns: repeat(3, 1fr) !important; } }
   @media (max-width: 760px)  { .pet-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-  @media (max-width: 480px)  { .pet-grid { grid-template-columns: 1fr !important; } }
+  @media (max-width: 480px)  {
+    .pet-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px !important;
+      /* 手机紧凑卡片：缩小封面高度、字号与内边距（卡片行内样式读取这些变量） */
+      --pet-card-img-h: 96px;
+      --pet-card-emoji: 26px;
+      --pet-card-pad: 8px 10px;
+      --pet-card-title: 13px;
+      --pet-card-sub: 11px;
+      --pet-card-meta: 11px;
+    }
+  }
 
   /* P2-14 无障碍：键盘焦点可见 */
   .pet-card:focus-visible,
   .pet-mine-row:focus-visible,
+  .pet-mine-card:focus-visible,
   button:focus-visible,
   input:focus-visible,
   select:focus-visible,
@@ -128,19 +151,27 @@ hide:
   #pet-nav .pet-nav-primary-action,
   #pet-nav .pet-nav-secondary-action,
   #pet-nav .pet-nav-login {
-    min-height: 38px;
+    min-height: 34px;
     border-radius: 8px !important;
   }
   #pet-nav .pet-nav-primary-action { white-space: nowrap; }
   #pet-nav .pet-nav-login { margin-left: auto; }
+  /* 退出按钮：文字版本，宽度自适应（不再固定 34px 图标宽度） */
   #pet-nav .pet-nav-logout {
-    width: 38px;
-    height: 38px;
-    padding: 0 !important;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px !important;
     justify-content: center;
+    white-space: nowrap;
   }
-  #pet-nav #pet-notifications-nav,
-  #pet-nav #pet-workspace-toggle-nav { flex: 0 0 38px; }
+  /* 收起/展开按钮：文字版本，宽度自适应（flex: 0 0 34px 会压缩文字竖排） */
+  #pet-nav #pet-workspace-toggle-nav {
+    flex: none;
+    min-width: 0;
+    white-space: nowrap;
+    padding: 0 10px;
+  }
+  #pet-nav #pet-notifications-nav { flex: 0 0 34px; }
 
   #pet-personal-workspace {
     border: 1px solid var(--pet-border);
@@ -237,18 +268,57 @@ hide:
     border-color: var(--pet-primary) !important;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 20%, transparent);
   }
-  #pet-mine-filters input[type="date"] {
-    color-scheme: light dark;
+
+  /* ===== 下拉框美化：去掉系统生硬箭头，换成随主题变化的细箭头 ===== */
+  .pet-select,
+  #pet-mine-filters select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    padding-right: 30px !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 9px center !important;
+    background-size: 12px !important;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  [data-md-color-scheme="slate"] .pet-select,
+  [data-md-color-scheme="slate"] #pet-mine-filters select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  }
+  .pet-select:hover,
+  #pet-mine-filters select:hover { border-color: var(--pet-primary) !important; }
+  .pet-select:focus,
+  #pet-mine-filters select:focus {
+    border-color: var(--pet-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 20%, transparent);
+    outline: none;
+  }
+
+  /* 我的投稿卡片：桌面 hover 反馈更柔和 */
+  #pet-mine-list .pet-mine-card {
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #pet-mine-list .pet-mine-card:hover {
+    border-color: var(--pet-primary) !important;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, .07);
+  }
+  /* 卡片内操作按钮：按钮间用虚线分隔，避免视觉粘连 */
+  #pet-mine-list .pet-mine-row-actions button {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pet-mine-filters .pet-date {
     cursor: pointer;
     font-variant-numeric: tabular-nums;
   }
-  #pet-mine-filters input[type="date"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    opacity: .72;
-  }
   #pet-mine-filters .pet-mine-date-range {
     display: grid;
-    grid-template-columns: repeat(2, minmax(132px, 1fr));
+    /* 日期框已由 pet-picker.js 运行时转为只读文本框（无系统日历图标），
+     * 固定 128px 即可容纳 YYYY-MM-DD（10 字符）与「选择日期」占位，不再随容器拉伸 */
+    grid-template-columns: repeat(2, 128px);
     gap: 8px;
   }
   #pet-mine-filters .pet-mine-date-range label {
@@ -260,68 +330,289 @@ hide:
   }
   #pet-mine-filters .pet-mine-date-range input { width: 100%; }
 
-  @media (max-width: 640px) {
-    #pet-nav.pet-nav-logged-in .pet-nav-shell { padding: 10px 12px !important; }
-    #pet-nav .pet-nav-shell { align-items: stretch !important; }
-    #pet-nav .pet-nav-actions {
-      display: grid !important;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 7px;
-    }
-    #pet-nav .pet-nav-account {
-      grid-column: 1 / -1;
-      max-width: none;
-      margin: 0;
-      min-height: 40px;
-      justify-content: flex-start;
-    }
-    #pet-nav .pet-nav-secondary-action { min-height: 36px; font-size: 12px !important; }
-    #pet-nav #pet-admin-nav { grid-column: 1 / span 2; justify-content: center; }
-    #pet-nav #pet-notifications-nav { width: 100%; height: 36px; }
-    #pet-nav #pet-workspace-toggle-nav { width: 100%; height: 36px; }
-    #pet-nav #pet-logout-nav { grid-column: 3; width: 100%; height: 36px; }
-    #pet-nav .pet-nav-login { width: 100%; margin-left: 0; justify-content: center; }
+  /* ===== 自定义可爱风下拉 / 日历面板（pet-picker.js） =====
+   * 原生 select 的 option 列表与原生日历弹层是浏览器系统 UI，无法 CSS 定制；
+   * 鼠标/触控点击时由 pet-picker.js 显示下方面板，键盘仍走原生控件。 */
+  .pet-picker-panel {
+    position: fixed;
+    z-index: 20000;
+    box-sizing: border-box;
+    border: 1px solid var(--pet-border, #e5e7eb);
+    border-radius: 14px;
+    background: var(--pet-input-bg, #fff);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, .14), 0 2px 8px rgba(0, 0, 0, .06);
+    padding: 6px;
+    min-width: 150px;
+    font-size: 13px;
+    color: var(--md-default-fg-color, #374151);
+  }
+  /* 下拉选项：圆角高亮、选中项主色标记 */
+  .pet-picker-option {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    padding: 9px 12px;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .pet-picker-option:hover {
+    background: color-mix(in srgb, var(--pet-primary, #3b82f6) 10%, transparent);
+  }
+  .pet-picker-option.is-selected {
+    background: color-mix(in srgb, var(--pet-primary, #3b82f6) 14%, transparent);
+    color: var(--pet-primary, #3b82f6);
+    font-weight: 650;
+  }
+  /* 日历面板：圆角、柔和渐变头部、圆形日格 */
+  .pet-cal { width: 258px; padding: 12px; }
+  .pet-cal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .pet-cal-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--md-default-fg-color, #1f2937);
+    letter-spacing: .5px;
+  }
+  .pet-cal-nav {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--pet-soft, rgba(0, 0, 0, .04));
+    color: var(--pet-primary, #3b82f6);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .12s, transform .12s;
+  }
+  .pet-cal-nav:hover { background: color-mix(in srgb, var(--pet-primary, #3b82f6) 14%, transparent); }
+  .pet-cal-nav:active { transform: scale(.92); }
+  .pet-cal-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 11px;
+    color: var(--pet-muted, #9ca3af);
+    margin-bottom: 4px;
+  }
+  .pet-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+  .pet-cal-day {
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: background .12s, color .12s, transform .12s;
+  }
+  .pet-cal-day:hover { background: var(--pet-soft, rgba(0, 0, 0, .04)); }
+  .pet-cal-day.is-out { color: var(--pet-faint, #b0b4bb); }
+  .pet-cal-day.is-today {
+    box-shadow: inset 0 0 0 1.5px var(--pet-primary, #3b82f6);
+    color: var(--pet-primary, #3b82f6);
+    font-weight: 650;
+  }
+  .pet-cal-day.is-selected {
+    background: var(--pet-primary, #3b82f6);
+    color: #fff;
+    font-weight: 650;
+  }
+  .pet-cal-day.is-selected:hover { background: var(--pet-primary, #3b82f6); }
+  .pet-cal-foot { text-align: center; margin-top: 8px; }
+  .pet-cal-today {
+    border: 0;
+    border-radius: 20px;
+    background: var(--pet-soft, rgba(0, 0, 0, .04));
+    color: var(--pet-primary, #3b82f6);
+    font-size: 12px;
+    font-weight: 650;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background .12s;
+  }
+  .pet-cal-today:hover { background: color-mix(in srgb, var(--pet-primary, #3b82f6) 14%, transparent); }
 
-    #pet-personal-workspace { margin-bottom: 20px; padding: 0 12px 14px; }
-    .pet-workspace-header { align-items: stretch; flex-direction: column; gap: 7px; padding: 8px 0 10px; }
-    .pet-workspace-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; width: 100%; }
-    .pet-workspace-tab { justify-content: center; min-height: 42px; padding: 0 5px; }
-    .pet-workspace-submit { width: 100%; min-height: 40px; margin: 0; }
+  @media (max-width: 640px) {
+    /* —— 未登录：登录按钮对标电脑端（右对齐），仅缩小尺寸，不做居中胶囊 —— */
+    #pet-nav .pet-nav-login {
+      width: auto;
+      margin-left: auto;
+      justify-content: center;
+      min-height: 30px !important;
+      padding: 5px 16px !important;
+      font-size: 12px !important;
+      gap: 5px !important;
+      border-radius: 8px !important;
+    }
+
+    /* —— 登录后导航栏：账户胶囊一行 + 按钮一行（flex 自适应），全部紧凑 —— */
+    #pet-nav.pet-nav-logged-in .pet-nav-shell { padding: 8px 10px !important; }
+    #pet-nav .pet-nav-shell { align-items: stretch !important; padding: 8px 0 10px !important; }
+    #pet-nav .pet-nav-actions {
+      display: flex !important;
+      align-items: center;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    /* 账户胶囊：内容自适应、居中显示，不再横向撑满 */
+    #pet-nav .pet-nav-account {
+      width: fit-content;
+      max-width: 100%;
+      margin: 0;
+      min-height: 28px;
+      justify-content: center;
+      padding: 2px 12px 2px 2px !important;
+      font-size: 12px !important;
+      gap: 5px !important;
+      border-radius: 18px !important;
+    }
+    #pet-nav .pet-nav-account > *:first-child {
+      width: 19px !important;
+      height: 19px !important;
+      font-size: 10px !important;
+    }
+    #pet-nav .pet-nav-secondary-action { min-height: 28px; font-size: 12px !important; }
+    #pet-nav #pet-admin-nav {
+      justify-content: center;
+      min-height: 28px !important;
+      padding: 4px 8px !important;
+      font-size: 12px !important;
+    }
+    /* 通知铃铛：固定小方钮，不随 flex 撑大 */
+    #pet-nav #pet-notifications-nav {
+      width: 28px !important;
+      height: 28px !important;
+      min-width: 28px !important;
+      flex: none !important;
+      padding: 0 !important;
+      border-radius: 7px !important;
+      font-size: 14px !important;
+    }
+    /* 收起/展开：文字自适应 */
+    #pet-nav #pet-workspace-toggle-nav {
+      height: 28px !important;
+      min-height: 28px !important;
+      flex: none !important;
+      padding: 0 9px !important;
+      border-radius: 7px !important;
+      font-size: 12px !important;
+    }
+    /* 退出：虚线边框 + 中文，与其他按钮同高；width 自适应避免文字溢出虚线 */
+    #pet-nav #pet-logout-nav {
+      width: auto !important;
+      min-width: 0 !important;
+      height: 28px !important;
+      min-height: 28px !important;
+      flex: none !important;
+      padding: 0 10px !important;
+      border-radius: 7px !important;
+      font-size: 12px !important;
+      white-space: nowrap;
+    }
+
+    /* —— 个人工作区：Tab 与投稿按钮同一行，右侧投稿按钮固定宽 —— */
+    #pet-personal-workspace { margin-bottom: 16px; padding: 0 10px 10px; }
+    .pet-workspace-header { flex-direction: row; align-items: center; gap: 8px; padding: 6px 0 8px; min-height: 0; }
+    .pet-workspace-tabs { display: flex; flex: 1; gap: 4px; width: auto; min-width: 0; }
+    .pet-workspace-tab { flex: 1; justify-content: center; min-height: 32px; padding: 0 4px; font-size: 12px; }
+    .pet-workspace-submit { width: auto; min-width: 92px; min-height: 32px; margin: 0; font-size: 11px; padding: 4px 10px; }
+
+    /* —— 状态计数胶囊：一行横向滚动，矮小 —— */
     #pet-mine-status-counts {
       flex-wrap: nowrap !important;
       overflow-x: auto;
       padding-bottom: 2px;
+      margin-bottom: 6px !important;
       scrollbar-width: thin;
     }
-    #pet-mine-status-counts button { flex: 0 0 auto; min-height: 36px !important; }
+    #pet-mine-status-counts button { flex: 0 0 auto; min-height: 28px !important; padding: 2px 9px !important; font-size: 11px !important; }
+
+    /* —— 筛选区：搜索一行 / 类型+排序+重置三列同行 / 日期范围一行 —— */
     #pet-mine-filters {
       display: grid !important;
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-      gap: 8px !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      grid-template-areas:
+        "search search search"
+        "cat    sort  reset"
+        "date   date  date";
+      gap: 6px !important;
+      margin-top: 8px !important;
+      margin-bottom: 6px !important;
     }
-    #pet-mine-filters #pet-mine-search,
-    #pet-mine-filters .pet-mine-date-range,
-    #pet-mine-filters #pet-mine-reset { grid-column: 1 / -1; }
+    #pet-mine-filters #pet-mine-search { grid-area: search; }
+    #pet-mine-filters #pet-mine-category { grid-area: cat; }
+    #pet-mine-filters #pet-mine-sort { grid-area: sort; }
+    #pet-mine-filters #pet-mine-reset { grid-area: reset; }
+    #pet-mine-filters .pet-mine-date-range { grid-area: date; }
     #pet-mine-filters select,
     #pet-mine-filters input,
-    #pet-mine-filters button { width: 100%; min-height: 40px !important; }
-    #pet-mine-filters .pet-mine-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    #pet-mine-filters #pet-mine-reset { justify-content: center; }
-    #pet-mine-list .pet-mine-row { align-items: flex-start !important; }
-    #pet-mine-list .pet-mine-row-actions {
-      display: grid !important;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px !important;
-      flex: 0 0 100% !important;
-      width: 100%;
-      margin-left: 0 !important;
+    #pet-mine-filters button { width: 100%; min-height: 32px !important; font-size: 12px !important; }
+    #pet-mine-filters .pet-mine-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px !important; }
+    #pet-mine-filters .pet-mine-date-range label { font-size: 10px !important; }
+    #pet-mine-filters #pet-mine-reset { justify-content: center; padding: 4px 8px !important; min-height: 32px !important; }
+
+    /* —— 我的投稿卡片（手机端）：封面更矮、操作按钮双列紧凑、摘要单行截断 —— */
+    #pet-mine-list .pet-grid {
+      gap: 10px !important;
+      --pet-card-img-h: 92px;
+      --pet-card-emoji: 24px;
+      --pet-card-pad: 8px 9px;
+      --pet-card-title: 13px;
     }
-    #pet-mine-list .pet-mine-row-actions button { width: 100%; min-height: 36px !important; }
+    #pet-mine-list .pet-mine-card { border-radius: 10px !important; }
+    /* 状态徽章在手机端更小，避免遮挡封面 */
+    #pet-mine-list .pet-mine-card > div > span[style*="position:absolute"] {
+      font-size: 9px !important;
+      padding: 0 5px !important;
+    }
+    #pet-mine-list .pet-mine-row-actions button { min-height: 26px !important; padding: 3px 5px !important; font-size: 10.5px !important; }
+    /* 卡片摘要 / 时间 / 拒绝原因 单行截断 */
+    #pet-mine-list .pet-mine-card div[style*="font-size:11px"],
+    #pet-mine-list .pet-mine-card div[style*="font-size:10px"] {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* 空态：更紧凑 */
+    #pet-mine-list > p { padding: 22px 10px !important; font-size: 13px !important; line-height: 1.6; }
+    /* 工具栏：搜索框与筛选胶囊在手机上更紧凑 */
+    #pet-toolbar .pet-sort-btn,
+    #pet-toolbar .pet-filter-btn { padding: 5px 12px !important; font-size: 12px !important; }
+    #pet-search { padding: 8px 12px !important; font-size: 13px !important; }
     #pet-liked-list .pet-grid { gap: 10px !important; }
   }
 
   @media (max-width: 380px) {
+    #pet-nav .pet-nav-actions { gap: 5px !important; }
+    #pet-nav #pet-admin-nav { padding: 4px 6px !important; font-size: 11px !important; }
+    #pet-nav #pet-workspace-toggle-nav { padding: 0 7px !important; }
+    #pet-nav #pet-logout-nav { padding: 0 8px !important; }
+    #pet-mine-filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-template-areas:
+        "search search"
+        "cat    sort"
+        "date   date"
+        "reset  reset";
+    }
     #pet-mine-filters .pet-mine-date-range { grid-template-columns: 1fr; }
+    .pet-workspace-submit { min-width: 84px; }
   }
 </style>
 
