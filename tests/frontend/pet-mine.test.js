@@ -32,6 +32,9 @@ function makeMine(overrides) {
     esc,
     views: () => ({
       minePaginationNumbersHtml: (page, total) => '<span>页' + page + '/' + total + '</span>',
+      pageSizeSelectHtml: ({ cls, current }) => '<select class="pet-pager-size ' + (cls || '') + '">' +
+        [6, 12, 24, 48].map(v => '<option value="' + v + '"' + (Number(v) === Number(current) ? ' selected' : '') + '>' + v + '</option>').join('') +
+        '</select>',
       mineStatusMeta: s => ({ label: s, color: '#fff' }),
       mineTypeLabel: s => (s && s.type && s.type.name) || s.category || '',
       mineTypeIcon: () => '🐾',
@@ -468,5 +471,30 @@ describe('宠物「我的投稿」交互控制器', () => {
     const pager = document.getElementById('pet-mine-pager');
     expect(pager.textContent).toContain('共 3 条 · 第 1/1 页');
     expect(pager.querySelectorAll('.pet-mine-page-btn').length).toBeGreaterThan(0);
+  });
+
+  it('每页数量下拉：切换后回到第 1 页并按新数量重新加载', async () => {
+    const { controller, calls } = makeMine({
+      api: async (path) => {
+        calls.api.push(path);
+        return { ok: true, data: { items: [{ id: 's1' }], total: 25, totalPages: 3, page: 1, statusCounts: {} } };
+      },
+    });
+    mountSection();
+    await controller.openMineSection();
+    // 初始桌面每页 12
+    expect(calls.api[calls.api.length - 1]).toContain('pageSize=12');
+    // 先翻到第 2 页
+    document.querySelector('.pet-mine-page-btn[data-page="2"]').onclick();
+    expect(calls.api[calls.api.length - 1]).toContain('page=2');
+    // 切到每页 6 → 回到第 1 页（不再带 page=2）并按 6 重新加载
+    const select = document.querySelector('.pet-mine-page-size');
+    expect(select).toBeTruthy();
+    select.value = '6';
+    select.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 0));
+    const last = calls.api[calls.api.length - 1];
+    expect(last).toContain('pageSize=6');
+    expect(last).not.toContain('page=2');
   });
 });

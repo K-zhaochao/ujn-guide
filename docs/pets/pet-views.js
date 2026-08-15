@@ -39,7 +39,7 @@
       imageLimitLabel = () => '5 MB',
     } = ctx;
 
-    // ================== 图鉴分页数字按钮 ==================
+    // ================== 图鉴分页数字按钮（宠物收集录主题：圆形药丸页码） ==================
 
     function paginationNumbersHtml(totalPages, currentPage) {
       const pages = paginationPages(totalPages, currentPage);
@@ -48,10 +48,22 @@
         const p = pages[i];
         if (i > 0 && p - pages[i - 1] > 1) html.push('<span style="color:' + C.muted + ';padding:0 2px">…</span>');
         html.push(
-          '<button class="pet-page-btn" data-page="' + p + '" style="padding:7px 13px;border:1px solid ' + (p === currentPage ? C.primary : C.border) + ';border-radius:8px;background:' + (p === currentPage ? C.primary : C.bg) + ';color:' + (p === currentPage ? '#fff' : C.fg) + ';font-size:14px;cursor:pointer;font-weight:' + (p === currentPage ? '600' : '400') + '">' + p + '</button>'
+          '<button class="pet-pager-num pet-page-btn' + (p === currentPage ? ' is-active' : '') + '" data-page="' + p + '" aria-label="第 ' + p + ' 页">' + p + '</button>'
         );
       }
       return html.join('');
+    }
+
+    // 每页数量下拉（宠物收集录主题）：切换后由各控制器绑定 change 事件重置到第 1 页重新加载
+    function pageSizeSelectHtml({ cls = '', current = 12, options = [6, 12, 24, 48] } = {}) {
+      return '<label class="pet-pager-size-wrap">每页 <select class="pet-pager-size ' + cls + '" aria-label="每页显示数量">' +
+        options.map(v => '<option value="' + v + '"' + (Number(v) === Number(current) ? ' selected' : '') + '>' + v + '</option>').join('') +
+        '</select> 条</label>';
+    }
+
+    // 上一页 / 下一页 按钮（主题化渐变药丸 + 🐾 肉垫图标）
+    function pagerNavBtnHtml({ cls, label, page, disabled }) {
+      return '<button class="pet-pager-btn ' + cls + '" data-page="' + page + '" ' + (disabled ? 'disabled' : '') + '>' + label + '</button>';
     }
 
     // ================== 宠物卡片 ==================
@@ -82,7 +94,7 @@
 
     // ================== 图鉴整体（分组 + 空态 + 分页） ==================
 
-    function galleryHtml({ allPets = [], searchQuery = '', currentPage = 1, totalPages = 1, totalCount = 0 } = {}) {
+    function galleryHtml({ allPets = [], searchQuery = '', currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 12 } = {}) {
       const isEmpty = allPets.length === 0;
 
       // 按分类分组（保持 CATEGORIES 顺序）
@@ -118,28 +130,32 @@
               '</div>';
           }).join('');
 
-      const pager = totalPages > 1
-        ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin:26px 0 10px;flex-wrap:wrap">' +
-            '<button class="pet-page-btn" data-page="' + (currentPage - 1) + '" ' + (currentPage <= 1 ? 'disabled style="opacity:.4;cursor:not-allowed"' : '') + ' style="padding:7px 14px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.bg + ';font-size:14px;cursor:pointer;color:' + C.fg + '">‹ 上一页</button>' +
+      // 分页条始终显示（有数据时），即使只有一页也提供 上一页/数字/下一页 + 每页数量下拉
+      const pager = totalCount > 0
+        ? '<div class="pet-pager">' +
+            pagerNavBtnHtml({ cls: 'pet-page-btn', label: '🐾 上一页', page: currentPage - 1, disabled: currentPage <= 1 }) +
             paginationNumbersHtml(totalPages, currentPage) +
-            '<button class="pet-page-btn" data-page="' + (currentPage + 1) + '" ' + (currentPage >= totalPages ? 'disabled style="opacity:.4;cursor:not-allowed"' : '') + ' style="padding:7px 14px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.bg + ';font-size:14px;cursor:pointer;color:' + C.fg + '">下一页 ›</button>' +
-            '<span style="font-size:13px;color:' + C.muted + ';margin-left:8px">共 ' + totalCount + ' 只 · 第 ' + currentPage + '/' + totalPages + ' 页</span>' +
+            pagerNavBtnHtml({ cls: 'pet-page-btn', label: '下一页 🐾', page: currentPage + 1, disabled: currentPage >= totalPages }) +
+            '<span style="font-size:12px;color:' + C.muted + ';margin-left:4px">共 ' + totalCount + ' 只 · 第 ' + currentPage + '/' + totalPages + ' 页</span>' +
+            pageSizeSelectHtml({ cls: 'pet-page-size', current: pageSize }) +
           '</div>'
         : '<div style="text-align:center;font-size:13px;color:' + C.muted + ';margin:26px 0 10px">共 ' + totalCount + ' 只宠物</div>';
 
       return result + pager;
     }
 
-    function likedPetsHtml({ pets = [], currentPage = 1, totalPages = 1, totalCount = 0 } = {}) {
+    function likedPetsHtml({ pets = [], currentPage = 1, totalPages = 1, totalCount = 0, pageSize = 12 } = {}) {
       const list = pets.length
         ? '<div class="pet-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">' + pets.map(pet => petCardHtml(pet)).join('') + '</div>'
         : '<p class="pet-liked-empty" style="text-align:center;color:' + C.muted + ';padding:32px 0">还没有收藏，去图鉴里点亮喜欢的宠物吧。</p>';
+      // 分页条始终显示（有数据时），即使只有一页也提供 上一页/数字/下一页 + 每页数量下拉
       const pager = totalCount > 0
-        ? '<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin:24px 0 4px;flex-wrap:wrap">' +
-            '<button class="pet-liked-page-btn" data-page="' + (currentPage - 1) + '" ' + (currentPage <= 1 ? 'disabled style="opacity:.4;cursor:not-allowed"' : '') + ' style="padding:7px 14px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.bg + ';font-size:14px;cursor:pointer;color:' + C.fg + '">‹ 上一页</button>' +
+        ? '<div class="pet-pager">' +
+            pagerNavBtnHtml({ cls: 'pet-liked-page-btn', label: '🐾 上一页', page: currentPage - 1, disabled: currentPage <= 1 }) +
             paginationNumbersHtml(totalPages, currentPage).replaceAll('pet-page-btn', 'pet-liked-page-btn') +
-            '<button class="pet-liked-page-btn" data-page="' + (currentPage + 1) + '" ' + (currentPage >= totalPages ? 'disabled style="opacity:.4;cursor:not-allowed"' : '') + ' style="padding:7px 14px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.bg + ';font-size:14px;cursor:pointer;color:' + C.fg + '">下一页 ›</button>' +
-            '<span style="font-size:13px;color:' + C.muted + ';margin-left:8px">共 ' + totalCount + ' 只 · 第 ' + currentPage + '/' + totalPages + ' 页</span>' +
+            pagerNavBtnHtml({ cls: 'pet-liked-page-btn', label: '下一页 🐾', page: currentPage + 1, disabled: currentPage >= totalPages }) +
+            '<span style="font-size:12px;color:' + C.muted + ';margin-left:4px">共 ' + totalCount + ' 只 · 第 ' + currentPage + '/' + totalPages + ' 页</span>' +
+            pageSizeSelectHtml({ cls: 'pet-liked-page-size', current: pageSize }) +
           '</div>'
         : '';
       return list + pager;
@@ -304,7 +320,7 @@
       return catEmoji[submission && submission.category] || '🐾';
     }
 
-    // ================== 我的投稿分页 ==================
+    // ================== 我的投稿分页（宠物收集录主题：圆形药丸页码） ==================
 
     function minePaginationNumbersHtml(minePage, mineTotalPages) {
       const pages = [];
@@ -315,7 +331,7 @@
       const html = [];
       pages.forEach((p, i) => {
         if (i && p - pages[i - 1] > 1) html.push('<span style="color:' + C.muted + '">…</span>');
-        html.push('<button class="pet-mine-page-btn" data-page="' + p + '" style="min-width:32px;padding:6px 9px;border:1px solid ' + (p === minePage ? C.primary : C.border) + ';border-radius:7px;background:' + (p === minePage ? C.primary : C.bg) + ';color:' + (p === minePage ? '#fff' : C.fg) + ';cursor:pointer">' + p + '</button>');
+        html.push('<button class="pet-pager-num pet-mine-page-btn' + (p === minePage ? ' is-active' : '') + '" data-page="' + p + '" aria-label="第 ' + p + ' 页">' + p + '</button>');
       });
       return html.join('');
     }
@@ -538,6 +554,7 @@
 
     return {
       paginationNumbersHtml,
+      pageSizeSelectHtml,
       petCardHtml,
       galleryHtml,
       likedPetsHtml,

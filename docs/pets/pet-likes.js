@@ -10,18 +10,16 @@
   'use strict';
 
   function createPetLikes(deps) {
-    const { $, $all, C, esc, views, api, showToast, onLoginRequired, onOpenDetail, getUser, PAGE_SIZE = 12 } = deps;
+    const { $, $all, C, esc, views, api, showToast, onLoginRequired, onOpenDetail, getUser, PAGE_SIZE = 12, picker = null } = deps;
     let pets = [];
     let page = 1;
     let total = 0;
     let totalPages = 1;
     let requestId = 0;
+    // 每页数量（用户可经分页条下拉调整）：初始手机（<768px）6 个/页，电脑 PAGE_SIZE 个/页
+    let likedPageSize = (typeof window !== 'undefined' && window.innerWidth < 768) ? 6 : PAGE_SIZE;
 
-    // 每页数量响应式：手机（<768px）6 个/页，电脑 12 个/页；测试可注入 PAGE_SIZE 覆盖桌面值
-    function currentLikedPageSize() {
-      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      return mobile ? 6 : PAGE_SIZE;
-    }
+    function currentLikedPageSize() { return likedPageSize; }
 
     function section() { return $('#pet-liked-section'); }
 
@@ -41,7 +39,17 @@
       const count = $('#pet-liked-count');
       if (!list) return;
       if (count) count.textContent = total ? '共 ' + total + ' 只' : '';
-      list.innerHTML = views().likedPetsHtml({ pets, currentPage: page, totalPages, totalCount: total });
+      list.innerHTML = views().likedPetsHtml({ pets, currentPage: page, totalPages, totalCount: total, pageSize: currentLikedPageSize() });
+      const sizeSelect = $('.pet-liked-page-size', list);
+      if (sizeSelect) {
+        sizeSelect.onchange = () => {
+          likedPageSize = Number(sizeSelect.value) || PAGE_SIZE;
+          page = 1; // 每页数量变化后从第 1 页重新加载
+          void loadLikedPets();
+        };
+        // 自定义可爱风下拉面板（pet-picker.js）：鼠标点击时替代原生 option 列表
+        if (picker && typeof picker.attachSelect === 'function') picker.attachSelect(sizeSelect);
+      }
       $all('.pet-liked-page-btn', list).forEach(button => {
         button.onclick = () => {
           if (button.disabled) return;

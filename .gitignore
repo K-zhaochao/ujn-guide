@@ -92,6 +92,7 @@ coverage/
 playwright-report/
 test-results/
 reports/
+vitest-front.json
 
 # ========================
 #  缓存（工具/框架可能生成）

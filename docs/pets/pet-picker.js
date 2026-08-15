@@ -99,7 +99,8 @@
     function openSelectPanel(select) {
       closePanel();
       const panel = document.createElement('div');
-      panel.className = 'pet-picker-panel';
+      // 分页条「每页数量」迷你下拉使用紧凑面板（选项居中、窄宽）；其余保持通用面板
+      panel.className = 'pet-picker-panel' + (select.classList.contains('pet-pager-size') ? ' pet-picker-panel--compact' : '');
       panel.setAttribute('role', 'listbox');
       panel.setAttribute('aria-label', select.getAttribute('aria-label') || '选择');
 

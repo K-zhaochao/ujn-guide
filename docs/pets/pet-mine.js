@@ -52,6 +52,8 @@
     let mineSort = 'updated';
     let mineRequestId = 0;
     let mineTypesLoaded = false;
+    // 每页数量（用户可经分页条下拉调整）：初始手机（<768px）6 个/页，电脑 MINE_PAGE_SIZE 个/页
+    let minePageSize = (typeof window !== 'undefined' && window.innerWidth < 768) ? 6 : MINE_PAGE_SIZE;
 
     // 状态徽章 / 类型标签 / 类型图标 / 分页数字由 pet-views.js 提供：
     //   views().mineStatusMeta(status)
@@ -61,11 +63,7 @@
 
     function minePaginationNumbers() { return views().minePaginationNumbersHtml(minePage, mineTotalPages); }
 
-    // 每页数量响应式：手机（<768px）6 个/页，电脑 12 个/页；测试可注入 MINE_PAGE_SIZE 覆盖桌面值
-    function currentMinePageSize() {
-      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      return mobile ? 6 : MINE_PAGE_SIZE;
-    }
+    function currentMinePageSize() { return minePageSize; }
 
     function mineQueryParams() {
       return new URLSearchParams(buildMineListQuery({
@@ -91,7 +89,7 @@
         '<button id="pet-mine-reset" title="一键重置所有筛选" style="padding:8px 12px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;color:' + C.fg + ';font-size:13px;cursor:pointer">↺ 重置</button>' +
         '</div>' +
         '<div id="pet-mine-list" aria-live="polite"></div>' +
-        '<div id="pet-mine-pager" style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:14px"></div>' +
+        '<div id="pet-mine-pager" style="display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;margin-top:12px"></div>' +
         '</div>';
 
       const search = $('#pet-mine-search');
@@ -199,9 +197,9 @@
 
       const pager = $('#pet-mine-pager');
       if (pager) {
-        // 分页条始终显示（有数据时），即使只有一页也展示 上一页/数字/下一页 与页码统计
+        // 分页条始终显示（有数据时），即使只有一页也展示 上一页/数字/下一页 与页码统计 + 每页数量下拉
         pager.innerHTML = mineTotal > 0
-          ? '<button class="pet-mine-page-btn" data-page="' + (minePage - 1) + '" ' + (minePage <= 1 ? 'disabled' : '') + ' style="padding:6px 10px;border:1px solid ' + C.border + ';border-radius:7px;background:' + C.bg + ';color:' + C.fg + ';cursor:pointer">上一页</button>' + minePaginationNumbers() + '<button class="pet-mine-page-btn" data-page="' + (minePage + 1) + '" ' + (minePage >= mineTotalPages ? 'disabled' : '') + ' style="padding:6px 10px;border:1px solid ' + C.border + ';border-radius:7px;background:' + C.bg + ';color:' + C.fg + ';cursor:pointer">下一页</button><span style="font-size:12px;color:' + C.muted + ';margin-left:6px">共 ' + mineTotal + ' 条 · 第 ' + minePage + '/' + mineTotalPages + ' 页</span>'
+          ? '<button class="pet-pager-btn pet-mine-page-btn" data-page="' + (minePage - 1) + '" ' + (minePage <= 1 ? 'disabled' : '') + '>🐾 上一页</button>' + minePaginationNumbers() + '<button class="pet-pager-btn pet-mine-page-btn" data-page="' + (minePage + 1) + '" ' + (minePage >= mineTotalPages ? 'disabled' : '') + '>下一页 🐾</button><span style="font-size:12px;color:' + C.muted + ';margin-left:4px">共 ' + mineTotal + ' 条 · 第 ' + minePage + '/' + mineTotalPages + ' 页</span>' + views().pageSizeSelectHtml({ cls: 'pet-mine-page-size', current: currentMinePageSize() })
           : '<span style="font-size:12px;color:' + C.muted + '">共 0 条</span>';
         $all('.pet-mine-page-btn', pager).forEach(btn => {
           btn.onclick = () => {
@@ -218,6 +216,16 @@
             });
           };
         });
+        const sizeSelect = $('.pet-mine-page-size', pager);
+        if (sizeSelect) {
+          sizeSelect.onchange = () => {
+            minePageSize = Number(sizeSelect.value) || MINE_PAGE_SIZE;
+            minePage = 1; // 每页数量变化后从第 1 页重新加载
+            void loadMineSubmissions();
+          };
+          // 自定义可爱风下拉面板（pet-picker.js）：鼠标点击时替代原生 option 列表
+          if (picker && typeof picker.attachSelect === 'function') picker.attachSelect(sizeSelect);
+        }
       }
 
       $all('.pet-edit-btn', sec).forEach(btn => { btn.onclick = (e) => { if (e) e.stopPropagation(); onEdit(btn.dataset.id); }; });

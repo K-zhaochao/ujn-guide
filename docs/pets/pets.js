@@ -103,6 +103,8 @@
   let currentPage = 1;
   let totalPages = 1;
   let totalCount = 0;
+  // 图鉴每页数量（用户可经分页条下拉调整）：初始手机（<768px）6 个/页，电脑 PAGE_SIZE 个/页
+  let galleryPageSize = (typeof window !== 'undefined' && window.innerWidth < 768) ? 6 : PAGE_SIZE;
   let user = null; // { provider, providerId, username, avatarUrl, nickname, isAdmin }
   let authProviders = ['github'];
   let activePersonalTab = 'mine';
@@ -727,7 +729,7 @@
       categories: CATEGORIES,
       sortMode,
       currentPage,
-      pageSize: PAGE_SIZE,
+      pageSize: galleryPageSize,
     }));
     const cacheKey = params.toString();
     const requestSeq = ++petRequestId;
@@ -779,7 +781,19 @@
       currentPage,
       totalPages,
       totalCount,
+      pageSize: galleryPageSize,
     });
+
+    const pageSizeSelect = $('.pet-page-size', gallery);
+    if (pageSizeSelect) {
+      pageSizeSelect.onchange = () => {
+        galleryPageSize = Number(pageSizeSelect.value) || PAGE_SIZE;
+        currentPage = 1; // 每页数量变化后从第 1 页重新加载
+        void loadPets();
+      };
+      // 自定义可爱风下拉面板（pet-picker.js）：鼠标点击时替代原生 option 列表
+      if (petPicker && typeof petPicker.attachSelect === 'function') petPicker.attachSelect(pageSizeSelect);
+    }
 
     $all('.pet-page-btn').forEach(btn => {
       btn.addEventListener('click', function () {
@@ -1074,6 +1088,9 @@
   // ================== 个人工作区：投稿与收藏 ==================
   // 交互逻辑已拆至 pet-mine.js（createPetMine 工厂，状态与加载/筛选/分页/行操作全部内聚）。
   // pets.js 只保留实例化与委托调用；渲染 HTML 由 pet-views.js 提供。
+  // 共享自定义下拉 / 日历面板实例（pet-picker.js）：图鉴分页下拉 / 我的投稿 / 我的收藏共用
+  const petPicker = petPickerModule.createPetPicker({ document, C });
+
   const petLikes = petLikesModule.createPetLikes({
     $, $all, C, esc,
     views,
@@ -1083,6 +1100,7 @@
     onOpenDetail: openDetail,
     getUser: () => user,
     PAGE_SIZE: 12,
+    picker: petPicker,
   });
 
   const petNotifications = petNotificationsModule.createPetNotifications({
@@ -1117,7 +1135,7 @@
     getCatEmoji: () => catEmoji,
     MINE_PAGE_SIZE: 12,
     // 自定义可爱风下拉 / 日历面板（pet-picker.js）：鼠标点击时替代原生系统 UI
-    picker: petPickerModule.createPetPicker({ document, C }),
+    picker: petPicker,
   });
 
   // ================== 编辑投稿模态框 ==================

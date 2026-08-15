@@ -100,6 +100,69 @@ hide:
     }
   }
 
+  /* 分页条（宠物收集录主题）：紧凑渐变药丸「上一页/下一页」+ 圆形页码 + 迷你每页下拉 */
+  .pet-pager { display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; margin: 18px 0 8px; }
+  .pet-pager-btn {
+    display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--pet-primary, #3b82f6) 35%, transparent);
+    background: linear-gradient(135deg, var(--pet-grad-a, #fdf2f8), var(--pet-grad-b, #fff7ed));
+    color: var(--md-default-fg-color, #374151); font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: transform .15s, box-shadow .15s; box-shadow: 0 1.5px 5px rgba(0, 0, 0, .06);
+  }
+  .pet-pager-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0, 0, 0, .1); }
+  .pet-pager-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .pet-pager-num {
+    min-width: 26px; height: 26px; padding: 0 6px; border-radius: 999px;
+    border: 1px solid var(--pet-border, #e5e7eb); background: var(--pet-chip-bg, #fff);
+    color: var(--md-default-fg-color, #374151); font-size: 12.5px; font-weight: 600; cursor: pointer;
+    transition: border-color .15s, color .15s, background .15s, box-shadow .15s;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .pet-pager-num:hover { border-color: var(--pet-primary, #3b82f6); color: var(--pet-primary, #3b82f6); }
+  .pet-pager-num.is-active {
+    background: var(--pet-primary, #3b82f6); border-color: var(--pet-primary, #3b82f6); color: #fff;
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--pet-primary, #3b82f6) 40%, transparent);
+  }
+  /* 每页数量迷你下拉：无系统箭头，纯 CSS 渐变三角指示器 + 药丸 */
+  .pet-pager-size-wrap { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--pet-muted, #9ca3af); margin-left: 4px; white-space: nowrap; }
+  .pet-pager-size {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    padding: 4px 22px 4px 10px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--pet-primary, #3b82f6) 30%, transparent);
+    background-color: var(--pet-chip-bg, #fff);
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--pet-muted, #9ca3af) 50%),
+      linear-gradient(135deg, var(--pet-muted, #9ca3af) 50%, transparent 50%);
+    background-position: calc(100% - 11px) 60%, calc(100% - 7px) 60%;
+    background-size: 4px 4px, 4px 4px;
+    background-repeat: no-repeat;
+    color: var(--md-default-fg-color, #374151);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+  }
+  .pet-pager-size:hover { border-color: color-mix(in srgb, var(--pet-primary, #3b82f6) 55%, transparent); }
+  .pet-pager-size:focus { outline: 2px solid var(--pet-primary, #3b82f6); outline-offset: 2px; }
+
+  /* 深色主题（slate）：分页按钮通透蓝紫渐变、页码/下拉主色 tint，避免发灰发暗 */
+  [data-md-color-scheme="slate"] .pet-pager-btn {
+    background: linear-gradient(135deg, rgba(96, 165, 250, .16), rgba(192, 132, 252, .12));
+    border-color: color-mix(in srgb, var(--pet-primary, #60a5fa) 40%, transparent);
+    box-shadow: 0 1.5px 6px rgba(0, 0, 0, .25);
+  }
+  [data-md-color-scheme="slate"] .pet-pager-btn:hover:not(:disabled) { box-shadow: 0 3px 10px rgba(0, 0, 0, .35); }
+  [data-md-color-scheme="slate"] .pet-pager-num {
+    background: color-mix(in srgb, var(--pet-primary, #60a5fa) 12%, var(--pet-input-bg, #1f242d));
+    border-color: color-mix(in srgb, var(--pet-primary, #60a5fa) 24%, transparent);
+  }
+  [data-md-color-scheme="slate"] .pet-pager-num.is-active {
+    background: var(--pet-primary, #60a5fa); border-color: transparent; color: #0b1220;
+    box-shadow: 0 2px 8px rgba(96, 165, 250, .35);
+  }
+  [data-md-color-scheme="slate"] .pet-pager-size {
+    background-color: var(--pet-input-bg, #1f242d);
+    border-color: color-mix(in srgb, var(--pet-primary, #60a5fa) 30%, transparent);
+  }
+
   /* P2-14 无障碍：键盘焦点可见 */
   .pet-card:focus-visible,
   .pet-mine-row:focus-visible,
@@ -368,6 +431,14 @@ hide:
     background: color-mix(in srgb, var(--pet-primary, #3b82f6) 14%, transparent);
     color: var(--pet-primary, #3b82f6);
     font-weight: 650;
+  }
+  /* 分页条「每页数量」迷你下拉的紧凑面板：窄宽 + 居中数字选项（pet-pager-size 触发） */
+  .pet-picker-panel--compact { min-width: 64px; padding: 4px; }
+  .pet-picker-panel--compact .pet-picker-option {
+    text-align: center; padding: 6px 10px; font-size: 12.5px; font-weight: 600; border-radius: 8px;
+  }
+  .pet-picker-panel--compact .pet-picker-option.is-selected {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pet-primary, #3b82f6) 45%, transparent);
   }
   /* 日历面板：圆角、柔和渐变头部、圆形日格 */
   .pet-cal { width: 258px; padding: 12px; }

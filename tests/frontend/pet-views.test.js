@@ -110,8 +110,11 @@ describe('宠物前端渲染层', () => {
     expect(html).toContain('2 只');
     expect(html).toContain('加入群聊');
     expect(html).toContain('https://t.me/x');
-    expect(html).toContain('共 2 只宠物');
-    expect(html).not.toContain('下一页');
+    expect(html).toContain('共 2 只 · 第 1/1 页');
+    // 分页条始终显示：单页也渲染 上一页/下一页 + 每页数量下拉
+    expect(html).toContain('🐾 上一页');
+    expect(html).toContain('下一页 🐾');
+    expect(html).toContain('每页');
 
     const empty = v.galleryHtml({ allPets: [], searchQuery: '不存在', currentPage: 1, totalPages: 1, totalCount: 0 });
     expect(empty).toContain('未找到相关宠物 🔍');
@@ -123,10 +126,11 @@ describe('宠物前端渲染层', () => {
       allPets: [{ id: 'a', name: 'A', category: '猫猫', type: { name: '猫猫' } }],
       searchQuery: '', currentPage: 2, totalPages: 5, totalCount: 97,
     });
-    expect(html).toContain('‹ 上一页');
-    expect(html).toContain('下一页 ›');
+    expect(html).toContain('🐾 上一页');
+    expect(html).toContain('下一页 🐾');
     expect(html).toContain('共 97 只 · 第 2/5 页');
     expect(html).toContain('data-page="5"');
+    expect(html).toContain('pet-pager-size');
   });
 
   it('我的收藏：复用公开卡片，使用独立分页类名与空状态', () => {

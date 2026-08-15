@@ -129,4 +129,41 @@ describe('宠物前端我的收藏控制器', () => {
       window.innerWidth = origWidth;
     }
   });
+
+  it('每页数量下拉：切换后回到第 1 页并按新数量重新加载', async () => {
+    document.body.innerHTML = '<div id="pet-liked-section" style="display:none"></div>';
+    const api = vi.fn().mockResolvedValue({
+      ok: true,
+      data: { pets: [{ id: 'pet_1', name: '小白' }], total: 25, page: 1, totalPages: 3 },
+    });
+    const views = vi.fn(() => ({
+      // 渲染层真实结构：卡片 + 独立类名的分页按钮 + 每页数量下拉
+      likedPetsHtml: () =>
+        '<button class="pet-card" data-id="pet_1">小白</button>' +
+        '<select class="pet-pager-size pet-liked-page-size">' +
+          '<option value="6">6</option><option value="12">12</option><option value="24">24</option>' +
+        '</select>',
+    }));
+    const controller = likes.createPetLikes({
+      $: selector => document.querySelector(selector),
+      $all: (selector, root = document) => [...root.querySelectorAll(selector)],
+      C: { border: '#ddd', fgDark: '#111', muted: '#666', soft: '#eee', fg: '#111', danger: '#d00' },
+      esc: value => String(value),
+      views,
+      api,
+      showToast: vi.fn(),
+      onLoginRequired: vi.fn(),
+      onOpenDetail: vi.fn(),
+      getUser: () => ({ username: 'tester' }),
+      PAGE_SIZE: 12,
+    });
+    await controller.openLikedSection();
+    expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=12');
+    // 切到每页 24 → 重新请求 page=1&pageSize=24
+    const select = document.querySelector('.pet-liked-page-size');
+    select.value = '24';
+    select.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 0));
+    expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=24');
+  });
 });
