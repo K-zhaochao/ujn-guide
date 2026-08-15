@@ -81,7 +81,7 @@ function makeMine(overrides) {
     getSiteConfig: () => siteConfig,
     getCategories: () => CATEGORIES,
     getCatEmoji: () => catEmoji,
-    MINE_PAGE_SIZE: 20,
+    MINE_PAGE_SIZE: 12,
     ...overrides,
   };
   const controller = mine.createPetMine(deps);
@@ -440,10 +440,33 @@ describe('宠物「我的投稿」交互控制器', () => {
     expect(select.innerHTML).toContain('猫猫');
   });
 
-  it('mineQueryParams：委托 buildMineListQuery 构建查询串', () => {
+  it('mineQueryParams：委托 buildMineListQuery 构建查询串（桌面每页 12）', () => {
     const { controller } = makeMine({});
     const qs = controller.mineQueryParams();
-    expect(qs.get('pageSize')).toBe('20');
+    expect(qs.get('pageSize')).toBe('12');
     expect(qs.get('sort')).toBe('updated');
+  });
+
+  it('响应式每页数量：手机（<768px）每页 6，桌面每页 12', () => {
+    const origWidth = window.innerWidth;
+    try {
+      window.innerWidth = 500;
+      expect(makeMine({}).controller.mineQueryParams().get('pageSize')).toBe('6');
+      window.innerWidth = 1280;
+      expect(makeMine({}).controller.mineQueryParams().get('pageSize')).toBe('12');
+    } finally {
+      window.innerWidth = origWidth;
+    }
+  });
+
+  it('分页条始终显示：仅一页数据也渲染上一页/数字/下一页与页码统计', async () => {
+    const { controller } = makeMine({
+      api: async (path) => ({ ok: true, data: { items: [{ id: 'only' }], total: 3, totalPages: 1, statusCounts: {} } }),
+    });
+    mountSection();
+    await controller.openMineSection();
+    const pager = document.getElementById('pet-mine-pager');
+    expect(pager.textContent).toContain('共 3 条 · 第 1/1 页');
+    expect(pager.querySelectorAll('.pet-mine-page-btn').length).toBeGreaterThan(0);
   });
 });

@@ -36,7 +36,7 @@
       getSiteConfig,
       getCategories,
       getCatEmoji,
-      MINE_PAGE_SIZE = 20,
+      MINE_PAGE_SIZE = 12,
       picker = null, // 可选：自定义下拉 / 日历面板（pet-picker.js），未注入时保留原生控件
     } = deps;
 
@@ -61,10 +61,16 @@
 
     function minePaginationNumbers() { return views().minePaginationNumbersHtml(minePage, mineTotalPages); }
 
+    // 每页数量响应式：手机（<768px）6 个/页，电脑 12 个/页；测试可注入 MINE_PAGE_SIZE 覆盖桌面值
+    function currentMinePageSize() {
+      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      return mobile ? 6 : MINE_PAGE_SIZE;
+    }
+
     function mineQueryParams() {
       return new URLSearchParams(buildMineListQuery({
         query: mineQuery, status: mineStatus, category: mineCategory, start: mineDate, end: mineDateEnd,
-        sort: mineSort, page: minePage, pageSize: MINE_PAGE_SIZE,
+        sort: mineSort, page: minePage, pageSize: currentMinePageSize(),
       }));
     }
 
@@ -193,9 +199,10 @@
 
       const pager = $('#pet-mine-pager');
       if (pager) {
-        pager.innerHTML = mineTotalPages > 1
-          ? '<button class="pet-mine-page-btn" data-page="' + (minePage - 1) + '" ' + (minePage <= 1 ? 'disabled' : '') + ' style="padding:6px 10px;border:1px solid ' + C.border + ';border-radius:7px;background:' + C.bg + ';color:' + C.fg + ';cursor:pointer">上一页</button>' + minePaginationNumbers() + '<button class="pet-mine-page-btn" data-page="' + (minePage + 1) + '" ' + (minePage >= mineTotalPages ? 'disabled' : '') + ' style="padding:6px 10px;border:1px solid ' + C.border + ';border-radius:7px;background:' + C.bg + ';color:' + C.fg + ';cursor:pointer">下一页</button><span style="font-size:12px;color:' + C.muted + ';margin-left:6px">第 ' + minePage + '/' + mineTotalPages + ' 页</span>'
-          : '<span style="font-size:12px;color:' + C.muted + '">共 ' + mineTotal + ' 条</span>';
+        // 分页条始终显示（有数据时），即使只有一页也展示 上一页/数字/下一页 与页码统计
+        pager.innerHTML = mineTotal > 0
+          ? '<button class="pet-mine-page-btn" data-page="' + (minePage - 1) + '" ' + (minePage <= 1 ? 'disabled' : '') + ' style="padding:6px 10px;border:1px solid ' + C.border + ';border-radius:7px;background:' + C.bg + ';color:' + C.fg + ';cursor:pointer">上一页</button>' + minePaginationNumbers() + '<button class="pet-mine-page-btn" data-page="' + (minePage + 1) + '" ' + (minePage >= mineTotalPages ? 'disabled' : '') + ' style="padding:6px 10px;border:1px solid ' + C.border + ';border-radius:7px;background:' + C.bg + ';color:' + C.fg + ';cursor:pointer">下一页</button><span style="font-size:12px;color:' + C.muted + ';margin-left:6px">共 ' + mineTotal + ' 条 · 第 ' + minePage + '/' + mineTotalPages + ' 页</span>'
+          : '<span style="font-size:12px;color:' + C.muted + '">共 0 条</span>';
         $all('.pet-mine-page-btn', pager).forEach(btn => {
           btn.onclick = () => {
             if (btn.disabled) return;
@@ -368,7 +375,7 @@
       const data = r.data || {};
       const items = Array.isArray(data.items) ? data.items : (Array.isArray(data.submissions) ? data.submissions : []);
       mineTotal = Number.isFinite(Number(data.total)) ? Number(data.total) : items.length;
-      mineTotalPages = Math.max(1, Number(data.totalPages) || Math.ceil(mineTotal / MINE_PAGE_SIZE) || 1);
+      mineTotalPages = Math.max(1, Number(data.totalPages) || Math.ceil(mineTotal / currentMinePageSize()) || 1);
       const responsePage = Math.max(1, Number(data.page) || minePage);
       if (responsePage > mineTotalPages && items.length === 0 && mineTotal > 0) {
         minePage = mineTotalPages;

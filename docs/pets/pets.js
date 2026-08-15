@@ -1082,7 +1082,7 @@
     onLoginRequired: openLoginPop,
     onOpenDetail: openDetail,
     getUser: () => user,
-    PAGE_SIZE,
+    PAGE_SIZE: 12,
   });
 
   const petNotifications = petNotificationsModule.createPetNotifications({
@@ -1115,7 +1115,7 @@
     getSiteConfig: () => siteConfig,
     getCategories: () => CATEGORIES,
     getCatEmoji: () => catEmoji,
-    MINE_PAGE_SIZE: 20,
+    MINE_PAGE_SIZE: 12,
     // 自定义可爱风下拉 / 日历面板（pet-picker.js）：鼠标点击时替代原生系统 UI
     picker: petPickerModule.createPetPicker({ document, C }),
   });

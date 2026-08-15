@@ -10,12 +10,18 @@
   'use strict';
 
   function createPetLikes(deps) {
-    const { $, $all, C, esc, views, api, showToast, onLoginRequired, onOpenDetail, getUser, PAGE_SIZE = 24 } = deps;
+    const { $, $all, C, esc, views, api, showToast, onLoginRequired, onOpenDetail, getUser, PAGE_SIZE = 12 } = deps;
     let pets = [];
     let page = 1;
     let total = 0;
     let totalPages = 1;
     let requestId = 0;
+
+    // 每页数量响应式：手机（<768px）6 个/页，电脑 12 个/页；测试可注入 PAGE_SIZE 覆盖桌面值
+    function currentLikedPageSize() {
+      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      return mobile ? 6 : PAGE_SIZE;
+    }
 
     function section() { return $('#pet-liked-section'); }
 
@@ -67,7 +73,7 @@
       const list = $('#pet-liked-list');
       const currentRequestId = ++requestId;
       if (list && !list.innerHTML) list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:24px">正在加载收藏…</p>';
-      const query = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) });
+      const query = new URLSearchParams({ page: String(page), pageSize: String(currentLikedPageSize()) });
       const result = await api('/api/my/liked-pets?' + query.toString());
       if (currentRequestId !== requestId || !list) return;
       if (!result.ok) {
@@ -77,7 +83,7 @@
       const data = result.data || {};
       pets = Array.isArray(data.pets) ? data.pets : [];
       total = Math.max(0, Number(data.total) || 0);
-      totalPages = Math.max(1, Number(data.totalPages) || Math.ceil(total / PAGE_SIZE) || 1);
+      totalPages = Math.max(1, Number(data.totalPages) || Math.ceil(total / currentLikedPageSize()) || 1);
       if (page > totalPages && total > 0) {
         page = totalPages;
         return loadLikedPets();
@@ -109,7 +115,7 @@
       if (!sec || sec.style.display === 'none' || !pets.some(pet => pet.id === id)) return;
       pets = pets.filter(pet => pet.id !== id);
       total = Math.max(0, total - 1);
-      totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      totalPages = Math.max(1, Math.ceil(total / currentLikedPageSize()));
       if (page > totalPages) page = totalPages;
       renderLikedPets();
       // 补齐分页留下的位置，并确认下一页边界。

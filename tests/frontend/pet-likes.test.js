@@ -111,4 +111,22 @@ describe('宠物前端我的收藏控制器', () => {
     expect(scrollSpy).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth', block: 'start' }));
     expect(scrollSpy.mock.calls[0][0].target || scrollSpy.mock.instances[0]).toBeTruthy();
   });
+
+  it('响应式每页数量：手机（<768px）每页 6，桌面每页 12', async () => {
+    const origWidth = window.innerWidth;
+    try {
+      // 桌面：注入 PAGE_SIZE=12 作为桌面值
+      window.innerWidth = 1280;
+      let { api, controller } = setup({ PAGE_SIZE: 12 });
+      await controller.openLikedSection();
+      expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=12');
+      // 手机：强制每页 6（覆盖注入的桌面值）
+      window.innerWidth = 500;
+      ({ api, controller } = setup({ PAGE_SIZE: 12 }));
+      await controller.openLikedSection();
+      expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=6');
+    } finally {
+      window.innerWidth = origWidth;
+    }
+  });
 });
