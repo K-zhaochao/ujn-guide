@@ -10,8 +10,9 @@
  *   - 回调：onSubmitted（提交成功后刷新公开列表）
  *   - 可变状态 getter：getUser / getSiteConfig / getContentSchema /
  *     getContentSchemaReady / getSubmissionTypes / getMaxImagesLimit / getCatEmoji
- * 状态（draftId、submitTypeId、submitIdempotencyKey 等）全部内聚于此；
+ * 状态（本地草稿、submitTypeId、submitIdempotencyKey 等）全部内聚于此；
  * pets.js 只保留实例化与委托调用。
+ * 草稿为浏览器本地（localStorage，含压缩后的图片 dataURL），无草稿时不提示。
  */
 (function (root, factory) {
   const submit = factory();
@@ -113,74 +114,88 @@
 
       updateAuthUI();
 
-      // ===== P1-06 投稿草稿：自动保存 + 恢复（草稿只存文本字段与图片张数，不存 dataUrl） =====
-      let draftId = null;
-      let draftRowVersion = 1;
+      // ===== 投稿草稿：浏览器本地自动保存 + 恢复（localStorage，含压缩后的图片 dataURL） =====
+      // 原 P1-06 服务端草稿（/api/my/drafts）改为本地草稿：草稿与浏览器绑定、包含图片，
+      // 避免跨设备出现「提示有草稿却无图片」；无本地草稿时不提示、不打扰。
       let draftTimer = null;
       const DRAFT_SAVE_DELAY = 800;
+      const draftStorage = (() => {
+        try {
+          const s = typeof localStorage !== 'undefined' ? localStorage : null;
+          if (s) { s.setItem('__ujn_draft_probe__', '1'); s.removeItem('__ujn_draft_probe__'); }
+          return s;
+        } catch (_) { return null; }
+      })();
+      const draftKey = () => 'ujn:pet-submit:draft' + (user && (user.userId || user.id) ? ':' + (user.userId || user.id) : '');
       const buildDraftPayload = () => {
         const fields = readDynamicFields($('#pet-dynamic-fields'));
         const nameEl = $('#pet-name');
         if (nameEl) fields.name = nameEl.value.trim();
         return {
+          savedAt: new Date().toISOString(),
+          schemaVersion: contentSchema.schemaVersion || siteConfig.schemaVersion,
           typeId: submitTypeId || undefined,
           typeCode: submitTypeCode || undefined,
           category: submitCategory || undefined,
           fields,
-          imageCount: uploadedImages.length,
+          images: uploadedImages.slice(),
         };
       };
       const hasDraftContent = (payload) => {
-        if (payload.category || payload.typeId || payload.imageCount) return true;
+        if (payload.category || payload.typeId || (payload.images && payload.images.length)) return true;
         return Object.values(payload.fields || {}).some(v => String(v || '').trim() !== '');
       };
       const saveDraft = () => {
-        if (!user) return;
+        if (!user || !draftStorage) return;
         const payload = buildDraftPayload();
-        if (!hasDraftContent(payload)) return;
-        api('/api/my/drafts', {
-          method: 'POST',
-          body: { id: draftId || undefined, rowVersion: draftId ? draftRowVersion : undefined, schemaVersion: contentSchema.schemaVersion || siteConfig.schemaVersion, payload },
-        }).then(r => {
-          if (r.ok && r.data && r.data.draft) { draftId = r.data.draft.id; draftRowVersion = r.data.draft.rowVersion; }
-        }).catch(() => { /* 草稿保存失败不打断投稿 */ });
+        if (!hasDraftContent(payload)) { draftStorage.removeItem(draftKey()); return; }
+        try {
+          draftStorage.setItem(draftKey(), JSON.stringify(payload));
+        } catch (e) {
+          // 浏览器存储配额超限：降级为仅保存文本与字段（图片不落盘），恢复时明确提示
+          if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+            payload.images = [];
+            payload.imagesTruncated = true;
+            try { draftStorage.setItem(draftKey(), JSON.stringify(payload)); } catch (_) { /* 文本都存不下则放弃草稿 */ }
+          }
+        }
       };
       const scheduleDraftSave = () => {
         clearTimeout(draftTimer);
         draftTimer = setTimeout(saveDraft, DRAFT_SAVE_DELAY);
       };
       const discardDraft = () => {
-        if (draftId) api('/api/my/drafts/' + encodeURIComponent(draftId), { method: 'DELETE' }).catch(() => {});
-        draftId = null;
+        if (draftStorage) draftStorage.removeItem(draftKey());
       };
       function closeWithDraftSave() {
         clearTimeout(draftTimer);
         saveDraft(); // 关闭时立即保存当前内容
         closeSubmitModal();
       }
-      const restoreLatestDraft = async () => {
-        if (!user) return;
-        try {
-          const r = await api('/api/my/drafts?pageSize=1');
-          if (!r.ok || !r.data || !r.data.items || !r.data.items.length) return;
-          const d = r.data.items[0];
-          draftId = d.id;
-          draftRowVersion = d.rowVersion || 1;
-          const p = d.payload || {};
-          if (p.category || p.typeId) {
-            submitCategory = p.category || '';
-            submitTypeId = p.typeId || '';
-            submitTypeCode = p.typeCode || '';
-            catLabel.textContent = submitCategory ? (catEmoji[submitCategory] || '') + ' ' + submitCategory : '请选择';
-            catLabel.style.color = submitCategory ? 'inherit' : C.muted;
-            renderSubmitFields(submitTypeId, p.fields || {});
-          }
-          const nameEl = $('#pet-name');
-          if (nameEl && p.fields && p.fields.name) nameEl.value = p.fields.name;
-          const cnt = $('#pet-image-count');
-          if (cnt && p.imageCount) cnt.textContent = '💾 上次草稿 ' + p.imageCount + ' 张照片（需重新选择）';
-          showToast('💾 已恢复上次未完成的投稿草稿');
-        } catch (e) { /* 草稿恢复失败不打断投稿 */ }
+      const restoreLatestDraft = () => {
+        if (!user || !draftStorage) return;
+        let p = null;
+        try { p = JSON.parse(draftStorage.getItem(draftKey()) || 'null'); } catch (_) { p = null; }
+        if (!p || !hasDraftContent({ category: p.category, typeId: p.typeId, fields: p.fields || {}, images: p.images || [] })) return;
+        if (p.category || p.typeId) {
+          submitCategory = p.category || '';
+          submitTypeId = p.typeId || '';
+          submitTypeCode = p.typeCode || '';
+          catLabel.textContent = submitCategory ? (catEmoji[submitCategory] || '') + ' ' + submitCategory : '请选择';
+          catLabel.style.color = submitCategory ? 'inherit' : C.muted;
+          renderSubmitFields(submitTypeId, p.fields || {});
+        }
+        const nameEl = $('#pet-name');
+        if (nameEl && p.fields && p.fields.name) nameEl.value = p.fields.name;
+        if (Array.isArray(p.images) && p.images.length) {
+          uploadedImages.push.apply(uploadedImages, p.images);
+          renderImagePreviews();
+        }
+        const cnt = $('#pet-image-count');
+        if (cnt && uploadedImages.length) cnt.textContent = '已恢复 ' + uploadedImages.length + ' 张照片';
+        showToast(p.imagesTruncated
+          ? '💾 已恢复上次草稿（图片因浏览器存储空间不足未保存）'
+          : '💾 已恢复上次未完成的投稿草稿（含 ' + uploadedImages.length + ' 张照片）');
       };
 
       // 输入变化 → 防抖自动保存
@@ -188,7 +203,6 @@
       if (nameEl) nameEl.addEventListener('input', scheduleDraftSave);
       const dynRoot = $('#pet-dynamic-fields');
       if (dynRoot) dynRoot.addEventListener('input', scheduleDraftSave);
-      restoreLatestDraft();
 
       // 自定义分类下拉（替代原生 select）
       let submitCategory = '';
@@ -238,38 +252,46 @@
         });
       });
 
-      // 图片压缩预览
+      // 图片压缩预览（change 事件清空重选；草稿恢复复用同一渲染）
       const imgInput = $('#pet-images');
       const previews = $('#pet-image-previews');
       const imageCount = $('#pet-image-count');
       const uploadedImages = [];
+      const renderImagePreviews = () => {
+        previews.innerHTML = '';
+        uploadedImages.forEach((dataUrl) => {
+          const div = document.createElement('div');
+          div.style.cssText = 'width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid ' + C.border + ';position:relative';
+          div.innerHTML = '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover">' +
+            '<span style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:12px;cursor:pointer">✕</span>';
+          div.onclick = (e) => {
+            if (e.target.tagName === 'SPAN') {
+              div.remove();
+              const idx = uploadedImages.indexOf(dataUrl);
+              if (idx > -1) uploadedImages.splice(idx, 1);
+              imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
+              scheduleDraftSave(); // 图片删除也计入草稿
+            }
+          };
+          previews.appendChild(div);
+        });
+        imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
+      };
       imgInput.addEventListener('change', async function () {
         const files = Array.from(this.files).slice(0, maxImagesLimit);
-        previews.innerHTML = '';
         uploadedImages.length = 0;
         for (const file of files) {
           try {
             const dataUrl = await fileToWebP(file);
             assertImageWithinLimit(dataUrl);
             uploadedImages.push(dataUrl);
-            const div = document.createElement('div');
-            div.style.cssText = 'width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid ' + C.border + ';position:relative';
-            div.innerHTML = '<img src="' + dataUrl + '" style="width:100%;height:100%;object-fit:cover">' +
-              '<span style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border-radius:50%;width:18px;height:18px;text-align:center;line-height:18px;font-size:12px;cursor:pointer">✕</span>';
-            div.onclick = (e) => {
-              if (e.target.tagName === 'SPAN') {
-                div.remove();
-                const idx = uploadedImages.indexOf(dataUrl);
-                if (idx > -1) uploadedImages.splice(idx, 1);
-                imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
-              }
-            };
-            previews.appendChild(div);
           } catch (e) { showToast(e && e.message ? e.message : '图片压缩失败，请更换图片后重试', true); }
         }
-        imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
-        scheduleDraftSave(); // P1-06：图片张数变化计入草稿
+        renderImagePreviews();
+        scheduleDraftSave(); // 图片变化计入草稿
       });
+      // 打开弹窗后恢复本地草稿（无草稿时不提示）
+      restoreLatestDraft();
 
       // 提交
       $('#pet-submit-btn').addEventListener('click', async function () {

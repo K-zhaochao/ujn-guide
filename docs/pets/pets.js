@@ -972,7 +972,7 @@
 
   // ================== 投稿模态框（P1-01：交互逻辑已拆至 pet-submit.js） ==================
   // pets.js 仅保留实例化与委托调用；动态字段渲染/读取、图片压缩与登录区更新仍在本文件，
-  // 经注入供 pet-submit.js 使用。状态（draftId/submitTypeId/submitIdempotencyKey 等）全部内聚于 pet-submit.js。
+  // 经注入供 pet-submit.js 使用。状态（submitTypeId/submitIdempotencyKey/本地草稿等）全部内聚于 pet-submit.js。
   let petMine;
 
   const petSubmit = petSubmitModule.createPetSubmit({
