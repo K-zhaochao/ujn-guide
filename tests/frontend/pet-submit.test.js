@@ -150,7 +150,66 @@ describe('宠物「投稿表单」交互控制器', () => {
     t.controller.openSubmitModal();
     expect(document.querySelector('#pet-submit-btn').disabled).toBe(false);
   });
+  it('照片标签不再常驻显示单张大小上限（超限时才弹窗）', async () => {
+    const t = makeSubmit();
+    mountSubmit();
+    t.controller.openSubmitModal();
+    await flush();
+    const label = Array.from(document.querySelectorAll('#pet-submit-modal label'))
+      .find(el => /照片/.test(el.textContent));
+    expect(label).toBeTruthy();
+    expect(label.textContent).toContain('1~5 张');
+    expect(label.textContent).toContain('自动压缩');
+    expect(label.textContent).not.toContain('单张不超过');
+  });
 
+  it('草稿提示条：已登录可见、未登录隐藏', async () => {
+    const t = makeSubmit();
+    t.setUser(null); // 未登录：不保存草稿，提示条应隐藏
+    mountSubmit();
+    t.controller.openSubmitModal();
+    await flush();
+    const hint = document.querySelector('#pet-draft-hint');
+    expect(hint).toBeTruthy();
+    expect(hint.textContent).toContain('自动保存草稿');
+    expect(hint.style.display).toBe('none');
+    // 登录后重新打开：提示条可见
+    t.setUser({ provider: 'github', username: 'tester', nickname: '测试', userId: 'u1' });
+    document.body.innerHTML = '';
+    mountSubmit();
+    t.controller.openSubmitModal();
+    await flush();
+    expect(document.querySelector('#pet-draft-hint').style.display).not.toBe('none');
+  });
+
+  it('图片压缩后仍超限：弹出设计好的提示弹窗而非 toast', async () => {
+    const t = makeSubmit({
+      assertImageWithinLimit: () => {
+        const err = new Error('压缩后的单张图片超过 5MB，请更换图片后重试');
+        err.sizeBytes = 3 * 1024 * 1024; // 3MB
+        throw err;
+      },
+    });
+    mountSubmit();
+    t.controller.openSubmitModal();
+    await flush();
+    const input = document.querySelector('#pet-images');
+    Object.defineProperty(input, 'files', { value: [new File(['x'], 'huge.png', { type: 'image/png' })], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await flush();
+    const dialog = document.getElementById('pet-image-limit-modal');
+    expect(dialog).toBeTruthy();
+    expect(dialog.textContent).toContain('huge.png');
+    expect(dialog.textContent).toContain('3.0 MB'); // 实际压缩后大小
+    expect(dialog.textContent).toContain('5MB'); // imageLimitLabel() 注入值
+    // 超限不再走 toast 错误提示
+    expect(t.calls.toast.some(x => x.isError && /超过/.test(x.msg))).toBe(false);
+    // 点「知道了」关闭弹窗
+    document.getElementById('pet-image-limit-ok').click();
+    expect(t.calls.closeModal.length).toBeGreaterThan(0);
+    // 超限图片不会进入已选列表
+    expect(document.querySelectorAll('#pet-image-previews img').length).toBe(0);
+  });
   it('选择种类：渲染动态字段并防抖保存本地草稿', async () => {
     const t = makeSubmit();
     mountSubmit();

@@ -90,12 +90,12 @@
           '<div style="flex:2">' +
             '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">宠物名称 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（选填）</span></label>' +
             '<input type="text" id="pet-name" maxlength="20" placeholder="例：小白（也可留空）" style="width:100%;padding:10px 12px;border:1px solid ' + C.border + ';border-radius:8px;font-size:15px;outline:none;background:' + C.inputBg + ';color:inherit;box-sizing:border-box">' +
-            '<div id="pet-name-status" style="font-size:12px;margin-top:4px;min-height:18px;color:' + C.muted + '">💡 名称选填，留空将显示为“未命名宠物”，可凭照片+地点识别</div>' +
+            '<div id="pet-name-status" style="font-size:12px;margin-top:4px;min-height:18px;color:' + C.muted + '">💡 名称选填</div>' +
           '</div>' +
         '</div>' +
 
         '<div style="margin-bottom:16px">' +
-          '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="color:' + C.danger + '">*</span> <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，单张不超过 ' + imageLimitLabel() + '，自动压缩）</span></label>' +
+          '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="color:' + C.danger + '">*</span> <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，自动压缩）</span></label>' +
           '<label for="pet-images" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:' + C.soft + ';color:' + C.primary + ';border:2px dashed var(--pet-primary,#93c5fd);border-radius:10px;font-size:14px;font-weight:500;cursor:pointer">' +
           '<span style="font-size:18px">📷</span> 选择文件</label>' +
           '<input type="file" id="pet-images" accept="image/*" multiple style="display:none">' +
@@ -107,12 +107,16 @@
 
         '<div id="pet-auth-area" style="margin-bottom:14px"></div>' +
         '<button id="pet-submit-btn" disabled style="width:100%;padding:12px;background:#9ca3af;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:not-allowed;font-weight:600">🔒 请先登录后再投稿</button>' +
+        '<div id="pet-draft-hint" style="margin-top:10px;font-size:12px;color:' + C.muted + ';text-align:center;line-height:1.6">💾 不提交直接关闭会<span style="color:' + C.fg + '">自动保存草稿</span>，下次打开可继续填写</div>' +
         '</div>';
 
       $('#pet-submit-close').onclick = closeWithDraftSave;
       modal.onclick = (e) => { if (e.target === modal) closeWithDraftSave(); };
 
       updateAuthUI();
+      // 草稿提示条仅对已登录用户可见（未登录不保存草稿）
+      const draftHintEl = $('#pet-draft-hint');
+      if (draftHintEl) draftHintEl.style.display = user ? '' : 'none';
 
       // ===== 投稿草稿：浏览器本地自动保存 + 恢复（localStorage，含压缩后的图片 dataURL） =====
       // 原 P1-06 服务端草稿（/api/my/drafts）改为本地草稿：草稿与浏览器绑定、包含图片，
@@ -277,6 +281,32 @@
         });
         imageCount.textContent = uploadedImages.length ? '已选 ' + uploadedImages.length + ' 张' : '';
       };
+
+      // ===== 图片超限弹窗：压缩转 WebP 后仍超过单张上限时才弹出（表单内不再常驻大小提示） =====
+      const dataUrlBytes = (dataUrl) => {
+        const comma = dataUrl.indexOf(',');
+        const b64 = comma > -1 ? dataUrl.slice(comma + 1) : dataUrl;
+        return Math.ceil(b64.length * 3 / 4) - (b64.endsWith('==') ? 2 : b64.endsWith('=') ? 1 : 0);
+      };
+      const formatBytes = (bytes) => bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.ceil(bytes / 1024)) + ' KB';
+      const showImageLimitDialog = (fileName, sizeLabel) => {
+        const old = document.getElementById('pet-image-limit-modal');
+        if (old) old.remove();
+        const modal = document.createElement('div');
+        modal.id = 'pet-image-limit-modal';
+        document.body.appendChild(modal);
+        modal.innerHTML =
+          '<div style="background:' + C.bg + ';border-radius:16px;max-width:380px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 48px rgba(0,0,0,.22)">' +
+          '<div style="width:56px;height:56px;margin:0 auto 14px;border-radius:50%;background:' + C.dangerBg + ';display:flex;align-items:center;justify-content:center;font-size:26px" aria-hidden="true">⚠️</div>' +
+          '<h3 style="margin:0 0 8px;font-size:18px;color:' + C.fgDark + '">这张照片太大了</h3>' +
+          '<p style="margin:0 0 6px;font-size:14px;color:' + C.fg + ';line-height:1.65;word-break:break-all">「' + esc(fileName) + '」压缩成 WebP 后仍有 <b style="color:' + C.danger + '">' + esc(sizeLabel) + '</b>，超过单张上限 <b>' + esc(imageLimitLabel()) + '</b>。</p>' +
+          '<p style="margin:0 0 20px;font-size:13px;color:' + C.muted + ';line-height:1.65">图片已自动压缩到最长边 1080px。请换一张更简洁的照片，或先把原图缩小后再上传。</p>' +
+          '<button id="pet-image-limit-ok" type="button" style="min-width:120px;padding:10px 22px;background:' + C.primary + ';color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">知道了</button>' +
+          '</div>';
+        openPetModal(modal, { label: '图片大小提示' });
+        $('#pet-image-limit-ok').onclick = () => closePetModal(modal);
+        modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
+      };
       imgInput.addEventListener('change', async function () {
         const files = Array.from(this.files).slice(0, maxImagesLimit);
         uploadedImages.length = 0;
@@ -285,7 +315,14 @@
             const dataUrl = await fileToWebP(file);
             assertImageWithinLimit(dataUrl);
             uploadedImages.push(dataUrl);
-          } catch (e) { showToast(e && e.message ? e.message : '图片压缩失败，请更换图片后重试', true); }
+          } catch (e) {
+            // 压缩后仍超限 → 弹出专门设计的提示弹窗；其余错误保持 toast
+            if (e && typeof e.sizeBytes === 'number') {
+              showImageLimitDialog(file.name, formatBytes(e.sizeBytes));
+            } else {
+              showToast(e && e.message ? e.message : '图片压缩失败，请更换图片后重试', true);
+            }
+          }
         }
         renderImagePreviews();
         scheduleDraftSave(); // 图片变化计入草稿

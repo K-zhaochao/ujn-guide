@@ -1053,7 +1053,9 @@
   /** 图片 → WebP dataURL（压缩） */
   function assertImageWithinLimit(dataUrl) {
     if (dataUrlByteLength(dataUrl) > maxImageBytesLimit) {
-      throw new Error('压缩后的单张图片超过 ' + imageLimitLabel() + '，请更换图片后重试');
+      const err = new Error('压缩后的单张图片超过 ' + imageLimitLabel() + '，请更换图片后重试');
+      err.sizeBytes = dataUrlByteLength(dataUrl); // 供前端弹窗展示实际压缩后大小
+      throw err;
     }
   }
 
@@ -1229,7 +1231,7 @@
       '<div style="font-size:12px;color:' + C.muted + ';margin-bottom:16px">按该投稿保存时的字段版本编辑；' + editGuide + (readOnlyCount ? '其中 ' + readOnlyCount + ' 个字段因归档或权限调整为只读。' : '') + '</div>' +
       // P1-05：图片区（删除 ✕ / 排序 ⇅ / 替换重选 / 追加新图）
       '<div style="margin-bottom:16px">' +
-        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，单张不超过 ' + imageLimitLabel() + '，点 ✕ 删除，⇅ 调整顺序）</span></label>' +
+        '<label style="display:block;font-size:14px;font-weight:600;margin-bottom:6px;color:' + C.fg + '">照片 <span style="font-weight:400;color:' + C.muted + ';font-size:12px">（1~' + maxImagesLimit + ' 张，点 ✕ 删除，⇅ 调整顺序，上传后自动压缩）</span></label>' +
         '<div id="pet-edit-images" style="display:flex;gap:8px;flex-wrap:wrap"></div>' +
         '<label for="pet-edit-images-input" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:' + C.soft + ';color:' + C.primary + ';border:2px dashed var(--pet-primary,#93c5fd);border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;margin-top:10px">' +
           '<span style="font-size:16px">📷</span> 添加照片</label>' +
