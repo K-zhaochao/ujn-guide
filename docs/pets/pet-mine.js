@@ -117,10 +117,15 @@
         minePage = 1; loadMineSubmissions();
       };
       $('#pet-mine-sort').onchange = e => { mineSort = e.target.value; minePage = 1; loadMineSubmissions(); };
-      // 自定义可爱风下拉 / 日历面板（pet-picker.js）：仅接管鼠标/触控点击，键盘仍走原生，
+      // 自定义可爱风下拉 / 滚轮 / 日历面板（pet-picker.js）：仅接管鼠标/触控点击，键盘仍走原生，
       // 选中后同步原生元素 value 并派发 change，上面的 onchange 逻辑保持不变。
-      if (picker && typeof picker.attachSelect === 'function') {
+      // 类型筛选选项多，用滚轮面板防占屏；排序等少量选项保持普通下拉面板。
+      if (picker && typeof picker.attachWheel === 'function') {
+        picker.attachWheel($('#pet-mine-category'));
+      } else if (picker && typeof picker.attachSelect === 'function') {
         picker.attachSelect($('#pet-mine-category'));
+      }
+      if (picker && typeof picker.attachSelect === 'function') {
         picker.attachSelect($('#pet-mine-sort'));
         if (typeof picker.attachDate === 'function') {
           picker.attachDate($('#pet-mine-date'));

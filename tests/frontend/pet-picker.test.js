@@ -122,6 +122,117 @@ describe('宠物前端可爱风选择器（pet-picker.js）', () => {
     });
   });
 
+  describe('滚轮选择面板 attachWheel', () => {
+    it('点击 select 打开滚轮面板，当前选中行高亮居中', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      select.value = 'v2';
+      controller.attachWheel(select);
+      fireMousedown(select);
+      const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
+      expect(panel).not.toBeNull();
+      const active = panel.querySelector('.pet-wheel-row.is-active');
+      expect(active).not.toBeNull();
+      expect(active.textContent).toBe('🐶 狗狗');
+      expect(panel.querySelectorAll('.pet-wheel-row').length).toBe(3);
+    });
+
+    it('鼠标滚轮逐格滑动：视觉立即更新，停止 280ms 后防抖提交 change', () => {
+      vi.useFakeTimers();
+      try {
+        const controller = makePicker();
+        const select = mountSelect();
+        const onChange = vi.fn();
+        select.addEventListener('change', onChange);
+        controller.attachWheel(select);
+        fireMousedown(select);
+        const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
+        panel.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+        // 视觉立即移动（index 0 → 1，高亮第 2 项），但 change 尚未派发
+        const active = panel.querySelector('.pet-wheel-row.is-active');
+        expect(active.textContent).toBe('🐱 猫猫');
+        expect(onChange).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(280);
+        expect(select.value).toBe('v1');
+        expect(onChange).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('连续滚动只提交一次 change（防抖合并）', () => {
+      vi.useFakeTimers();
+      try {
+        const controller = makePicker();
+        const select = mountSelect();
+        const onChange = vi.fn();
+        select.addEventListener('change', onChange);
+        controller.attachWheel(select);
+        fireMousedown(select);
+        const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
+        panel.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+        panel.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+        vi.advanceTimersByTime(280);
+        expect(select.value).toBe('v2');
+        expect(onChange).toHaveBeenCalledOnce();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('点击某行：立即选中、派发 change 并关闭面板', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      const onChange = vi.fn();
+      select.addEventListener('change', onChange);
+      controller.attachWheel(select);
+      fireMousedown(select);
+      const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
+      panel.querySelectorAll('.pet-wheel-row')[2].click();
+      expect(select.value).toBe('v2');
+      expect(onChange).toHaveBeenCalledOnce();
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
+
+    it('再次点击同一 select：关闭面板而非重开；按 Esc 也关闭', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachWheel(select);
+      fireMousedown(select);
+      expect(document.querySelector('.pet-picker-panel.pet-picker-wheel')).not.toBeNull();
+      fireMousedown(select);
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+      fireMousedown(select);
+      expect(document.querySelector('.pet-picker-panel.pet-picker-wheel')).not.toBeNull();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
+
+    it('面板内键盘：↑ 切换上一项并派发 change', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      select.value = 'v2';
+      const onChange = vi.fn();
+      select.addEventListener('change', onChange);
+      controller.attachWheel(select);
+      fireMousedown(select);
+      const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
+      panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+      expect(select.value).toBe('v1');
+      expect(onChange).toHaveBeenCalledOnce();
+    });
+
+    it('重复 attach 不重复绑定', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachWheel(select);
+      controller.attachWheel(select);
+      fireMousedown(select);
+      fireMousedown(select);
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
+  });
+
   describe('自定义日历面板 attachDate', () => {
     it('点击输入框任意位置（不限日历图标）打开面板并渲染月份标题', () => {
       const controller = makePicker();
