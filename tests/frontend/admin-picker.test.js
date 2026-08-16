@@ -73,6 +73,55 @@ describe('管理后台宠物风选择器（admin-picker.js）', () => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       expect(document.querySelector('.pet-picker-panel')).toBeNull();
     });
+
+    it('普通下拉面板带 --list 类（固定高度 + 滚动条），紧凑面板不带', () => {
+      const controller = makePicker();
+      const many = ['全部操作', '通过公开投稿', '驳回公开投稿', '删除投稿', '恢复投稿', '通过修订', '驳回修订', '封禁用户', '解封用户', '管理员任免'];
+      const select = mountSelect(many);
+      controller.attachSelect(select);
+      fireMousedown(select);
+      const panel = document.querySelector('.pet-picker-panel');
+      expect(panel.classList.contains('pet-picker-panel--list')).toBe(true);
+      expect(panel.classList.contains('pet-picker-panel--compact')).toBe(false);
+      panel.remove();
+      const compact = mountSelect(['6', '12', '24', '48']);
+      compact.classList.add('pet-pager-size');
+      controller.attachSelect(compact);
+      fireMousedown(compact);
+      const cPanel = document.querySelector('.pet-picker-panel');
+      expect(cPanel.classList.contains('pet-picker-panel--compact')).toBe(true);
+      expect(cPanel.classList.contains('pet-picker-panel--list')).toBe(false);
+    });
+
+    it('面板内部滚动（滚动条 / 鼠标滚轮）不关闭面板', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachSelect(select);
+      fireMousedown(select);
+      const panel = document.querySelector('.pet-picker-panel');
+      panel.dispatchEvent(new Event('scroll', { bubbles: true }));
+      expect(document.querySelector('.pet-picker-panel')).not.toBeNull();
+    });
+
+    it('面板外滚动（页面滚动）才关闭面板', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachSelect(select);
+      fireMousedown(select);
+      document.body.dispatchEvent(new Event('scroll', { bubbles: true }));
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
+
+    it('resize 事件（target 为 window 非 Element）关闭面板且不抛错', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachSelect(select);
+      fireMousedown(select);
+      expect(() => {
+        window.dispatchEvent(new Event('resize'));
+      }).not.toThrow();
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
   });
 
   describe('自定义日历面板 attachDate', () => {

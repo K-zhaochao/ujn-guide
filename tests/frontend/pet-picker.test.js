@@ -174,6 +174,17 @@ describe('宠物前端可爱风选择器（pet-picker.js）', () => {
       document.body.dispatchEvent(new Event('scroll', { bubbles: true }));
       expect(document.querySelector('.pet-picker-panel')).toBeNull();
     });
+
+    it('resize 事件（target 为 window 非 Element）关闭面板且不抛错', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachSelect(select);
+      fireMousedown(select);
+      expect(() => {
+        window.dispatchEvent(new Event('resize', { bubbles: false }));
+      }).not.toThrow();
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
   });
 
   describe('自定义日历面板 attachDate', () => {
