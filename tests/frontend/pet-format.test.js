@@ -44,8 +44,8 @@ describe('宠物前端格式化工具', () => {
     expect(format.dataUrlByteLength('data:image/png;base64,AAAA')).toBe(3);
     expect(format.imageLimitLabel(5 * 1024 * 1024)).toBe('5 MB');
     expect(format.imageLimitLabel(3 * 1024 * 1024)).toBe('3 MB');
-    expect(format.imageLimitLabel(0)).toBe('5 MB');
-    expect(format.imageLimitLabel(-10)).toBe('5 MB');
+    expect(format.imageLimitLabel(0)).toBe('2 MB');
+    expect(format.imageLimitLabel(-10)).toBe('2 MB');
   });
 
   it('图片地址解析与昵称展示', () => {

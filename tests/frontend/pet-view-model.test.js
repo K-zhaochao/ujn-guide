@@ -33,6 +33,24 @@ describe('宠物前端视图模型', () => {
     expect(viewModel.projectContentSchema({}, null)).toBeNull();
   });
 
+  it('生效约束：config.constraints（后台运行时设置）优先于已发布 schema 快照', () => {
+    const config = {
+      schemaVersion: 'config-v1', types: [],
+      constraints: { maxImages: 8, maxImageBytes: 4 * 1024 * 1024 },
+    };
+    const schema = {
+      schemaVersion: 'schema-v2',
+      constraints: { maxImages: 5, maxImageBytes: 3 * 1024 * 1024 },
+      types: [{ id: 1, code: 'cat', name: '猫猫', icon: '🐱', sortOrder: 10 }],
+    };
+    const projection = viewModel.projectContentSchema(config, schema, 10);
+    expect(projection.maxImagesLimit).toBe(8);
+    expect(projection.maxImageBytesLimit).toBe(4 * 1024 * 1024);
+    // config 未提供 constraints 时仍回退 schema 快照
+    const noRuntime = viewModel.projectContentSchema({ schemaVersion: 'x', types: [] }, schema, 10);
+    expect(noRuntime.maxImagesLimit).toBe(5);
+  });
+
   it('优先用稳定类型标识查找宠物，并为历史分类保留显示回退', () => {
     const categories = [
       { id: 7, code: 'cat', key: '猫猫', emoji: '🐱' },

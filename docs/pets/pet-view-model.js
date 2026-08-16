@@ -23,12 +23,18 @@
     const source = schema && Array.isArray(schema.types) ? schema : (config || {});
     if (!source || !Array.isArray(source.types)) return null;
 
+    // 生效约束：config.constraints 由后端 /api/pet-config 返回「运行时生效值」
+    // （图片张数取后台设置动态管控），优先于已发布 schema 快照；快照缺失时回退默认
+    const effectiveConstraints = (config && config.constraints && typeof config.constraints === 'object')
+      ? config.constraints
+      : (source.constraints || { maxImages: fallbackMaxImages });
+
     const contentSchema = {
       schemaVersion: source.schemaVersion || (config && config.schemaVersion) || null,
       types: source.types || [],
       fields: source.fields || [],
       bindings: source.bindings || [],
-      constraints: source.constraints || { maxImages: fallbackMaxImages },
+      constraints: effectiveConstraints,
     };
     const mapType = type => ({
       id: type.id,
@@ -44,7 +50,7 @@
     return {
       contentSchema,
       maxImagesLimit: Math.max(1, Number(contentSchema.constraints.maxImages) || fallbackMaxImages),
-      maxImageBytesLimit: Math.max(1, Number(contentSchema.constraints.maxImageBytes) || (5 * 1024 * 1024)),
+      maxImageBytesLimit: Math.max(1, Number(contentSchema.constraints.maxImageBytes) || (2 * 1024 * 1024)),
       categories: contentSchema.types
         .filter(type => type.visible !== false && activeTypes(type))
         .sort(bySortOrder)

@@ -56,7 +56,7 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
     }),
     '/api/admin/content-model/draft': () => jsonResponse({ draft: { draftRevision: 5, types: [{ id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1 }], fields: [], bindings: [] }, diff: null, validation: null }),
     '/api/admin/content-model/versions?page=1&pageSize=10': () => jsonResponse({ versions: [], total: 0 }),
-    '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, revision: 1 }, policy: [], runtime: {} }),
+    '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, maxImagesPerSubmission: 10, revision: 1 }, policy: [], runtime: {} }),
     '/api/admin/settings/history?page=1&pageSize=10': () => jsonResponse({ items: [], total: 0 }),
     '/api/admin/backups?limit=5': () => jsonResponse({ exports: [] }),
     '/api/admin/banned-users?q=&page=1&pageSize=10': () => jsonResponse({ users: [], total: 0 }),
@@ -262,6 +262,10 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     const text = document.getElementById('view-root').textContent;
     expect(text).toContain('允许投稿');
     expect(document.querySelector('[data-action="settings-save"]')).toBeTruthy();
+    // 投稿限额：最多上传图片数动态项渲染（后台运行时管控）
+    const imageInput = document.querySelector('[data-setting-number="maxImagesPerSubmission"]');
+    expect(imageInput).toBeTruthy();
+    expect(imageInput.value).toBe('10');
   });
 
   it('系统设置加载失败：展示错误', async () => {
@@ -345,13 +349,40 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(JSON.parse(batch.opts.body).ids).toContain('sub_1');
   });
 
+  it('编辑投稿弹窗：照片张数提示使用运行时生效值而非 schema 快照', async () => {
+    const { document, fetchCalls } = bootTracked({
+      user: ADMIN,
+      overrides: {
+        '/api/admin/submissions/sub_1': () => jsonResponse({ submission: { ...SAMPLE_SUB, images: [] } }),
+        // schema 快照仍是旧值 5 张/5MB；运行时设置已将张数改为 15、单图大小 env 为 2MB
+        '/api/content-model/schema': () => jsonResponse({ schema: { schemaVersion: 1, types: [{ id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1 }], fields: [], bindings: [], constraints: { maxImages: 5, maxImageBytes: 5 * 1024 * 1024 } } }),
+        '/api/admin/settings': () => jsonResponse({
+          settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, maxImagesPerSubmission: 15, revision: 2 },
+          policy: [],
+          runtime: { environment: { runtimeMaxImagesPerSubmission: 15, maxImageBytes: 2 * 1024 * 1024 } },
+        }),
+      },
+    });
+    await waitFor(document, '[data-action="edit"][data-id]');
+    const editBtn = document.querySelector('[data-action="edit"][data-id]');
+    expect(editBtn).toBeTruthy();
+    editBtn.click();
+    await waitFor(document, '#m-image-meta');
+    const meta = document.getElementById('m-image-meta').textContent;
+    // 提示与服务端校验一致：张数以运行时值 15 为准、单图大小以运行时 env 2MB 为准，而不是 schema 快照的 5 张/5MB
+    expect(meta).toContain('/15 张');
+    expect(meta).toContain('2MB');
+    expect(meta).not.toContain('5MB');
+    expect(fetchCalls.some(c => c.url === '/api/admin/settings')).toBe(true);
+  });
+
   it('设置两窗口冲突：保存遇 SETTINGS_CONFLICT 提示并自动重拉最新值', async () => {
     const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
       '/api/admin/settings': async (url, opts) => {
         if (opts && opts.method === 'PUT') {
           return jsonResponse({ message: '已被其他管理员修改', code: 'SETTINGS_CONFLICT' }, 409);
         }
-        return jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, revision: 1 }, policy: [], runtime: {} });
+        return jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, maxImagesPerSubmission: 10, revision: 1 }, policy: [], runtime: {} });
       },
     } });
     await waitFor(document, '.nav-item[data-view="settings"]');

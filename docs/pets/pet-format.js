@@ -60,9 +60,9 @@
     return Math.max(0, Math.floor(base64.length * 3 / 4) - padding);
   }
 
-  /** 字节上限 → 人类可读（如「5 MB」）；非整 MB 保留 1 位小数 */
+  /** 字节上限 → 人类可读（如「2 MB」）；非整 MB 保留 1 位小数 */
   function imageLimitLabel(bytes) {
-    const limit = Number(bytes) > 0 ? Number(bytes) : 5 * 1024 * 1024;
+    const limit = Number(bytes) > 0 ? Number(bytes) : 2 * 1024 * 1024;
     return (limit / (1024 * 1024)).toFixed(limit % (1024 * 1024) ? 1 : 0) + ' MB';
   }
 

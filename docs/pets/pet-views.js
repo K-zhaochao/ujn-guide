@@ -22,7 +22,7 @@
       SUBMISSION_TYPES = [],
       contentSchema = { types: [], fields: [], bindings: [] },
       maxImagesLimit = 10,
-      maxImageBytesLimit = 5 * 1024 * 1024,
+      maxImageBytesLimit = 2 * 1024 * 1024,
       safeHttpUrl = url => url || '',
       fieldKey = f => (f && (f.key || f.fieldKey)) || '',
       fieldIcon = f => (f && f.icon) || '•',
@@ -36,7 +36,7 @@
       humanizeDuration = () => '',
       resolveImage = url => url || '',
       displayName = () => '匿名',
-      imageLimitLabel = () => '5 MB',
+      imageLimitLabel = () => '2 MB',
     } = ctx;
 
     // ================== 图鉴分页数字按钮（宠物收集录主题：圆形药丸页码） ==================

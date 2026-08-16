@@ -52,7 +52,7 @@
   const API_BASE = '';
   const MAX_IMAGES = 10; // 默认值；运行时由 schema.constraints.maxImages 覆盖（P1-06）
   let maxImagesLimit = MAX_IMAGES;
-  let maxImageBytesLimit = 5 * 1024 * 1024;
+  let maxImageBytesLimit = 2 * 1024 * 1024;
   const PAGE_SIZE = 24;
 
   // 官方品牌图标（内联 SVG，避免额外网络请求；path 取自官方 logo）
