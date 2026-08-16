@@ -155,6 +155,25 @@ describe('宠物前端可爱风选择器（pet-picker.js）', () => {
       expect(panel.querySelectorAll('.pet-picker-option').length).toBe(many.length);
       expect(panel.querySelectorAll('.pet-picker-option')[2].textContent).toBe('🐶 狗');
     });
+
+    it('面板内部滚动（滚动条拖动 / 鼠标滚轮）不关闭面板', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachSelect(select);
+      fireMousedown(select);
+      const panel = document.querySelector('.pet-picker-panel');
+      panel.dispatchEvent(new Event('scroll', { bubbles: true }));
+      expect(document.querySelector('.pet-picker-panel')).not.toBeNull();
+    });
+
+    it('面板外滚动（页面滚动）才关闭面板', () => {
+      const controller = makePicker();
+      const select = mountSelect();
+      controller.attachSelect(select);
+      fireMousedown(select);
+      document.body.dispatchEvent(new Event('scroll', { bubbles: true }));
+      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+    });
   });
 
   describe('自定义日历面板 attachDate', () => {

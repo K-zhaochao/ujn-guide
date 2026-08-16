@@ -69,7 +69,13 @@
           if (anchor && typeof anchor.focus === 'function') anchor.focus({ preventScroll: true });
         }
       };
-      const onScrollOrResize = () => closePanel();
+      // 滚动关闭：仅当滚动发生在面板之外（页面滚动使触发器位置变化）时关闭。
+      // 面板内部滚动（滚动条拖动 / 鼠标滚轮滚动选项列表）不关闭——捕获阶段
+      // 的 scroll 事件 target 即实际滚动元素，用 contains 区分。
+      const onScrollOrResize = (e) => {
+        if (e && e.target && openPanel && openPanel.el.contains(e.target)) return;
+        closePanel();
+      };
       document.addEventListener('mousedown', onDocPointer, true);
       document.addEventListener('keydown', onKey, true);
       document.addEventListener('scroll', onScrollOrResize, true);
