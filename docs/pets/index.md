@@ -440,54 +440,26 @@ hide:
   .pet-picker-panel--compact .pet-picker-option.is-selected {
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pet-primary, #3b82f6) 45%, transparent);
   }
-  /* ===== 滚轮选择面板（pet-picker.js attachWheel）：选项很多时防占屏 =====
-   * 类型等选项多时，普通下拉面板会竖直铺开占满屏幕；滚轮面板固定 3 行可见
-   * 高度，中间行主色高亮放大、上下行缩小变淡，上下加渐变遮罩模拟滚轮曲率。
-   * 鼠标滚轮逐格滑动，停止滚动 280ms 防抖提交；点击某行立即选中并关闭。
-   * 全部颜色走 --pet-* 变量，随亮/暗主题自动适配。 */
-  .pet-picker-wheel { min-width: 170px; padding: 4px; }
-  .pet-wheel-view {
-    position: relative;
-    height: 120px;
-    overflow: hidden;
+  /* ===== 选项列表面板（pet-picker.js）：固定高度 + 右侧适配主题的滚动条 =====
+   * 类型等选项多时，选项列表固定为合适大小（最多约 8 行），不随选项数增高
+   * 占满屏幕；超出部分在面板内部滚动，右侧显示适配主题的滚动条（thumb 圆角
+   * 柔和、hover 变主色，亮/暗主题随 --pet-* 变量自动切换）。
+   * Firefox 用 scrollbar-width/scrollbar-color，Chromium 用 ::-webkit-scrollbar。 */
+  .pet-picker-panel--list {
+    max-height: 272px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--pet-muted, #9ca3af) 45%, transparent) transparent;
   }
-  .pet-wheel-view::before,
-  .pet-wheel-view::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 30px;
-    z-index: 3;
-    pointer-events: none;
+  .pet-picker-panel--list::-webkit-scrollbar { width: 10px; }
+  .pet-picker-panel--list::-webkit-scrollbar-track { background: transparent; }
+  .pet-picker-panel--list::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--pet-muted, #9ca3af) 45%, transparent);
+    border-radius: 5px;
+    border: 2px solid var(--pet-input-bg, #fff);
   }
-  .pet-wheel-view::before { top: 0; background: linear-gradient(to bottom, var(--pet-input-bg, #fff), transparent); }
-  .pet-wheel-view::after { bottom: 0; background: linear-gradient(to top, var(--pet-input-bg, #fff), transparent); }
-  .pet-wheel-row {
-    position: absolute;
-    left: 4px;
-    right: 4px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    border-radius: 10px;
-    background: transparent;
-    color: var(--pet-muted, #9ca3af);
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-    transition: transform .16s ease, opacity .16s ease, color .16s ease, background .12s;
-  }
-  .pet-wheel-row:hover { background: color-mix(in srgb, var(--pet-primary, #3b82f6) 10%, transparent); }
-  .pet-wheel-row.is-active {
-    background: color-mix(in srgb, var(--pet-primary, #3b82f6) 14%, transparent);
-    color: var(--pet-primary, #3b82f6);
-    font-size: 15px;
-    font-weight: 700;
+  .pet-picker-panel--list::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--pet-primary, #3b82f6) 55%, transparent);
   }
   /* 类型筛选触发器固定宽度：选项再多也不撑大下拉框，超长省略 */
   #pet-mine-filters #pet-mine-category {

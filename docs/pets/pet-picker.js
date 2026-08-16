@@ -4,9 +4,8 @@
  * 原生 <select> 的选项列表与 <input type="date"> 的日历弹层都是浏览器系统 UI
  * （shadow DOM 内部），无法用 CSS 定制。本组件在鼠标/触控点击时拦截原生弹出，
  * 改为显示圆角可爱面板：
- *   - attachSelect(select)：自定义下拉面板（选项圆角高亮、当前项主色标记）
- *   - attachWheel(select)：滚轮选择面板（选项很多时防占屏；固定视窗高度，
- *     中间行主色高亮、上下行缩小变淡，鼠标滚轮逐格滑动，停止滚动防抖提交）
+ *   - attachSelect(select)：自定义下拉面板（选项圆角高亮、当前项主色标记；
+ *     选项多时面板固定高度、右侧显示适配主题的滚动条，不占满屏幕）
  *   - attachDate(input)：自定义日历面板（圆角日格、今天描边、选中填充主色）
  *
  * 设计约束：
@@ -101,8 +100,11 @@
     function openSelectPanel(select) {
       closePanel();
       const panel = document.createElement('div');
-      // 分页条「每页数量」迷你下拉使用紧凑面板（选项居中、窄宽）；其余保持通用面板
-      panel.className = 'pet-picker-panel' + (select.classList.contains('pet-pager-size') ? ' pet-picker-panel--compact' : '');
+      // 分页条「每页数量」迷你下拉使用紧凑面板（选项居中、窄宽）；其余保持通用面板。
+      // 普通面板追加 --list 类：选项多时面板固定高度、右侧显示适配主题的滚动条（见 index.md），
+      // 选项列表不再竖直铺开占满屏幕；紧凑面板（每页数量仅 4 项）无需滚动。
+      const compact = select.classList.contains('pet-pager-size');
+      panel.className = 'pet-picker-panel' + (compact ? ' pet-picker-panel--compact' : ' pet-picker-panel--list');
       panel.setAttribute('role', 'listbox');
       panel.setAttribute('aria-label', select.getAttribute('aria-label') || '选择');
 
@@ -273,127 +275,7 @@
       placePanel(panel, input);
     }
 
-    // ================== 滚轮选择面板（选项很多时防占屏） ==================
-    // 类型等选项多时，普通下拉面板把所有选项竖直铺开会占满屏幕。滚轮面板
-    // 固定视窗高度（中间行主色高亮放大，上下行缩小变淡 + 渐变遮罩模拟曲率），
-    // 鼠标滚轮逐格滑动选择，停止滚动 280ms 后防抖提交 change；点击某行立即
-    // 选中并关闭。键盘交互保留原生控件（同 attachSelect），触屏走原生选择器。
-    function attachWheel(select) {
-      if (!select || select.dataset.petPickerWheel === '1' || isCoarsePointer) return;
-      select.dataset.petPickerWheel = '1';
-      select.addEventListener('mousedown', (e) => {
-        if (e.button !== 0) return;
-        e.preventDefault(); // 阻止原生下拉弹出
-        if (openPanel && openPanel.anchor === select) { closePanel(); return; }
-        select.focus({ preventScroll: true });
-        openWheelPanel(select);
-      });
-    }
-
-    function openWheelPanel(select) {
-      closePanel();
-      const options = Array.prototype.slice.call(select.options || []);
-      if (!options.length) return;
-      const ROW_H = 40;
-
-      const panel = document.createElement('div');
-      panel.className = 'pet-picker-panel pet-picker-wheel';
-      panel.setAttribute('role', 'listbox');
-      panel.setAttribute('aria-label', select.getAttribute('aria-label') || '选择');
-      const view = document.createElement('div');
-      view.className = 'pet-wheel-view';
-      const rows = options.map((opt, i) => {
-        const row = document.createElement('button');
-        row.type = 'button';
-        row.className = 'pet-wheel-row';
-        row.setAttribute('role', 'option');
-        row.setAttribute('aria-selected', 'false');
-        row.dataset.index = String(i);
-        row.textContent = opt.textContent;
-        row.addEventListener('click', () => { applyValue(i, true); });
-        view.appendChild(row);
-        return row;
-      });
-      panel.appendChild(view);
-
-      let index = Math.max(0, options.findIndex(o => o.value === select.value));
-      if (index < 0) index = 0;
-      let commitTimer = null;
-
-      function render() {
-        rows.forEach((row, i) => {
-          const offset = i - index;
-          const dist = Math.abs(offset);
-          row.style.transform = 'translateY(' + (offset * ROW_H) + 'px) scale(' + (dist === 0 ? 1 : 0.88) + ')';
-          row.style.opacity = dist === 0 ? '1' : (dist === 1 ? '0.55' : '0');
-          row.style.pointerEvents = dist <= 1 ? 'auto' : 'none';
-          row.style.zIndex = dist === 0 ? '2' : '1';
-          row.setAttribute('aria-selected', String(i === index));
-          if (i === index) {
-            row.classList.add('is-active');
-            row.setAttribute('tabindex', '0');
-          } else {
-            row.classList.remove('is-active');
-            row.removeAttribute('tabindex');
-          }
-        });
-        view.setAttribute('aria-label', '当前选择：' + (options[index] ? options[index].textContent : ''));
-      }
-
-      // 选中某格：值变化才派发 change；关闭时同步原生 select（防抖未落盘的值）
-      function applyValue(i, close) {
-        clearTimeout(commitTimer);
-        if (i < 0 || i >= options.length) return;
-        const changed = i !== index;
-        index = i;
-        if (changed) {
-          select.value = options[i].value;
-          select.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-        render();
-        if (close) {
-          select.value = options[i].value; // 确保最终值同步（若滚动后立即点击）
-          closePanel();
-        }
-      }
-
-      // 滚轮：先即时视觉滑动，停止 280ms 后再提交 change（快速连滚只打一次接口）
-      panel.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const next = index + (e.deltaY > 0 ? 1 : -1);
-        if (next < 0 || next >= options.length) return;
-        index = next;
-        render();
-        clearTimeout(commitTimer);
-        commitTimer = setTimeout(() => {
-          select.value = options[index].value;
-          select.dispatchEvent(new Event('change', { bubbles: true }));
-        }, 280);
-      }, { passive: false });
-
-      // 面板内键盘：↑↓ 切换、Home/End 首末、Enter/空格 确认（Esc 由全局监听关闭并还焦）
-      panel.addEventListener('keydown', (e) => {
-        let next = null;
-        if (e.key === 'ArrowUp') next = index - 1;
-        else if (e.key === 'ArrowDown') next = index + 1;
-        else if (e.key === 'Home') next = 0;
-        else if (e.key === 'End') next = options.length - 1;
-        else if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); applyValue(index, true); return; }
-        if (next !== null) {
-          e.preventDefault();
-          next = Math.max(0, Math.min(options.length - 1, next));
-          applyValue(next, false);
-          const row = rows[next];
-          if (row && typeof row.focus === 'function') row.focus({ preventScroll: true });
-        }
-      });
-
-      openPanel = { el: panel, anchor: select, kind: 'wheel' };
-      placePanel(panel, select);
-      render();
-    }
-
-    return { attachSelect, attachWheel, attachDate, closePanel, isCoarsePointer, unbindDismiss };
+    return { attachSelect, attachDate, closePanel, isCoarsePointer, unbindDismiss };
   }
 
   return { createPetPicker };

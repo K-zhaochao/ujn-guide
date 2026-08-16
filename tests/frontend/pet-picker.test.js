@@ -122,114 +122,38 @@ describe('宠物前端可爱风选择器（pet-picker.js）', () => {
     });
   });
 
-  describe('滚轮选择面板 attachWheel', () => {
-    it('点击 select 打开滚轮面板，当前选中行高亮居中', () => {
+  describe('选项列表面板固定高度（attachSelect）', () => {
+    it('普通下拉面板带 pet-picker-panel--list 类（固定高度 + 内部滚动）', () => {
       const controller = makePicker();
       const select = mountSelect();
-      select.value = 'v2';
-      controller.attachWheel(select);
+      controller.attachSelect(select);
       fireMousedown(select);
-      const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
+      const panel = document.querySelector('.pet-picker-panel');
       expect(panel).not.toBeNull();
-      const active = panel.querySelector('.pet-wheel-row.is-active');
-      expect(active).not.toBeNull();
-      expect(active.textContent).toBe('🐶 狗狗');
-      expect(panel.querySelectorAll('.pet-wheel-row').length).toBe(3);
+      expect(panel.classList.contains('pet-picker-panel--list')).toBe(true);
+      expect(panel.classList.contains('pet-picker-panel--compact')).toBe(false);
     });
 
-    it('鼠标滚轮逐格滑动：视觉立即更新，停止 280ms 后防抖提交 change', () => {
-      vi.useFakeTimers();
-      try {
-        const controller = makePicker();
-        const select = mountSelect();
-        const onChange = vi.fn();
-        select.addEventListener('change', onChange);
-        controller.attachWheel(select);
-        fireMousedown(select);
-        const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
-        panel.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
-        // 视觉立即移动（index 0 → 1，高亮第 2 项），但 change 尚未派发
-        const active = panel.querySelector('.pet-wheel-row.is-active');
-        expect(active.textContent).toBe('🐱 猫猫');
-        expect(onChange).not.toHaveBeenCalled();
-        vi.advanceTimersByTime(280);
-        expect(select.value).toBe('v1');
-        expect(onChange).toHaveBeenCalledOnce();
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('连续滚动只提交一次 change（防抖合并）', () => {
-      vi.useFakeTimers();
-      try {
-        const controller = makePicker();
-        const select = mountSelect();
-        const onChange = vi.fn();
-        select.addEventListener('change', onChange);
-        controller.attachWheel(select);
-        fireMousedown(select);
-        const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
-        panel.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
-        panel.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
-        vi.advanceTimersByTime(280);
-        expect(select.value).toBe('v2');
-        expect(onChange).toHaveBeenCalledOnce();
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('点击某行：立即选中、派发 change 并关闭面板', () => {
+    it('紧凑面板（每页数量）不带 --list 类（选项少无需滚动）', () => {
       const controller = makePicker();
       const select = mountSelect();
-      const onChange = vi.fn();
-      select.addEventListener('change', onChange);
-      controller.attachWheel(select);
+      select.classList.add('pet-pager-size');
+      controller.attachSelect(select);
       fireMousedown(select);
-      const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
-      panel.querySelectorAll('.pet-wheel-row')[2].click();
-      expect(select.value).toBe('v2');
-      expect(onChange).toHaveBeenCalledOnce();
-      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+      const panel = document.querySelector('.pet-picker-panel');
+      expect(panel.classList.contains('pet-picker-panel--compact')).toBe(true);
+      expect(panel.classList.contains('pet-picker-panel--list')).toBe(false);
     });
 
-    it('再次点击同一 select：关闭面板而非重开；按 Esc 也关闭', () => {
+    it('选项再多也在固定高度面板内渲染全部选项（可滚动浏览）', () => {
       const controller = makePicker();
-      const select = mountSelect();
-      controller.attachWheel(select);
+      const many = ['全部类型', '🐱 猫', '🐶 狗', '🐹 仓鼠', '🐰 兔', '🐦 鸟', '🐢 龟', '🐟 鱼', '🐸 蛙', '🐝 蜂', '🦊 狐', '🐻 熊'];
+      const select = mountSelect(many);
+      controller.attachSelect(select);
       fireMousedown(select);
-      expect(document.querySelector('.pet-picker-panel.pet-picker-wheel')).not.toBeNull();
-      fireMousedown(select);
-      expect(document.querySelector('.pet-picker-panel')).toBeNull();
-      fireMousedown(select);
-      expect(document.querySelector('.pet-picker-panel.pet-picker-wheel')).not.toBeNull();
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      expect(document.querySelector('.pet-picker-panel')).toBeNull();
-    });
-
-    it('面板内键盘：↑ 切换上一项并派发 change', () => {
-      const controller = makePicker();
-      const select = mountSelect();
-      select.value = 'v2';
-      const onChange = vi.fn();
-      select.addEventListener('change', onChange);
-      controller.attachWheel(select);
-      fireMousedown(select);
-      const panel = document.querySelector('.pet-picker-panel.pet-picker-wheel');
-      panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
-      expect(select.value).toBe('v1');
-      expect(onChange).toHaveBeenCalledOnce();
-    });
-
-    it('重复 attach 不重复绑定', () => {
-      const controller = makePicker();
-      const select = mountSelect();
-      controller.attachWheel(select);
-      controller.attachWheel(select);
-      fireMousedown(select);
-      fireMousedown(select);
-      expect(document.querySelector('.pet-picker-panel')).toBeNull();
+      const panel = document.querySelector('.pet-picker-panel.pet-picker-panel--list');
+      expect(panel.querySelectorAll('.pet-picker-option').length).toBe(many.length);
+      expect(panel.querySelectorAll('.pet-picker-option')[2].textContent).toBe('🐶 狗');
     });
   });
 
