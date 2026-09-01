@@ -302,8 +302,8 @@
 
     function mineStatusMeta(status) {
       // 徽章底色用 CSS 变量（index.md 定义），浅色/深色主题分别适配，保证文字可读
-      if (status === 'approved') return { label: '✅ 已通过', color: C.success, bg: 'var(--pet-success-bg,#dcfce7)' };
-      if (status === 'rejected') return { label: '❌ 已拒绝', color: C.danger, bg: C.dangerBg };
+      if (status === 'approved') return { label: '✅ 已通过', color: 'var(--pet-approved-fg,#22c55e)', bg: 'var(--pet-approved-bg,#dcfce7)' };
+      if (status === 'rejected') return { label: '❌ 已拒绝', color: 'var(--pet-rejected-fg,#ef4444)', bg: 'var(--pet-rejected-bg,#fee2e2)' };
       if (status === 'deleted') return { label: '🗑️ 已删除', color: 'var(--pet-muted-fg,#6b7280)', bg: 'var(--pet-muted-bg,#f3f4f6)' };
       return { label: '⏳ 待审核', color: 'var(--pet-pending-fg,#92400e)', bg: 'var(--pet-pending-bg,#fef3c7)' };
     }

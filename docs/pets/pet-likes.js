@@ -16,6 +16,9 @@
     let total = 0;
     let totalPages = 1;
     let requestId = 0;
+    let likedQuery = '';
+    let likedDate = '';
+    let likedDateEnd = '';
     // 每页数量（用户可经分页条下拉调整）：初始手机（<768px）6 个/页，电脑 PAGE_SIZE 个/页
     let likedPageSize = (typeof window !== 'undefined' && window.innerWidth < 768) ? 6 : PAGE_SIZE;
 
@@ -29,9 +32,61 @@
       sec.dataset.likedShell = '1';
       sec.innerHTML =
         '<div class="pet-liked-shell">' +
+          '<div id="pet-liked-filters" style="display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
+            '<input id="pet-liked-search" type="search" enterkeyhint="search" placeholder="🔎 搜索名称、地点、描述或 ID，回车或失焦后生效" aria-label="搜索我的收藏" style="flex:1;min-width:190px;padding:9px 11px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px;outline:none">' +
+            '<div class="pet-liked-date-range"><label for="pet-liked-date">收藏起始日期<input id="pet-liked-date" class="pet-date" type="date" aria-label="收藏起始日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label><label for="pet-liked-date-end">收藏结束日期<input id="pet-liked-date-end" class="pet-date" type="date" aria-label="收藏结束日期" style="padding:8px 9px;border:1px solid ' + C.border + ';border-radius:8px;background:' + C.inputBg + ';color:inherit;font-size:13px"></label></div>' +
+            '<button id="pet-liked-reset" title="一键重置所有筛选" style="padding:8px 12px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;color:' + C.fg + ';font-size:13px;cursor:pointer">↺ 重置</button>' +
+          '</div>' +
           '<p id="pet-liked-count" aria-live="polite"></p>' +
           '<div id="pet-liked-list"></div>' +
         '</div>';
+
+      const search = $('#pet-liked-search');
+      let lastAppliedQuery = likedQuery;
+      const applyLikedQuery = () => {
+        const value = search.value.trim();
+        if (value === lastAppliedQuery) return;
+        lastAppliedQuery = value;
+        likedQuery = value;
+        page = 1;
+        void loadLikedPets();
+      };
+      search.onkeydown = event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          applyLikedQuery();
+          search.blur();
+        }
+      };
+      search.onfocusout = applyLikedQuery;
+      search.onsearch = applyLikedQuery;
+      search.addEventListener('search', applyLikedQuery);
+      $('#pet-liked-date').onchange = event => {
+        likedDate = event.target.value;
+        page = 1;
+        void loadLikedPets();
+      };
+      $('#pet-liked-date-end').onchange = event => {
+        likedDateEnd = event.target.value;
+        if (likedDate && likedDateEnd && likedDateEnd < likedDate) {
+          likedDate = likedDateEnd;
+          $('#pet-liked-date').value = likedDate;
+        }
+        page = 1;
+        void loadLikedPets();
+      };
+      $('#pet-liked-reset').onclick = () => {
+        likedQuery = ''; likedDate = ''; likedDateEnd = ''; page = 1;
+        lastAppliedQuery = '';
+        $('#pet-liked-search').value = '';
+        $('#pet-liked-date').value = '';
+        $('#pet-liked-date-end').value = '';
+        void loadLikedPets();
+      };
+      if (picker && typeof picker.attachDate === 'function') {
+        picker.attachDate($('#pet-liked-date'));
+        picker.attachDate($('#pet-liked-date-end'));
+      }
     }
 
     function renderLikedPets() {
@@ -82,6 +137,9 @@
       const currentRequestId = ++requestId;
       if (list && !list.innerHTML) list.innerHTML = '<p style="color:' + C.muted + ';text-align:center;padding:24px">正在加载收藏…</p>';
       const query = new URLSearchParams({ page: String(page), pageSize: String(currentLikedPageSize()) });
+      if (likedQuery) query.set('q', likedQuery);
+      if (likedDate) query.set('start', likedDate);
+      if (likedDateEnd) query.set('end', likedDateEnd);
       const result = await api('/api/my/liked-pets?' + query.toString());
       if (currentRequestId !== requestId || !list) return;
       if (!result.ok) {

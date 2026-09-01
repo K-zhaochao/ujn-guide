@@ -50,7 +50,10 @@ hide:
     --pet-danger: #ef4444;
     --pet-danger-bg: #fee2e2;
     --pet-success: #22c55e;
-    --pet-success-bg: #dcfce7;      /* ✅ 已通过徽章浅绿底 */
+    --pet-approved-fg: #22c55e;
+    --pet-approved-bg: #dcfce7;
+    --pet-rejected-fg: #ef4444;
+    --pet-rejected-bg: #fee2e2;
     --pet-pending-bg: #fef3c7;      /* ⏳ 待审核徽章浅琥珀底 */
     --pet-pending-fg: #92400e;      /* ⏳ 待审核徽章棕褐字 */
     --pet-muted-bg: #f3f4f6;        /* 🗑️ 已删除徽章浅灰底 */
@@ -73,7 +76,10 @@ hide:
     --pet-danger: #f87171;
     --pet-danger-bg: rgba(239, 68, 68, .18);
     --pet-success: #4ade80;
-    --pet-success-bg: rgba(34, 197, 94, .16);   /* ✅ 已通过徽章深色主题绿底 */
+    --pet-approved-fg: #4ade80;
+    --pet-approved-bg: rgba(34, 197, 94, .16);
+    --pet-rejected-fg: #f87171;
+    --pet-rejected-bg: rgba(239, 68, 68, .18);
     --pet-pending-bg: rgba(245, 158, 11, .18);  /* ⏳ 待审核徽章深色主题琥珀底 */
     --pet-pending-fg: #fbbf24;                   /* ⏳ 待审核徽章深色主题亮琥珀字 */
     --pet-muted-bg: rgba(255, 255, 255, .10);   /* 🗑️ 已删除徽章深色主题灰底 */
@@ -188,7 +194,8 @@ hide:
     #pet-mine-filters button,
     #pet-mine-pager button { min-height: 44px; }
     #pet-liked-list button { min-height: 44px; }
-    #pet-mine-filters input[type=date] { min-height: 44px; }
+    #pet-mine-filters input[type=date],
+    #pet-liked-filters input[type=date] { min-height: 44px; }
   }
 
   /* 登录后的账号栏与个人工作区共用一套边框，视觉上是同一个工作区域。 */
@@ -305,6 +312,45 @@ hide:
     color: var(--pet-muted);
     font-size: 12px;
   }
+
+  /* 我的收藏筛选沿用投稿筛选的控件规格，日期按收藏时间而非投稿时间过滤。 */
+  #pet-liked-filters {
+    align-items: end !important;
+    gap: 9px !important;
+  }
+  #pet-liked-filters input,
+  #pet-liked-filters button {
+    min-height: 38px;
+    border-radius: 8px !important;
+    box-sizing: border-box;
+  }
+  #pet-liked-filters input[type="search"],
+  #pet-liked-filters input[type="date"] {
+    border-color: var(--pet-border) !important;
+    background-color: var(--pet-input-bg) !important;
+  }
+  #pet-liked-filters input:hover { border-color: var(--pet-primary) !important; }
+  #pet-liked-filters input:focus {
+    border-color: var(--pet-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 20%, transparent);
+  }
+  #pet-liked-filters .pet-date {
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  #pet-liked-filters .pet-liked-date-range {
+    display: grid;
+    grid-template-columns: repeat(2, 128px);
+    gap: 8px;
+  }
+  #pet-liked-filters .pet-liked-date-range label {
+    display: grid;
+    gap: 3px;
+    color: var(--pet-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  #pet-liked-filters .pet-liked-date-range input { width: 100%; }
 
   /* 我的投稿的筛选控件在桌面端紧凑同行，在日期范围内保持明确的起止关系。 */
   #pet-mine-filters {
@@ -666,6 +712,25 @@ hide:
     #pet-mine-filters .pet-mine-date-range label { font-size: 10px !important; }
     #pet-mine-filters #pet-mine-reset { justify-content: center; padding: 4px 8px !important; min-height: 32px !important; }
 
+    #pet-liked-filters {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      grid-template-areas:
+        "search search search"
+        "date   date   reset";
+      gap: 6px !important;
+      margin-top: 8px !important;
+      margin-bottom: 6px !important;
+    }
+    #pet-liked-filters #pet-liked-search { grid-area: search; }
+    #pet-liked-filters .pet-liked-date-range { grid-area: date; }
+    #pet-liked-filters #pet-liked-reset { grid-area: reset; }
+    #pet-liked-filters input,
+    #pet-liked-filters button { width: 100%; min-height: 32px !important; font-size: 12px !important; }
+    #pet-liked-filters .pet-liked-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px !important; }
+    #pet-liked-filters .pet-liked-date-range label { font-size: 10px !important; }
+    #pet-liked-filters #pet-liked-reset { justify-content: center; padding: 4px 8px !important; min-height: 32px !important; }
+
     /* —— 我的投稿卡片（手机端）：封面更矮、操作按钮双列紧凑、摘要单行截断 —— */
     #pet-mine-list .pet-grid {
       gap: 10px !important;
@@ -711,12 +776,20 @@ hide:
         "reset  reset";
     }
     #pet-mine-filters .pet-mine-date-range { grid-template-columns: 1fr; }
+    #pet-liked-filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-template-areas:
+        "search search"
+        "date   date"
+        "reset  reset";
+    }
+    #pet-liked-filters .pet-liked-date-range { grid-template-columns: 1fr; }
     .pet-workspace-submit { min-width: 84px; }
   }
 </style>
 
 !!! tip "📸 关于本栏目"
-    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看仍公开的记录。
+    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看、搜索和筛选仍公开的记录。
 
 <!-- 工具栏（搜索 / 分类 / 排序）— 静态容器，搜索输入时不会重建，避免输入框失焦 -->
 <div id="pet-toolbar"></div>

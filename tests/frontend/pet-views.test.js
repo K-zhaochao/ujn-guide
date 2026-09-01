@@ -213,10 +213,10 @@ describe('宠物前端渲染层', () => {
     const v = makeViews();
     // 徽章文字与底色：四种状态都应有可见的浅色底（浅色/深色主题由 CSS 变量适配）
     const approved = v.mineStatusMeta('approved');
-    expect(approved).toMatchObject({ label: '✅ 已通过', color: '#22c55e' });
-    expect(approved.bg).toBe('var(--pet-success-bg,#dcfce7)');
+    expect(approved).toMatchObject({ label: '✅ 已通过', color: 'var(--pet-approved-fg,#22c55e)' });
+    expect(approved.bg).toBe('var(--pet-approved-bg,#dcfce7)');
     const rejected = v.mineStatusMeta('rejected');
-    expect(rejected).toMatchObject({ label: '❌ 已拒绝', color: '#ef4444', bg: '#fee2e2' });
+    expect(rejected).toMatchObject({ label: '❌ 已拒绝', color: 'var(--pet-rejected-fg,#ef4444)', bg: 'var(--pet-rejected-bg,#fee2e2)' });
     const deletedMeta = v.mineStatusMeta('deleted');
     expect(deletedMeta).toMatchObject({ label: '🗑️ 已删除' });
     expect(deletedMeta.bg).toBe('var(--pet-muted-bg,#f3f4f6)');

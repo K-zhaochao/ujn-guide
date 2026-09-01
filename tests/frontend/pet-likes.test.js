@@ -65,6 +65,26 @@ describe('宠物前端我的收藏控制器', () => {
     expect(api).not.toHaveBeenCalled();
   });
 
+  it('关键词与收藏日期筛选会重置页码并传给服务端', async () => {
+    const { api, controller } = setup();
+    await controller.openLikedSection();
+    const search = document.getElementById('pet-liked-search');
+    search.value = '小白';
+    search.dispatchEvent(new Event('search'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=1&q=%E5%B0%8F%E7%99%BD');
+
+    const start = document.getElementById('pet-liked-date');
+    const end = document.getElementById('pet-liked-date-end');
+    start.value = '2026-08-01';
+    start.dispatchEvent(new Event('change'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    end.value = '2026-08-02';
+    end.dispatchEvent(new Event('change'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(api).toHaveBeenLastCalledWith('/api/my/liked-pets?page=1&pageSize=1&q=%E5%B0%8F%E7%99%BD&start=2026-08-01&end=2026-08-02');
+  });
+
   it('分页：多页时渲染翻页按钮，点击下一页请求带上 page=2', async () => {
     // 渲染层生成真实的分页按钮（独立类名），控制器应绑定点击并携带页码请求
     document.body.innerHTML = '<div id="pet-liked-section" style="display:none"></div>';
