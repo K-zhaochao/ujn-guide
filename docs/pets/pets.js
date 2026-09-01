@@ -664,7 +664,7 @@
 
     tb.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
-      '<input type="text" id="pet-search" placeholder="🔍 搜索宠物名 / 地点..." aria-label="搜索宠物名或地点" style="flex:1;min-width:200px;max-width:380px;padding:10px 14px;border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;outline:none;background:' + C.inputBg + ';color:inherit">' +
+      '<input type="text" id="pet-search" placeholder="🔍 搜索宠物名 / 地点 / #ID..." aria-label="搜索宠物名、地点或投稿 ID" style="flex:1;min-width:200px;max-width:380px;padding:10px 14px;border:1px solid ' + C.border + ';border-radius:9px;font-size:14px;outline:none;background:' + C.inputBg + ';color:inherit">' +
       sortGroup +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">' + filters + '</div>';

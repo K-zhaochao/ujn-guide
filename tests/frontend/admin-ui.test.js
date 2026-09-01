@@ -61,7 +61,7 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
     '/api/admin/backups?limit=5': () => jsonResponse({ exports: [] }),
     '/api/admin/banned-users?q=&page=1&pageSize=10': () => jsonResponse({ users: [], total: 0 }),
     '/api/admin/banned-ips?ip=&reason=&start=&end=&page=1&pageSize=10': () => jsonResponse({ bannedIPs: [], total: 0 }),
-    '/api/admin/audit?action=&actor=&targetUser=&start=&end=&page=1&pageSize=50': () => jsonResponse({ total: 1, audit: [{ id: 1, action: 'submission.approve', actor_username: 'root', created_at: '2026-08-01T10:00:00Z', target_id: 'sub_1', target_username: 'tester', target_avatar: '', detail: '通过投稿' }] }),
+    '/api/admin/audit?action=&actor=&targetUser=&targetId=&start=&end=&page=1&pageSize=50': () => jsonResponse({ total: 1, audit: [{ id: 1, action: 'submission.approve', actor_username: 'root', created_at: '2026-08-01T10:00:00Z', target_id: 'sub_1', target_username: 'tester', target_avatar: '', detail: '通过投稿' }] }),
     '/api/admin/audit-cleanup/tasks?limit=8&offset=0': () => jsonResponse({ tasks: [], total: 0 }),
     '/api/admin/audit/actions': () => jsonResponse({ actions: [{ action: 'submission.approve' }] }),
     '/api/admin/media-assets?status=orphan%2Cdelete_pending%2Cdelete_failed&provider=&limit=50&offset=0': () => jsonResponse({ total: 0, assets: [] }),
