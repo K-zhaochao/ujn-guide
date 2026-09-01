@@ -30,7 +30,7 @@ hide:
 <!-- 改名小卡片 -->
 <div id="pet-rename-pop" style="display:none"></div>
 
-<!-- 导航栏互动通知面板 -->
+<!-- 导航栏通知面板 -->
 <div id="pet-notification-pop" style="display:none"></div>
 
 <style>
@@ -440,6 +440,51 @@ hide:
   }
   #pet-mine-filters .pet-mine-date-range input { width: 100%; }
 
+  /* 通知筛选复用“我的投稿”的日期框规格：起止边界明确，亮暗主题同色系。 */
+  #pet-notification-filters input,
+  #pet-notification-filters button {
+    min-height: 38px;
+    border-radius: 8px !important;
+    box-sizing: border-box;
+  }
+  #pet-notification-filters input[type="date"] {
+    padding: 8px 9px;
+    border: 1px solid var(--pet-border) !important;
+    background-color: var(--pet-input-bg) !important;
+    color: inherit;
+    cursor: pointer;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  #pet-notification-filters input:hover { border-color: var(--pet-primary) !important; }
+  #pet-notification-filters input:focus {
+    border-color: var(--pet-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 20%, transparent);
+    outline: none;
+  }
+  #pet-notification-filters .pet-notification-date-range {
+    display: grid;
+    grid-template-columns: repeat(2, 128px);
+    gap: 8px;
+  }
+  #pet-notification-filters .pet-notification-date-range label {
+    display: grid;
+    gap: 3px;
+    color: var(--pet-muted);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  #pet-notification-filters .pet-notification-date-range input { width: 100%; }
+  #pet-notification-reset {
+    padding: 8px 10px;
+    border: 1px solid var(--pet-border);
+    background: var(--pet-soft);
+    color: var(--md-default-fg-color, #374151);
+    cursor: pointer;
+    font-size: 12px;
+  }
+  #pet-notification-reset:hover { border-color: var(--pet-primary); color: var(--pet-primary); }
+
   /* ===== 自定义可爱风下拉 / 日历面板（pet-picker.js） =====
    * 原生 select 的 option 列表与原生日历弹层是浏览器系统 UI，无法 CSS 定制；
    * 鼠标/触控点击时由 pet-picker.js 显示下方面板，键盘仍走原生控件。 */
@@ -732,6 +777,11 @@ hide:
     #pet-liked-filters .pet-liked-date-range label { font-size: 10px !important; }
     #pet-liked-filters #pet-liked-reset { justify-content: center; padding: 4px 8px !important; min-height: 32px !important; }
 
+    #pet-notification-filters { display: grid !important; grid-template-columns: minmax(0, 1fr) 64px; gap: 6px !important; }
+    #pet-notification-filters .pet-notification-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px !important; }
+    #pet-notification-filters .pet-notification-date-range label { font-size: 10px !important; }
+    #pet-notification-filters input, #pet-notification-filters button { width: 100%; min-height: 32px !important; font-size: 12px !important; }
+
     /* —— 我的投稿卡片（手机端）：封面更矮、操作按钮双列紧凑、摘要单行截断 —— */
     #pet-mine-list .pet-grid {
       gap: 10px !important;
@@ -785,12 +835,14 @@ hide:
         "reset  reset";
     }
     #pet-liked-filters .pet-liked-date-range { grid-template-columns: 1fr; }
+    #pet-notification-filters { grid-template-columns: 1fr !important; }
+    #pet-notification-filters .pet-notification-date-range { grid-template-columns: 1fr; }
     .pet-workspace-submit { min-width: 84px; }
   }
 </style>
 
 !!! tip "📸 关于本栏目"
-    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看、搜索和筛选仍公开的记录。
+    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看、搜索和筛选仍公开的记录。导航栏“通知”支持按日期筛选；未读站长通知会置顶，查看内容后需主动点击“已读”才会解除置顶。
 
 <!-- 工具栏（搜索 / 分类 / 排序）— 静态容器，搜索输入时不会重建，避免输入框失焦 -->
 <div id="pet-toolbar"></div>

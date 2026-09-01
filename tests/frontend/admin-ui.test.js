@@ -54,6 +54,12 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
       total: 1,
       users: [{ id: 'u1', provider: 'github', username: 'tester', nickname: '测试', role: 'user', total: 1, approved: 1, pending: 0, banned: false, email: 'a@b.c', note: '' }],
     }),
+    '/api/admin/site-notifications?page=1&pageSize=10': () => jsonResponse({
+      total: 1,
+      notifications: [{ id: 1, title: '维护提醒', body: '今晚短暂维护', audienceLabel: '全站用户', recipientCount: 12, readCount: 3, createdAt: '2026-09-01T10:00:00Z', withdrawnAt: '' }],
+    }),
+    '/api/admin/notification-groups': () => jsonResponse({ groups: [{ id: 2, name: '志愿者', memberCount: 4 }] }),
+    '/api/admin/site-notification-audience?audienceType=all': () => jsonResponse({ audience: { audienceType: 'all', audienceLabel: '全站用户', recipientCount: 12 } }),
     '/api/admin/content-model/draft': () => jsonResponse({ draft: { draftRevision: 5, types: [{ id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1 }], fields: [], bindings: [] }, diff: null, validation: null }),
     '/api/admin/content-model/versions?page=1&pageSize=10': () => jsonResponse({ versions: [], total: 0 }),
     '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, maxImagesPerSubmission: 10, revision: 1 }, policy: [], runtime: {} }),
@@ -164,8 +170,23 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     const { document } = bootTracked({ user: ADMIN });
     await waitFor(document, '#sidebar');
     const items = [...document.querySelectorAll('.nav-item')].map(n => n.dataset.view);
-    ['pending', 'approved', 'rejected', 'deleted', 'users', 'banned', 'model', 'audit', 'media', 'settings']
+    ['pending', 'approved', 'rejected', 'deleted', 'users', 'notifications', 'banned', 'model', 'audit', 'media', 'settings']
       .forEach(v => expect(items).toContain(v));
+  });
+
+  it('超管可进入通知页，查看投递范围、分组和可撤回历史', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN });
+    await waitFor(document, '#sidebar');
+    document.querySelector('.nav-item[data-view="notifications"]').click();
+    await waitFor(document, '[data-notification-title]');
+    await settle();
+    const text = document.getElementById('view-root').textContent;
+    expect(text).toContain('发布通知');
+    expect(text).toContain('志愿者');
+    expect(text).toContain('维护提醒');
+    expect(text).toContain('将发送给 12 位有效用户');
+    expect(fetchCalls.some(call => call.url === '/api/admin/site-notifications?page=1&pageSize=10')).toBe(true);
+    expect(fetchCalls.some(call => call.url === '/api/admin/notification-groups')).toBe(true);
   });
 
   it('待审核列表加载成功：渲染投稿卡片与投稿人', async () => {

@@ -621,7 +621,7 @@
             '<span>' + esc(displayName(user)) + '</span>' +
             '<span style="font-size:11px;color:' + C.muted + '">✏️</span>' +
           '</button>' +
-          '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="互动通知" aria-label="互动通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:16px;cursor:pointer;color:' + C.fg + '">🔔' +
+          '<button id="pet-notifications-nav" class="pet-nav-secondary-action" title="通知" aria-label="通知" style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:16px;cursor:pointer;color:' + C.fg + '">🔔' +
             (petNotifications && petNotifications.unreadCount() ? '<span style="position:absolute;right:-4px;top:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:' + C.danger + ';color:#fff;font-size:10px;line-height:16px;font-weight:700">' + Math.min(99, petNotifications.unreadCount()) + '</span>' : '') +
           '</button>' +
           '<button id="pet-workspace-toggle-nav" class="pet-nav-secondary-action" title="收起个人工作区" aria-label="收起个人工作区" aria-controls="pet-personal-workspace" aria-expanded="true" style="display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 10px;background:' + C.soft + ';border:1px solid ' + C.border + ';border-radius:8px;font-size:13px;cursor:pointer;color:' + C.fg + '">收起</button>' +
@@ -1114,6 +1114,7 @@
     onUnreadCountChange: renderNav,
     getUser: () => user,
     safeHttpUrl,
+    picker: petPicker,
     formatDateTime,
     PAGE_SIZE: 20,
   });
