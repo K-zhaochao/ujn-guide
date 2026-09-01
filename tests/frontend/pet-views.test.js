@@ -1,8 +1,11 @@
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const views = require('../../docs/pets/pet-views.js');
+const petPageSource = readFileSync(resolve(process.cwd(), 'docs/pets/index.md'), 'utf8');
 
 const C = {
   bg: '#fff', fg: '#374151', fgDark: '#1f2937', border: '#e5e7eb', soft: '#f3f4f6',
@@ -65,6 +68,15 @@ function makeViews(overrides) {
 }
 
 describe('宠物前端渲染层', () => {
+  it('深色主题的投稿状态标签使用不透明背景，避免封面图影响阅读', () => {
+    const slateTheme = petPageSource.split('[data-md-color-scheme="slate"] {')[1].split('\n  }')[0];
+    expect(slateTheme).toContain('--pet-approved-bg: #14532d;');
+    expect(slateTheme).toContain('--pet-rejected-bg: #7f1d1d;');
+    expect(slateTheme).toContain('--pet-pending-bg: #78350f;');
+    expect(slateTheme).toContain('--pet-muted-bg: #374151;');
+    expect(slateTheme).not.toMatch(/--pet-(?:approved|rejected|pending|muted)-bg:\s*rgba\(/);
+  });
+
   it('公开宠物卡片：名称、点赞徽章、投稿人、无障碍语义', () => {
     const v = makeViews();
     const html = v.petCardHtml({

@@ -76,14 +76,15 @@ hide:
     --pet-danger: #f87171;
     --pet-danger-bg: rgba(239, 68, 68, .18);
     --pet-success: #4ade80;
-    --pet-approved-fg: #4ade80;
-    --pet-approved-bg: rgba(34, 197, 94, .16);
-    --pet-rejected-fg: #f87171;
-    --pet-rejected-bg: rgba(239, 68, 68, .18);
-    --pet-pending-bg: rgba(245, 158, 11, .18);  /* ⏳ 待审核徽章深色主题琥珀底 */
-    --pet-pending-fg: #fbbf24;                   /* ⏳ 待审核徽章深色主题亮琥珀字 */
-    --pet-muted-bg: rgba(255, 255, 255, .10);   /* 🗑️ 已删除徽章深色主题灰底 */
-    --pet-muted-fg: #a3aab5;                     /* 🗑️ 已删除徽章深色主题灰字 */
+    /* 投稿状态标签会叠在封面图上，深色模式必须使用不透明底色以保证文字可读。 */
+    --pet-approved-fg: #bbf7d0;
+    --pet-approved-bg: #14532d;
+    --pet-rejected-fg: #fecaca;
+    --pet-rejected-bg: #7f1d1d;
+    --pet-pending-bg: #78350f;
+    --pet-pending-fg: #fde68a;
+    --pet-muted-bg: #374151;
+    --pet-muted-fg: #e5e7eb;
     --pet-input-bg: #1f242d;
     --pet-workspace-bg: #252b35;
   }
