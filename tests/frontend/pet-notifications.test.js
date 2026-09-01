@@ -1,8 +1,10 @@
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 const notifications = require('../../docs/pets/pet-notifications.js');
+const petPageScript = readFileSync(require.resolve('../../docs/pets/pets.js'), 'utf8');
 
 function interaction() {
   return {
@@ -47,6 +49,11 @@ function setup(overrides = {}) {
 }
 
 describe('宠物前端通知控制器', () => {
+  it('日期选择器弹层不会被当作通知面板外部点击', () => {
+    expect(petPageScript).toContain("const isNotificationPickerPanel = !!(e.target.closest && e.target.closest('.pet-picker-panel'));");
+    expect(petPageScript).toContain('!isNotificationAnchor && !isNotificationPickerPanel) petNotifications.closeNotifications();');
+  });
+
   it('打开通知不会自动已读；互动通知可显式标记已读', async () => {
     const { api, controller, onUnreadCountChange } = setup();
     await controller.toggleNotifications(document.getElementById('trigger'));

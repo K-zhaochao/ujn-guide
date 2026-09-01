@@ -493,6 +493,9 @@
       const isLoginAnchor = !!(e.target.closest && e.target.closest('#pet-login-btn'));
       const isRenameAnchor = !!(e.target.closest && (e.target.closest('#pet-user-btn') || e.target.closest('#pet-rename-nav')));
       const isNotificationAnchor = !!(e.target.closest && e.target.closest('#pet-notifications-nav'));
+      // 日历面板挂在 document.body 下。选择日期时它不是通知容器的子节点，
+      // 但仍属于通知筛选的一次交互，不能被误判成点击外部。
+      const isNotificationPickerPanel = !!(e.target.closest && e.target.closest('.pet-picker-panel'));
       if (pop && pop.style.display !== 'none') {
         if (!pop.contains(e.target) && !isLoginAnchor) closePop('pet-login-pop');
       }
@@ -500,7 +503,7 @@
         if (!rp.contains(e.target) && !isRenameAnchor) closePop('pet-rename-pop');
       }
       if (np && np.style.display !== 'none') {
-        if (!np.contains(e.target) && !isNotificationAnchor) petNotifications.closeNotifications();
+        if (!np.contains(e.target) && !isNotificationAnchor && !isNotificationPickerPanel) petNotifications.closeNotifications();
       }
     });
   }
