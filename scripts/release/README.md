@@ -23,3 +23,16 @@ a mutable zip over the live site.
 
 Secrets, SQLite databases, audit archives, Lsky storage, and the rendered
 production configuration remain outside the release directory and Git.
+
+## Local same-origin acceptance
+
+Before entering the credentialed production checklist, start the local backend on
+`127.0.0.1:3005`, build the static site, and start `npm run dev:site`. Then run:
+
+```powershell
+npm run verify:local-deployment
+```
+
+The command probes `/`, `/pets/`, `/api/health`, and `/admin` through the local
+same-origin proxy. It is intentionally credential-free and does not replace the
+1Panel checks for HTTPS, OAuth, Lsky, encrypted backups, or rollback.

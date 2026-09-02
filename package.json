@@ -14,6 +14,7 @@
     "test:frontend": "vitest run",
     "test:release": "node --test tests/release/release-manifest.test.js",
     "verify:site": "python scripts/verify_site_build.py",
+    "verify:local-deployment": "node scripts/release/local-deployment-smoke.js",
     "verify": "powershell -ExecutionPolicy Bypass -File ./verify.ps1 -Target site"
   },
   "devDependencies": {

@@ -29,6 +29,16 @@ npm run build
 npm run dev:site
 ```
 
+在两个进程启动后，从根目录运行下面的本地同源验收。它会经由本地代理实际请求主站、宠物页、
+health 和管理后台入口，任一入口未就绪都会返回非零：
+
+```powershell
+npm run verify:local-deployment
+```
+
+这一步不调用真实 OAuth、Lsky、备份或 1Panel；这些依赖生产凭据或服务器资源的流程仍须按
+后端运维目录中的生产验收记录，在 1Panel 实机环境完成。
+
 浏览器只访问 `http://127.0.0.1:8000/pets/` 和
 `http://127.0.0.1:8000/admin`。`3005` 是内部上游端口，不能直接打开其
 OAuth 回调或后台页面；本地代理和生产 Nginx 都会把 `/api/*`、`/admin`
