@@ -215,6 +215,7 @@
             '<button id="pet-like-btn" style="display:inline-flex;align-items:center;gap:5px;padding:4px 14px;border-radius:20px;border:1px solid ' + C.border + ';background:' + (p.liked ? C.danger : C.soft) + ';color:' + (p.liked ? '#fff' : C.fg) + ';font-size:12px;font-weight:600;cursor:pointer">' +
               '<span>' + (p.liked ? '❤️' : '🤍') + '</span><span>' + (p.likeCount || 0) + '</span>' +
             '</button>' +
+            '<button id="pet-like-list-btn" type="button" aria-haspopup="dialog" style="display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:4px 12px;border-radius:20px;border:1px solid ' + C.border + ';background:' + C.chipBg + ';color:' + C.fg + ';font-size:12px;font-weight:600;cursor:pointer">👥 点赞列表</button>' +
           '</div>' +
         '</div>' +
         (images.length
@@ -237,6 +238,68 @@
           timeHtml +
         '</div>' +
         '</div>';
+    }
+
+    function safeProfileHref(value) {
+      const candidate = safeHttpUrl(value);
+      if (!candidate) return '';
+      try {
+        const parsed = new URL(candidate);
+        const hosts = new Set(['github.com', 'www.github.com', 'gitee.com', 'www.gitee.com']);
+        return parsed.protocol === 'https:' && hosts.has(parsed.hostname.toLowerCase()) ? parsed.href : '';
+      } catch (_) {
+        return '';
+      }
+    }
+
+    function likeListModalHtml({ likes = [], total = 0, page = 1, totalPages = 1, status = 'loading', message = '' } = {}) {
+      const safeTotal = Math.max(0, Number(total) || 0);
+      const safePage = Math.max(1, Number(page) || 1);
+      const safeTotalPages = Math.max(1, Number(totalPages) || 1);
+      const pageNumbers = paginationPages(safeTotalPages, safePage);
+      const body = () => {
+        if (status === 'loading') {
+          return '<div class="pet-like-list-skeletons" aria-hidden="true">' +
+            Array.from({ length: 4 }, () => '<div class="pet-like-list-skeleton"><span></span><i></i></div>').join('') +
+            '</div><p class="pet-like-list-sr-status">正在加载点赞列表</p>';
+        }
+        if (status === 'error') {
+          return '<div class="pet-like-list-empty" role="alert"><p>⚠️ ' + esc(message || '点赞列表加载失败，请稍后重试') + '</p>' +
+            '<button id="pet-like-list-retry" type="button">重试</button></div>';
+        }
+        if (!likes.length) return '<div class="pet-like-list-empty"><p>还没有人点赞</p></div>';
+        return '<ul class="pet-like-list-items">' + likes.map(like => {
+          const name = String(like && like.displayName || '未知用户').trim() || '未知用户';
+          const avatar = safeHttpUrl(like && like.avatarUrl);
+          const href = safeProfileHref(like && like.profileUrl);
+          const fallback = Array.from(name)[0] || '•';
+          const nameHtml = href
+            ? '<a class="pet-like-list-name" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer" title="在新窗口打开 ' + esc(name) + ' 的主页" aria-label="在新窗口打开 ' + esc(name) + ' 的主页">' + esc(name) + '</a>'
+            : '<span class="pet-like-list-name" title="' + esc(name) + '">' + esc(name) + '</span>';
+          return '<li class="pet-like-list-item"><span class="pet-like-list-avatar">' +
+            (avatar ? '<img data-like-avatar src="' + esc(avatar) + '" alt=""><span data-like-avatar-fallback hidden>' + esc(fallback) + '</span>' : '<span data-like-avatar-fallback>' + esc(fallback) + '</span>') +
+            '</span><div class="pet-like-list-person">' + nameHtml +
+            '<time datetime="' + esc(like && like.likedAt || '') + '">' + esc(formatDateTime(like && like.likedAt) || '未知时间') + '</time>' +
+            '</div></li>';
+        }).join('') + '</ul>';
+      };
+      const pager = status === 'ready' && safeTotal > 0
+        ? '<nav class="pet-like-list-pager" aria-label="点赞列表分页">' +
+            '<button class="pet-like-list-page-btn" type="button" data-page="' + (safePage - 1) + '" ' + (safePage <= 1 ? 'disabled' : '') + '>上一页</button>' +
+            '<span class="pet-like-list-page-numbers">' + pageNumbers.map((value, index) => {
+              const previous = pageNumbers[index - 1];
+              const gap = index > 0 && value - previous > 1 ? '<span class="pet-like-list-ellipsis" aria-hidden="true">…</span>' : '';
+              return gap + '<button class="pet-like-list-page-btn' + (value === safePage ? ' is-active' : '') + '" type="button" data-page="' + value + '" aria-label="第 ' + value + ' 页" ' + (value === safePage ? 'aria-current="page"' : '') + '>' + value + '</button>';
+            }).join('') + '</span>' +
+            '<span class="pet-like-list-page-summary">第 ' + safePage + ' 页，共 ' + safeTotalPages + ' 页</span>' +
+            '<button class="pet-like-list-page-btn" type="button" data-page="' + (safePage + 1) + '" ' + (safePage >= safeTotalPages ? 'disabled' : '') + '>下一页</button>' +
+          '</nav>'
+        : '';
+      return '<section class="pet-like-list-panel" aria-labelledby="pet-like-list-title">' +
+        '<header class="pet-like-list-header"><h2 id="pet-like-list-title">点赞列表<span>（' + safeTotal + '）</span></h2>' +
+        '<button id="pet-like-list-close" type="button" aria-label="关闭点赞列表" title="关闭">✕</button></header>' +
+        '<div class="pet-like-list-body" aria-live="polite" aria-busy="' + (status === 'loading' ? 'true' : 'false') + '">' + body() + '</div>' + pager +
+        '</section>';
     }
 
     // ================== 内容模型：类型字段绑定 ==================
@@ -559,6 +622,7 @@
       galleryHtml,
       likedPetsHtml,
       detailModalHtml,
+      likeListModalHtml,
       schemaFieldsForType,
       dynamicFieldHtml,
       renderSubmitFieldsHtml,

@@ -121,6 +121,7 @@
   const petFormat = window.UJNGuidePetFormat;
   const petViews = window.UJNGuidePetViews;
   const petLikesModule = window.UJNGuidePetLikes;
+  const petLikeListModule = window.UJNGuidePetLikeList;
   const petNotificationsModule = window.UJNGuidePetNotifications;
   const petMineModule = window.UJNGuidePetMine;
   const petPickerModule = window.UJNGuidePetPicker;
@@ -247,12 +248,13 @@
     opts = opts || {};
     return modalController.open(modal, {
       label: opts.label,
-      style: 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:15000;display:flex;align-items:center;justify-content:center;padding:20px',
+      onClose: opts.onClose,
+      style: 'position:fixed;top:0;left:0;right:0;bottom:0;background:' + C.overlay + ';z-index:' + (Number(opts.zIndex) || 15000) + ';display:flex;align-items:center;justify-content:center;padding:12px',
     });
   }
 
-  function closePetModal(modal) {
-    modalController.close(modal);
+  function closePetModal(modal, opts) {
+    modalController.close(modal, opts);
   }
 
   function confirmPetAction(options) {
@@ -268,6 +270,7 @@
       !petFormat || typeof petFormat.esc !== 'function' ||
       !petViews || typeof petViews.createPetViews !== 'function' ||
       !petLikesModule || typeof petLikesModule.createPetLikes !== 'function' ||
+      !petLikeListModule || typeof petLikeListModule.createPetLikeList !== 'function' ||
       !petNotificationsModule || typeof petNotificationsModule.createPetNotifications !== 'function' ||
       !petMineModule || typeof petMineModule.createPetMine !== 'function' ||
       !petPickerModule || typeof petPickerModule.createPetPicker !== 'function') {
@@ -868,7 +871,10 @@
     if (!r.ok || !r.data.pet) { showToast('加载详情失败', true); return; }
     const p = r.data.pet;
     const modal = $('#pet-detail-modal');
-    openPetModal(modal, { label: '宠物详情' });
+    openPetModal(modal, {
+      label: '宠物详情',
+      onClose: () => { if (petLikeList) petLikeList.closeLikeList({ restoreFocus: false }); },
+    });
 
     const images = p.images || [];
     let detailIdx = 0; // 当前主图索引（供灯箱使用）
@@ -876,12 +882,17 @@
     // 渲染层（pet-views.js）负责详情 HTML 生成
     modal.innerHTML = views().detailModalHtml(p);
 
-    $('#pet-detail-close').onclick = () => { closePetModal(modal); };
+    const closeDetail = () => {
+      if (petLikeList) petLikeList.closeLikeList({ restoreFocus: false });
+      closePetModal(modal);
+    };
+    $('#pet-detail-close').onclick = closeDetail;
     // 主图点击 → 灯箱全屏查看（不再新开标签页）
     const detailMain = modal.querySelector('#pet-detail-main');
     if (detailMain) detailMain.onclick = () => openLightbox(images.map(resolveImage), detailIdx);
-    modal.onclick = (e) => { if (e.target === modal) closePetModal(modal); };
+    modal.onclick = (e) => { if (e.target === modal) closeDetail(); };
     $('#pet-like-btn').onclick = (e) => { e.stopPropagation(); toggleLike(p.id, e.currentTarget); };
+    $('#pet-like-list-btn').onclick = (e) => { e.stopPropagation(); petLikeList.openLikeList(p.id); };
 
     // 缩略图切换主图
     $all('[data-detail-img]', modal).forEach(thumb => {
@@ -1106,6 +1117,15 @@
     getUser: () => user,
     PAGE_SIZE: 12,
     picker: petPicker,
+  });
+
+  const petLikeList = petLikeListModule.createPetLikeList({
+    document, $, $all,
+    views,
+    api,
+    openPetModal,
+    closePetModal,
+    PAGE_SIZE: 20,
   });
 
   const petNotifications = petNotificationsModule.createPetNotifications({

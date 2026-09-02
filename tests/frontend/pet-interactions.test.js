@@ -161,6 +161,33 @@ describe('宠物弹窗控制器', () => {
     expect(document.activeElement).toBe(trigger);
   });
 
+  it('嵌套弹窗只响应最上层的 Esc，且 Tab 焦点不会离开对话框', () => {
+    document.body.innerHTML = '<button id="trigger">打开</button><div id="parent"><button id="parent-first">父级关闭</button><button id="parent-last">父级操作</button></div><div id="child"><button id="child-first">子级关闭</button><button id="child-last">子级翻页</button></div>';
+    const trigger = document.querySelector('#trigger');
+    const parent = document.querySelector('#parent');
+    const child = document.querySelector('#child');
+    const { controller } = createController();
+    trigger.focus();
+
+    controller.open(parent, { style: 'display:flex' });
+    controller.open(child, { style: 'display:flex' });
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(child.style.display).toBe('none');
+    expect(parent.style.display).toBe('flex');
+
+    const parentFirst = document.querySelector('#parent-first');
+    const parentLast = document.querySelector('#parent-last');
+    parentLast.focus();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    expect(document.activeElement).toBe(parentFirst);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
+    expect(document.activeElement).toBe(parentLast);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(parent.style.display).toBe('none');
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it('站内确认弹窗可取消、Esc 关闭并恢复触发焦点', async () => {
     document.body.innerHTML = '<button id="trigger">删除</button>';
     const trigger = document.querySelector('#trigger');

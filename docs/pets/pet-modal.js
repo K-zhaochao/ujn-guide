@@ -9,6 +9,7 @@
   function createModalController({ document: documentRef, requestAnimationFrame, registerListener, unregisterListener } = {}) {
     if (!documentRef) throw new TypeError('Modal controller requires a document');
     const states = new WeakMap();
+    const stack = [];
     const schedule = typeof requestAnimationFrame === 'function'
       ? requestAnimationFrame
       : callback => setTimeout(callback, 0);
@@ -31,13 +32,16 @@
         unregister(state.listenerEntry);
         states.delete(modal);
       }
+      const stackIndex = stack.lastIndexOf(modal);
+      if (stackIndex >= 0) stack.splice(stackIndex, 1);
       modal.style.display = 'none';
+      if (state && typeof state.onClose === 'function') state.onClose();
       if (restoreFocus && state && state.previous && state.previous.isConnected && typeof state.previous.focus === 'function') {
         state.previous.focus();
       }
     }
 
-    function open(modal, { label, style } = {}) {
+    function open(modal, { label, style, onClose } = {}) {
       if (!modal) return;
       const existing = states.get(modal);
       const previous = existing ? existing.previous : documentRef.activeElement;
@@ -45,16 +49,36 @@
         unregister(existing.listenerEntry);
         states.delete(modal);
       }
+      const existingStackIndex = stack.lastIndexOf(modal);
+      if (existingStackIndex >= 0) stack.splice(existingStackIndex, 1);
       modal.setAttribute('role', 'dialog');
       modal.setAttribute('aria-modal', 'true');
       if (label) modal.setAttribute('aria-label', label);
       if (style) modal.style.cssText = style;
 
       const onKeyDown = event => {
-        if (event.key === 'Escape') close(modal);
+        // A detail dialog may open a second dialog. Only the topmost one may
+        // consume Esc/Tab, otherwise Esc would close both in the same event.
+        if (stack[stack.length - 1] !== modal) return;
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          close(modal);
+          return;
+        }
+        if (event.key !== 'Tab') return;
+        const focusable = Array.from(modal.querySelectorAll(FOCUSABLE_SELECTOR))
+          .filter(element => !element.disabled && element.tabIndex !== -1);
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey ? documentRef.activeElement === first : documentRef.activeElement === last) {
+          event.preventDefault();
+          (event.shiftKey ? last : first).focus();
+        }
       };
       const listenerEntry = register(documentRef, 'keydown', onKeyDown);
-      states.set(modal, { listenerEntry, previous });
+      states.set(modal, { listenerEntry, previous, onClose });
+      stack.push(modal);
       schedule(() => {
         const state = states.get(modal);
         if (!state || state.listenerEntry !== listenerEntry) return;

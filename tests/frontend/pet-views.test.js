@@ -180,7 +180,35 @@ describe('宠物前端渲染层', () => {
     expect(html).toContain('id="pet-detail-main"');
     expect(html).toContain('data-detail-img="1"');
     expect(html).toContain('id="pet-like-btn"');
+    expect(html).toContain('id="pet-like-list-btn"');
+    expect(html).toContain('点赞列表');
     expect(html).toContain('🤍</span><span>5');
+  });
+
+  it('点赞列表：分页、GitHub/Gitee 主页跳转与外链安全边界', () => {
+    const v = makeViews();
+    const html = v.likeListModalHtml({
+      total: 25,
+      page: 2,
+      totalPages: 3,
+      status: 'ready',
+      likes: [
+        { displayName: '猫同学', avatarUrl: 'https://avatars.example.test/a.png', profileUrl: 'https://github.com/cat-user', likedAt: '2026-09-02T06:30:00.000Z' },
+        { displayName: '码同学', avatarUrl: '', profileUrl: 'https://gitee.com/code-user', likedAt: '2026-09-02T06:20:00.000Z' },
+        { displayName: '<img src=x>', avatarUrl: '', profileUrl: 'https://example.com/not-profile', likedAt: '2026-09-02T06:10:00.000Z' },
+      ],
+    });
+    expect(html).toContain('点赞列表<span>（25）</span>');
+    expect(html).toContain('data-page="1"');
+    expect(html).toContain('data-page="3"');
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain('https://github.com/cat-user');
+    expect(html).toContain('https://gitee.com/code-user');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).not.toContain('https://example.com/not-profile');
+    expect(html).not.toContain('<img src=x>');
+    expect(html).toContain('&lt;img src=x&gt;');
   });
 
   it('动态字段：select 单选 / 多选 / 必填 / 只读 / textarea 全行', () => {

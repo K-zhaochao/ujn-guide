@@ -199,6 +199,171 @@ hide:
     #pet-liked-filters input[type=date] { min-height: 44px; }
   }
 
+  /* 投稿详情的点赞列表：内容区滚动、分页固定，浅色与 slate 深色共用主题变量。 */
+  .pet-like-list-panel {
+    width: min(100%, 540px);
+    max-height: calc(100dvh - 24px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+    border: 1px solid var(--pet-border);
+    border-radius: 8px;
+    background: var(--md-default-bg-color, #fff);
+    color: var(--md-default-fg-color, #374151);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, .24);
+  }
+  .pet-like-list-header {
+    display: flex;
+    align-items: center;
+    min-height: 58px;
+    gap: 12px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--pet-border);
+  }
+  .pet-like-list-header h2 {
+    min-width: 0;
+    margin: 0;
+    color: var(--md-default-fg-color, #1f2937);
+    font-size: 17px;
+    line-height: 1.4;
+  }
+  .pet-like-list-header h2 span { color: var(--pet-muted); font-size: 13px; font-weight: 500; }
+  .pet-like-list-header button {
+    display: inline-flex;
+    flex: 0 0 36px;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-left: auto;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--pet-muted);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .pet-like-list-header button:hover { background: var(--pet-soft); color: var(--md-default-fg-color, #374151); }
+  .pet-like-list-body { min-height: 150px; overflow-y: auto; overscroll-behavior: contain; }
+  .pet-like-list-items { margin: 0; padding: 0; list-style: none; }
+  .pet-like-list-item {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 11px;
+    align-items: center;
+    min-height: 62px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--pet-border);
+  }
+  .pet-like-list-item:last-child { border-bottom: 0; }
+  .pet-like-list-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--pet-avatar-bg);
+    color: var(--md-default-fg-color, #374151);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .pet-like-list-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .pet-like-list-person { display: grid; min-width: 0; gap: 3px; }
+  .pet-like-list-name {
+    display: block;
+    overflow: hidden;
+    color: var(--md-default-fg-color, #374151);
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.35;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  a.pet-like-list-name:hover { color: var(--pet-primary); text-decoration: underline; }
+  .pet-like-list-person time { color: var(--pet-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .pet-like-list-empty {
+    display: grid;
+    min-height: 150px;
+    place-content: center;
+    gap: 12px;
+    padding: 24px;
+    color: var(--pet-muted);
+    text-align: center;
+  }
+  .pet-like-list-empty p { margin: 0; line-height: 1.55; }
+  .pet-like-list-empty button {
+    min-height: 40px;
+    padding: 8px 16px;
+    border: 1px solid var(--pet-primary);
+    border-radius: 6px;
+    background: var(--pet-primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .pet-like-list-skeletons { padding: 4px 0; }
+  .pet-like-list-skeleton {
+    display: grid;
+    grid-template-columns: 40px minmax(120px, 1fr);
+    gap: 11px;
+    align-items: center;
+    min-height: 62px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--pet-border);
+  }
+  .pet-like-list-skeleton span,
+  .pet-like-list-skeleton i {
+    display: block;
+    background: var(--pet-soft);
+  }
+  .pet-like-list-skeleton span { width: 40px; height: 40px; border-radius: 50%; }
+  .pet-like-list-skeleton i { width: 62%; height: 12px; border-radius: 4px; }
+  .pet-like-list-sr-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .pet-like-list-pager {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 58px;
+    gap: 6px;
+    padding: 9px 12px;
+    border-top: 1px solid var(--pet-border);
+  }
+  .pet-like-list-pager button {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--pet-border);
+    border-radius: 6px;
+    background: var(--pet-chip-bg);
+    color: var(--md-default-fg-color, #374151);
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .pet-like-list-pager button:hover:not(:disabled) { border-color: var(--pet-primary); color: var(--pet-primary); }
+  .pet-like-list-pager button.is-active { border-color: var(--pet-primary); background: var(--pet-primary); color: #fff; }
+  .pet-like-list-pager button:disabled { opacity: .42; cursor: not-allowed; }
+  .pet-like-list-page-numbers { display: inline-flex; align-items: center; gap: 4px; }
+  .pet-like-list-ellipsis { padding: 0 1px; color: var(--pet-muted); }
+  .pet-like-list-page-summary { display: none; color: var(--pet-muted); font-size: 12px; white-space: nowrap; }
+
+  @media (max-width: 600px) {
+    .pet-like-list-panel { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); }
+    .pet-like-list-header { min-height: 56px; padding: 0 12px; }
+    .pet-like-list-header button { flex-basis: 44px; width: 44px; height: 44px; }
+    .pet-like-list-item { grid-template-columns: 40px minmax(0, 1fr); min-height: 70px; padding: 12px; }
+    .pet-like-list-name { font-size: 14px; }
+    .pet-like-list-person time { font-size: 12px; }
+    .pet-like-list-pager { justify-content: space-between; min-height: 60px; gap: 8px; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); }
+    .pet-like-list-pager button { min-width: 72px; min-height: 44px; }
+    .pet-like-list-page-numbers { display: none; }
+    .pet-like-list-page-summary { display: block; }
+  }
+
   /* 登录后的账号栏与个人工作区共用一套边框，视觉上是同一个工作区域。 */
   #pet-nav.pet-nav-logged-in .pet-nav-shell {
     background: var(--pet-workspace-bg);
@@ -842,7 +1007,7 @@ hide:
 </style>
 
 !!! tip "📸 关于本栏目"
-    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看、搜索和筛选仍公开的记录。导航栏“通知”支持按日期筛选；未读站长通知会置顶，查看内容后需主动点击“已读”才会解除置顶。
+    本栏目收集了济南大学校园内的宠物图鉴。登录后即可投稿你的发现、为喜欢的宠物点赞，并在“我的收藏”中按点赞时间查看、搜索和筛选仍公开的记录。投稿详情中的“点赞列表”可分页查看点赞者和时间。导航栏“通知”支持按日期筛选；未读站长通知会置顶，查看内容后需主动点击“已读”才会解除置顶。
 
 <!-- 工具栏（搜索 / 分类 / 排序）— 静态容器，搜索输入时不会重建，避免输入框失焦 -->
 <div id="pet-toolbar"></div>
@@ -854,6 +1019,7 @@ hide:
 
 <!-- 弹窗容器 -->
 <div id="pet-detail-modal" style="display:none"></div>
+<div id="pet-like-list-modal" style="display:none"></div>
 <div id="pet-submit-modal" style="display:none"></div>
 <div id="pet-edit-modal" style="display:none"></div>
 
