@@ -7,6 +7,28 @@ const require = createRequire(import.meta.url);
 const views = require('../../docs/pets/pet-views.js');
 const petPageSource = readFileSync(resolve(process.cwd(), 'docs/pets/index.md'), 'utf8');
 
+it('通知日期筛选控件具有清晰边界和足够的点击区域', () => {
+  const notificationStart = petPageSource.indexOf('  #pet-notification-filters input,');
+  const notificationEnd = petPageSource.indexOf('  /* =====', notificationStart);
+  expect(notificationStart).toBeGreaterThanOrEqual(0);
+  expect(notificationEnd).toBeGreaterThan(notificationStart);
+  const notificationStyle = petPageSource.slice(notificationStart, notificationEnd);
+  expect(notificationStyle).toContain('min-height: 44px;');
+  expect(notificationStyle).toContain('padding: 9px 12px;');
+  expect(notificationStyle).toContain('border: 2px solid var(--pet-border) !important;');
+  expect(notificationStyle).toContain('grid-template-columns: repeat(2, 136px);');
+  expect(notificationStyle).toContain('font-size: 12px;');
+  expect(petPageSource).toContain('#pet-notification-filters input, #pet-notification-filters button { width: 100%; min-height: 44px !important; font-size: 13px !important; }');
+
+  const calendarStart = petPageSource.indexOf('  .pet-cal {');
+  const calendarEnd = petPageSource.indexOf('  @media (max-width: 640px)', calendarStart);
+  const calendarStyle = petPageSource.slice(calendarStart, calendarEnd);
+  expect(calendarStyle).toContain('width: min(326px, calc(100vw - 20px));');
+  expect(calendarStyle).toContain('flex: 0 0 40px;');
+  expect(calendarStyle).toContain('height: 40px;');
+  expect(calendarStyle).toContain('height: 38px;');
+});
+
 const C = {
   bg: '#fff', fg: '#374151', fgDark: '#1f2937', border: '#e5e7eb', soft: '#f3f4f6',
   imgBg: '#f3f4f6', muted: '#9ca3af', faint: '#b0b4bb', primary: '#3b82f6',

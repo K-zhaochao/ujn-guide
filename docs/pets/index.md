@@ -605,50 +605,69 @@ hide:
   }
   #pet-mine-filters .pet-mine-date-range input { width: 100%; }
 
-  /* 通知筛选复用“我的投稿”的日期框规格：起止边界明确，亮暗主题同色系。 */
+  /* 通知筛选日期框：提高边界对比度和触控尺寸，亮暗主题同色系。 */
   #pet-notification-filters input,
   #pet-notification-filters button {
-    min-height: 38px;
+    min-height: 44px;
     border-radius: 8px !important;
     box-sizing: border-box;
   }
   #pet-notification-filters input[type="date"] {
-    padding: 8px 9px;
-    border: 1px solid var(--pet-border) !important;
+    padding: 9px 12px;
+    border: 2px solid var(--pet-border) !important;
     background-color: var(--pet-input-bg) !important;
-    color: inherit;
+    color: var(--md-default-fg-color, #374151);
     cursor: pointer;
     font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
     font-variant-numeric: tabular-nums;
+    transition: border-color .15s, background-color .15s, box-shadow .15s;
   }
-  #pet-notification-filters input:hover { border-color: var(--pet-primary) !important; }
-  #pet-notification-filters input:focus {
+  #pet-notification-filters input[type="date"]:hover {
     border-color: var(--pet-primary) !important;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 20%, transparent);
+    background-color: color-mix(in srgb, var(--pet-primary) 4%, var(--pet-input-bg)) !important;
+  }
+  #pet-notification-filters input[type="date"]:focus {
+    border-color: var(--pet-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 22%, transparent), 0 1px 2px rgba(0, 0, 0, .08);
     outline: none;
   }
   #pet-notification-filters .pet-notification-date-range {
     display: grid;
-    grid-template-columns: repeat(2, 128px);
-    gap: 8px;
+    grid-template-columns: repeat(2, 136px);
+    gap: 10px;
   }
   #pet-notification-filters .pet-notification-date-range label {
     display: grid;
-    gap: 3px;
-    color: var(--pet-muted);
-    font-size: 11px;
-    font-weight: 600;
+    gap: 5px;
+    color: var(--md-default-fg-color, #374151);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
   }
   #pet-notification-filters .pet-notification-date-range input { width: 100%; }
   #pet-notification-reset {
-    padding: 8px 10px;
-    border: 1px solid var(--pet-border);
+    min-width: 72px;
+    padding: 9px 10px;
+    border: 2px solid var(--pet-border);
     background: var(--pet-soft);
     color: var(--md-default-fg-color, #374151);
     cursor: pointer;
     font-size: 12px;
+    font-weight: 650;
+    transition: border-color .15s, color .15s, background-color .15s, box-shadow .15s;
   }
-  #pet-notification-reset:hover { border-color: var(--pet-primary); color: var(--pet-primary); }
+  #pet-notification-reset:hover {
+    border-color: var(--pet-primary);
+    color: var(--pet-primary);
+    background: color-mix(in srgb, var(--pet-primary) 6%, var(--pet-soft));
+  }
+  #pet-notification-reset:focus-visible {
+    border-color: var(--pet-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pet-primary) 22%, transparent);
+    outline: none;
+  }
 
   /* ===== 自定义可爱风下拉 / 日历面板（pet-picker.js） =====
    * 原生 select 的 option 列表与原生日历弹层是浏览器系统 UI，无法 CSS 定制；
@@ -726,7 +745,11 @@ hide:
     white-space: nowrap;
   }
   /* 日历面板：圆角、柔和渐变头部、圆形日格 */
-  .pet-cal { width: 258px; padding: 12px; }
+  .pet-cal {
+    width: min(326px, calc(100vw - 20px));
+    padding: 14px;
+    border: 2px solid color-mix(in srgb, var(--pet-primary, #3b82f6) 34%, var(--pet-border, #e5e7eb));
+  }
   .pet-cal-head {
     display: flex;
     align-items: center;
@@ -734,19 +757,20 @@ hide:
     margin-bottom: 8px;
   }
   .pet-cal-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--md-default-fg-color, #1f2937);
     letter-spacing: .5px;
   }
   .pet-cal-nav {
-    width: 30px;
-    height: 30px;
-    border: 0;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border: 1px solid color-mix(in srgb, var(--pet-primary, #3b82f6) 28%, var(--pet-border, #e5e7eb));
     border-radius: 50%;
     background: var(--pet-soft, rgba(0, 0, 0, .04));
     color: var(--pet-primary, #3b82f6);
-    font-size: 16px;
+    font-size: 20px;
     line-height: 1;
     cursor: pointer;
     transition: background .12s, transform .12s;
@@ -757,29 +781,35 @@ hide:
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 650;
     color: var(--pet-muted, #9ca3af);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   .pet-cal-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 2px;
+    gap: 3px;
   }
   .pet-cal-day {
-    height: 32px;
-    border: 0;
+    min-width: 0;
+    min-height: 38px;
+    height: 38px;
+    border: 1px solid transparent;
     border-radius: 50%;
     background: transparent;
     color: inherit;
-    font-size: 12.5px;
+    font-size: 13px;
     cursor: pointer;
     transition: background .12s, color .12s, transform .12s;
   }
-  .pet-cal-day:hover { background: var(--pet-soft, rgba(0, 0, 0, .04)); }
+  .pet-cal-day:hover {
+    border-color: color-mix(in srgb, var(--pet-primary, #3b82f6) 28%, transparent);
+    background: color-mix(in srgb, var(--pet-primary, #3b82f6) 9%, var(--pet-soft, rgba(0, 0, 0, .04)));
+  }
   .pet-cal-day.is-out { color: var(--pet-faint, #b0b4bb); }
   .pet-cal-day.is-today {
-    box-shadow: inset 0 0 0 1.5px var(--pet-primary, #3b82f6);
+    box-shadow: inset 0 0 0 2px var(--pet-primary, #3b82f6);
     color: var(--pet-primary, #3b82f6);
     font-weight: 650;
   }
@@ -787,6 +817,7 @@ hide:
     background: var(--pet-primary, #3b82f6);
     color: #fff;
     font-weight: 650;
+    box-shadow: 0 2px 5px color-mix(in srgb, var(--pet-primary, #3b82f6) 35%, transparent);
   }
   .pet-cal-day.is-selected:hover { background: var(--pet-primary, #3b82f6); }
   .pet-cal-foot { text-align: center; margin-top: 8px; }
@@ -795,9 +826,10 @@ hide:
     border-radius: 20px;
     background: var(--pet-soft, rgba(0, 0, 0, .04));
     color: var(--pet-primary, #3b82f6);
+    min-height: 40px;
+    padding: 8px 16px;
     font-size: 12px;
     font-weight: 650;
-    padding: 6px 14px;
     cursor: pointer;
     transition: background .12s;
   }
@@ -942,10 +974,12 @@ hide:
     #pet-liked-filters .pet-liked-date-range label { font-size: 10px !important; }
     #pet-liked-filters #pet-liked-reset { justify-content: center; padding: 4px 8px !important; min-height: 32px !important; }
 
-    #pet-notification-filters { display: grid !important; grid-template-columns: minmax(0, 1fr) 64px; gap: 6px !important; }
-    #pet-notification-filters .pet-notification-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px !important; }
-    #pet-notification-filters .pet-notification-date-range label { font-size: 10px !important; }
-    #pet-notification-filters input, #pet-notification-filters button { width: 100%; min-height: 32px !important; font-size: 12px !important; }
+    #pet-notification-filters { display: grid !important; grid-template-columns: minmax(0, 1fr) 68px; gap: 8px !important; }
+    #pet-notification-filters .pet-notification-date-range { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; }
+    #pet-notification-filters .pet-notification-date-range label { gap: 4px; font-size: 12px !important; }
+    #pet-notification-filters input, #pet-notification-filters button { width: 100%; min-height: 44px !important; font-size: 13px !important; }
+    #pet-notification-filters input[type="date"] { padding: 8px !important; }
+    #pet-notification-reset { min-width: 0; padding: 8px 6px !important; }
 
     /* —— 我的投稿卡片（手机端）：封面更矮、操作按钮双列紧凑、摘要单行截断 —— */
     #pet-mine-list .pet-grid {
