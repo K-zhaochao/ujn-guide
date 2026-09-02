@@ -50,7 +50,9 @@ function setup(overrides = {}) {
 
 describe('宠物前端通知控制器', () => {
   it('日期选择器弹层不会被当作通知面板外部点击', () => {
-    expect(petPageScript).toContain("const isNotificationPickerPanel = !!(e.target.closest && e.target.closest('.pet-picker-panel'));");
+    expect(petPageScript).toContain("const eventPath = typeof e.composedPath === 'function' ? e.composedPath() : [];");
+    expect(petPageScript).toContain("node.classList.contains('pet-picker-panel')");
+    expect(petPageScript).toContain("|| !!(e.target.closest && e.target.closest('.pet-picker-panel'));");
     expect(petPageScript).toContain('!isNotificationAnchor && !isNotificationPickerPanel) petNotifications.closeNotifications();');
   });
 

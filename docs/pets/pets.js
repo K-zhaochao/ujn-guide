@@ -497,8 +497,12 @@
       const isRenameAnchor = !!(e.target.closest && (e.target.closest('#pet-user-btn') || e.target.closest('#pet-rename-nav')));
       const isNotificationAnchor = !!(e.target.closest && e.target.closest('#pet-notifications-nav'));
       // 日历面板挂在 document.body 下。选择日期时它不是通知容器的子节点，
-      // 但仍属于通知筛选的一次交互，不能被误判成点击外部。
-      const isNotificationPickerPanel = !!(e.target.closest && e.target.closest('.pet-picker-panel'));
+      // 但仍属于通知筛选的一次交互，不能被误判成点击外部。月份切换
+      // 会同步重绘并移除原按钮，必须优先从事件传播路径识别已脱离 DOM 的面板。
+      const eventPath = typeof e.composedPath === 'function' ? e.composedPath() : [];
+      const isNotificationPickerPanel = eventPath.some(node =>
+        node && node.nodeType === 1 && node.classList && node.classList.contains('pet-picker-panel')
+      ) || !!(e.target.closest && e.target.closest('.pet-picker-panel'));
       if (pop && pop.style.display !== 'none') {
         if (!pop.contains(e.target) && !isLoginAnchor) closePop('pet-login-pop');
       }
