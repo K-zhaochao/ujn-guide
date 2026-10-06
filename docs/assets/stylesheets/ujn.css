@@ -12,6 +12,27 @@
    公告栏 / QQ 群入口 / 搜索与 AI 助手 / 页脚 / 跳蚤市场弹窗 / 赞助弹窗
    ========================================================================== */
 
+/* ===== 字体 =====
+   正文与标题都用系统字体栈，不引 webfont：中文 webfont 动辄数 MB，为了一屏字让每个访客
+   多下几 MB 不划算。顺序是「先拉丁、后中文」——拉丁字形交给系统 UI 字体，
+   中文再往后回落到各平台优化过的黑体，本机装了哪个就用哪个。
+   装饰性英文（页脚签名）另用自托管的 Great Vibes，见文件里的 @font-face。 */
+:root {
+  /* Material 自己用的是 --md-text-font（theme.font: false 时它被设成占位符 "_"），
+     所以两个都覆盖：只写 --md-text-font-family 是不生效的（踩过）。 */
+  --md-text-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto,
+    "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", "Noto Sans CJK SC",
+    "Source Han Sans SC", "WenQuanYi Micro Hei", sans-serif;
+  --md-text-font-family: var(--md-text-font);
+  --md-code-font-family: "JetBrains Mono", "Cascadia Code", Consolas, "SFMono-Regular",
+    Menlo, monospace;
+}
+
+body,
+.md-typeset {
+  font-family: var(--md-text-font-family);
+}
+
 /* ===== 设计令牌 =====
    取值与重构前逐字一致（例如 --ujn-radius-xs 就是原来的 4px），
    新组件请优先复用这些令牌，别再写裸数值；改一次就能全站生效。 */
@@ -140,6 +161,15 @@
   .ujn-mobile-toc {
     display: none;
   }
+}
+
+/* 搜索面板关闭时，下拉区不能拦截点击。
+   Material 只把 .md-search__output 设成 opacity: 0——元素仍然可命中；
+   而「大家都在搜」在面板里占了 234×195 的一块，正好压在顶栏最右侧那个 tab 上，
+   读者反馈「免责声明」点不了就是这个原因（真实鼠标点击的命中结果是 div.md-search__hot）。
+   注意只对 output 下手：表单（搜索框）必须保持可点，否则就打不开搜索了。 */
+[data-md-toggle=search]:not(:checked) ~ .md-header .md-search__output {
+  pointer-events: none;
 }
 
 /* ===== 搜索面板的「大家都在搜」 =====
@@ -324,13 +354,9 @@ html[data-announce="hidden"] .md-banner {
   }
 }
 
-/* Material 的 .md-header__option（主题切换）带了个 margin-bottom: 10px 的怪值，
-   于是它的图标比同排按钮高 5px——阅读器里量出来的：它 iconCenter 89，我加的按钮 94。
-   归零之后所有图标都落在页头真正的垂直中心（58px 的条里 24px 图标居中）。
-   不要给单个按钮加补偿边距，那只是把怪值再抄一遍。 */
-.md-header__option {
-  margin-bottom: 0;
-}
+/* 页头的垂直对齐以**搜索框**为准：它的中心在 89（页头 58px 高的条里）。
+   Material 的 .md-header__option 带 margin-bottom: 10px，正是靠它让主题图标也落在 89。
+   我上一轮把它归零、改成让其它图标降到 94，方向错了——这次让附加按钮对齐搜索框。 */
 
 /* ===== 顶部附加按钮：交流群 / GitHub / Gitee =====
    与 Material 自带的页头按钮同构：**不设固定尺寸**，靠 .4rem 内边距 + 1.2rem 图标
@@ -341,7 +367,9 @@ html[data-announce="hidden"] .md-banner {
    「交流群」用群组图标而不是 QQ 品牌图标：品牌图标容易被误读成「加我 QQ」。 */
 .md-header__button.md-header__qq-group,
 .md-header__button.md-header__repo {
-  margin: .2rem;
+  /* 上下不对称是故意的：Material 的主题切换表单靠 margin-bottom: 10px 把图标抬到搜索框的中心线，
+     这里照抄同样的办法，四个图标（群 / GitHub / Gitee / 主题）才会和搜索框在同一条线上。 */
+  margin: .2rem .2rem .7rem;
   padding: .4rem;
   display: inline-flex;
   align-items: center;

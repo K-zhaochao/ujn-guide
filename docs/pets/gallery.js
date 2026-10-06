@@ -75,15 +75,58 @@
       return pageSize > 0 ? Math.max(1, Math.ceil(cards.length / pageSize)) : 1;
     }
 
+    // ==================== 按名字找猫 ====================
+    // 页面上那个搜索框（docs/pets/index.md 的 #pet-filter-input）用来按名字筛卡牌。
+    // 筛选期间不翻页：直接显示全部命中项并收起分页条——否则读者会以为「只搜到 6 只」。
+    var filterInput = document.getElementById('pet-filter-input');
+    var filterCount = document.getElementById('pet-filter-count');
+    var query = '';
+
+    function matches(card) {
+      if (!query) return true;
+      var name = (card.getAttribute('data-name') || '').toLowerCase();
+      return name.indexOf(query) !== -1;
+    }
+
+    function applyFilter() {
+      var hits = 0;
+      for (var i = 0; i < cards.length; i += 1) {
+        if (matches(cards[i])) hits += 1;
+      }
+      if (filterCount) {
+        if (!query) filterCount.textContent = '';
+        else if (hits) filterCount.textContent = '找到 ' + hits + ' 只';
+        else filterCount.textContent = '没有匹配的猫，换个名字试试';
+      }
+      return hits;
+    }
+
     function applyPage() {
       var pages = totalPages();
       page = clamp(page, 1, pages);
       var start = pageSize > 0 ? (page - 1) * pageSize : 0;
       var end = pageSize > 0 ? start + pageSize : cards.length;
+      var hits = applyFilter();
       for (var i = 0; i < cards.length; i += 1) {
-        cards[i].classList.toggle('is-hidden', i < start || i >= end);
+        var visible = query ? matches(cards[i]) : (i >= start && i < end);
+        cards[i].classList.toggle('is-hidden', !visible);
       }
+      if (pager) pager.hidden = Boolean(query) || hits === 0;
       renderPager();
+    }
+
+    if (filterInput) {
+      filterInput.addEventListener('input', function () {
+        query = (filterInput.value || '').trim().toLowerCase();
+        page = 1;
+        applyPage();
+      });
+      filterInput.addEventListener('search', function () {
+        if (!filterInput.value) {
+          query = '';
+          applyPage();
+        }
+      });
     }
 
     function button(className, label, text) {
@@ -530,7 +573,14 @@
       if (pager) pager.textContent = '';
     }
 
-    return { start: start, destroy: destroy };
+    function setFilter(value) {
+      query = (value || '').trim().toLowerCase();
+      if (filterInput) filterInput.value = value || '';
+      page = 1;
+      applyPage();
+    }
+
+    return { start: start, destroy: destroy, setFilter: setFilter };
   }
 
   function init() {

@@ -5,6 +5,8 @@ tags:
 # 隐藏后正文变宽并居中。手机端的抽屉导航不受影响（Material 只在宽屏渲染这个侧栏）。
 hide:
   - navigation
+  # 右侧目录只有「猫猫图集」一条，对着一墙卡片没什么用；去掉后正文更宽、也更容易居中
+  - toc
 ---
 
 # 🐾 宠物收集录
@@ -18,7 +20,59 @@ hide:
 
     [:fontawesome-brands-qq: 加入猫猫收集图鉴群聊](https://qm.qq.com/q/IucYbisPys){ .md-button }
 
+<!-- 按名字找猫：筛选逻辑在 gallery.js（筛选期间不分页，直接列出全部命中项）。
+     注意写的是「名字」而不是「相关信息」——卡牌上只有名字可以筛，
+     正文内容不在页面上，别让读者以为能按特征搜。 -->
+<div class="pet-filter">
+  <label class="pet-filter__label" for="pet-filter-input">🔍 按名字找猫</label>
+  <input class="pet-filter__input" id="pet-filter-input" type="search" autocomplete="off"
+    placeholder="例如「优米」「图书馆学长」" aria-describedby="pet-filter-count" />
+  <span class="pet-filter__count" id="pet-filter-count" role="status" aria-live="polite"></span>
+</div>
+
 <style>
+/* 按名字找猫 */
+.pet-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+  margin: 1rem 0 1.2rem;
+  padding: .6rem .75rem;
+  border: 1px solid var(--pet-hairline, var(--ujn-hairline));
+  border-radius: var(--ujn-radius-md);
+  background: color-mix(in srgb, var(--pet-accent, var(--ujn-accent)) 4%, transparent);
+}
+
+.pet-filter__label {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--pet-accent, var(--ujn-accent));
+}
+
+.pet-filter__input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: .34rem .6rem;
+  border: 1px solid var(--pet-hairline, var(--ujn-hairline));
+  border-radius: var(--ujn-radius-sm);
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  font-family: inherit;
+  font-size: .72rem;
+}
+
+.pet-filter__input:focus-visible {
+  outline: 2px solid var(--pet-accent, var(--ujn-accent));
+  outline-offset: 1px;
+}
+
+.pet-filter__count {
+  font-size: .68rem;
+  color: var(--pet-muted, var(--ujn-muted));
+}
+
+
 /* ===== 🐾 猫猫图鉴：照片卡牌 / 分页 / 相册弹窗 =====
    纯静态实现：卡牌是构建时生成的 HTML，分页与相册都在浏览器本地完成，
    页面不发送任何接口请求。卡牌区由 scripts/pets/build_gallery.py 生成。 */
