@@ -22,6 +22,21 @@ def build_environment() -> dict[str, str]:
     return environment
 
 
+def refresh_changelog(project_root: Path = PROJECT_ROOT) -> None:
+    """构建前重生成「最近更新」页。
+
+    这一页是提交进仓库的（这样直接 mkdocs build 也不会缺页），
+    但内容随 git 历史变化，所以每次构建都刷一遍；拿不到 git 就沿用仓库里的版本。
+    """
+    result = subprocess.run(
+        [sys.executable, str(project_root / "scripts" / "site" / "build_changelog.py")],
+        cwd=project_root,
+        check=False,
+    )
+    if result.returncode != 0:
+        print("[build-site] 更新日志生成失败，沿用仓库里的版本", file=sys.stderr)
+
+
 def run_build(project_root: Path = PROJECT_ROOT) -> int:
     result = subprocess.run(
         [sys.executable, "-m", "mkdocs", "build", "--strict", "--clean"],
@@ -33,6 +48,7 @@ def run_build(project_root: Path = PROJECT_ROOT) -> int:
 
 
 def main() -> None:
+    refresh_changelog()
     if run_build() != 0:
         raise SystemExit(1)
     try:
