@@ -94,9 +94,9 @@ hide: [navigation]
 
 ---
 
-## 🧰 校园集市与支持
+## 🧰 校园集市、开源仓库与支持
 
-二手交易、失物招领，以及支持本站长期运行——两个入口都在这里（点开是二维码，不需要另外跳转）。
+二手交易、失物招领，本站的开源仓库，以及支持站长——入口都在这里。
 
 <div class="grid cards" markdown>
 
@@ -107,12 +107,20 @@ hide: [navigation]
 
     <button class="md-button md-button--primary" type="button" data-ujn-modal="flea">🛒 打开跳蚤市场</button>
 
-- :material-coffee-outline: **请作者喝杯奶茶**
+- :material-coffee-outline: **支持站长**
 
     ---
-    服务器与域名每年都要续费。一杯奶茶钱，能让这个站点多撑 10 天 ❤️
+    如果本站对您有所帮助，可以支持一下站长 ❤️
 
-    <button class="md-button" type="button" data-ujn-modal="donate">☕ 扫码赞助</button>
+    <button class="md-button" type="button" data-ujn-modal="donate">☕ 请站长喝杯奶茶</button>
+
+- :material-source-repository: **开源仓库**
+
+    ---
+    本站开源，欢迎 Star、提 issue 或直接改内容（[贡献流程](contribute/index.md)）。
+
+    [:fontawesome-brands-github: GitHub](https://github.com/K-zhaochao/ujn-guide){ .md-button target=_blank }
+    [:simple-gitee: Gitee](https://gitee.com/Draven323/ujn-guide){ .md-button target=_blank }
 
 </div>
 

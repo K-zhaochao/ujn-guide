@@ -6,17 +6,23 @@
     <label class="md-search__overlay" for="__search"></label>
     <div class="md-search__inner" role="search">
         <form class="md-search__form" id="pagefind-search-form">
-            <label class="md-search__icon md-icon" for="__search">
-                {% include ".icons/material/magnify.svg" %}
-            </label>
+            <!-- 顺序与图标都要跟 Material 原版一致：
+                 input 在前，label 里放「放大镜 + 返回箭头」两个图标——宽屏显示放大镜、
+                 窄屏显示返回箭头，那是手机端退出搜索面板的唯一入口（漏掉它就只能刷新页面了）。
+                 options 里的清除按钮也要带 md-search__icon，否则定位样式不生效。 -->
             <input type="text" class="md-search__input" id="pagefind-search-input" name="query" placeholder="搜索文档…"
                 aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"
                 data-md-component="search-query" required />
-            <div class="md-search__options">
-                <button type="reset" class="md-icon" aria-label="清除" id="pagefind-search-clear">
+            <label class="md-search__icon md-icon" for="__search">
+                {% include ".icons/material/magnify.svg" %}
+                {% include ".icons/material/arrow-left.svg" %}
+            </label>
+            <nav class="md-search__options" aria-label="搜索">
+                <button type="reset" class="md-search__icon md-icon" aria-label="清除" title="清除"
+                    id="pagefind-search-clear" tabindex="-1">
                     {% include ".icons/material/close.svg" %}
                 </button>
-            </div>
+            </nav>
         </form>
         <div class="md-search__output">
             <!-- 空查询时给几个常见搜索词：新生往往不知道本站该搜什么。

@@ -75,12 +75,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var title = document.createElement("div");
     title.className = "donate-title";
-    title.textContent = "\u2615 \u8BF7\u4F5C\u8005\u559D\u676F\u5976\u8336";
+    title.textContent = "\u2615 \u8BF7\u7AD9\u957F\u559D\u676F\u5976\u8336";
     card.appendChild(title);
 
     var desc = document.createElement("div");
     desc.className = "donate-desc";
-    desc.innerHTML = "\u611F\u8C22\u4F60\u4F7F\u7528\u672C\u6307\u5357 \uD83D\uDC4F<br>\u4E00\u676F\u5976\u8336\u94B1\uFF0C\u80FD\u4E3A\u670D\u52A1\u5668\u7EED\u547D <strong>10 \u5929</strong><br>\u4F60\u7684\u652F\u6301\u662F\u6211\u6301\u7EED\u66F4\u65B0\u7684\u52A8\u529B \u2764\uFE0F";
+    desc.innerHTML = "\u611F\u8C22\u4F60\u4F7F\u7528\u672C\u6307\u5357 \uD83D\uDC4F<br>\u5982\u679C\u672C\u7AD9\u5BF9\u4F60\u6709\u6240\u5E2E\u52A9<br>\u53EF\u4EE5\u652F\u6301\u4E00\u4E0B\u7AD9\u957F \u2764\uFE0F";
     card.appendChild(desc);
 
     var img = document.createElement("img");
