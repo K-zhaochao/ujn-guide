@@ -95,6 +95,11 @@ tags:
 
 ### 成绩计算公式
 
+!!! tip "🧮 用计算器试算"
+    填入 GPA 和综合素质成绩，即可实时查看结果；也支持逐项填写或从 Excel / WPS 复制表格导入。
+
+    [:material-calculator-variant-outline: 打开综测计算器](zongce-calculator.md){ .md-button }
+
 $$
 \text{综合测评成绩} = \frac{\text{综合素质评价成绩}}{20} \times 25\% + \text{学业水平评价成绩} \times 75\%
 $$

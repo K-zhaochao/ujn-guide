@@ -1,0 +1,30 @@
+Zongce Calculator / 综合测评成绩计算器
+
+Original project by WHHWWHHWWHHWWHHW:
+https://github.com/WHHWWHHWWHHWWHHW/zongce-calculator
+
+License: Apache License, Version 2.0 (see LICENSE.txt in this directory).
+Upstream revision inspected: 7619d3d5d5577997a39dc6d934a55e22001238b9
+Upstream revision date: 2026-09-01T14:30:10Z
+Integration date: 2026-09-07
+
+This directory and green-book/scholarship/zongce-calculator.md contain an
+adaptation for 济南大学校园通. The upstream calculation rules, review-score
+trimming, GPA weighting, table field aliases, and sample data are retained.
+The source repository and license remain visible on the calculator page.
+author-support.jpg is the original author's supplied support image, copied
+without modification from the locally supplied zongce-calculator directory.
+
+Changes made by 济南大学校园通:
+- Replaced the standalone landing page with a native MkDocs tool page.
+- Scoped CSS and event handlers and followed the main site's color scheme.
+- Added accessible labels, inline validation and responsive layouts.
+- Added strict numeric input checks and quoted CSV/TSV import handling.
+- Preserved upstream import replacement behavior and mode-specific hints.
+- Added lifecycle handling for Material instant navigation and cancelled
+  stale file reads when the user edits, resets, or leaves the page.
+- Kept all score calculations and file reading in the browser, without
+  sending or persisting entered scores.
+
+These notices apply to the calculator integration, not to the entire site
+or the separately maintained pet administration repository.

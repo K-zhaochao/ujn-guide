@@ -1,0 +1,126 @@
+/* Zongce Calculator integration, 济南大学校园通, 2026-09-07.
+ * Original project: WHHWWHHWWHHWWHHW/zongce-calculator (Apache-2.0).
+ * Modified: scoped MkDocs theme, responsive layout and accessible controls.
+ * Source and license: NOTICE.txt and LICENSE.txt in this directory. */
+.zc-calculator {
+  --zc-border: var(--md-default-fg-color--lightest);
+  --zc-muted: var(--md-default-fg-color--light);
+  --zc-accent: var(--md-typeset-a-color);
+  --zc-surface: var(--md-default-bg-color);
+  --zc-soft: var(--md-code-bg-color);
+  --zc-error: #b3261e;
+  font-size: .78rem;
+}
+[data-md-color-scheme="slate"] .zc-calculator { --zc-error: #ffb4ab; }
+.zc-calculator [hidden] { display: none !important; }
+.zc-calculator *, .zc-calculator *::before, .zc-calculator *::after { box-sizing: border-box; }
+.zc-calculator .zc-intro > p { margin: 0 0 .8rem; }
+.zc-calculator .zc-intro strong { overflow-wrap: anywhere; }
+.zc-calculator .zc-intro .md-button { margin: 0 .4rem .4rem 0; padding: .5em .9em; border-radius: .35rem; font-size: .72rem; }
+.zc-calculator .zc-repo-button { background: var(--md-primary-fg-color); border-color: var(--md-primary-fg-color); color: var(--md-primary-bg-color); }
+.zc-calculator .zc-repo-button:hover, .zc-calculator .zc-repo-button:focus-visible { background: var(--md-accent-fg-color); border-color: var(--md-accent-fg-color); color: var(--md-accent-bg-color); }
+.zc-calculator .zc-badges { display: flex; flex-wrap: wrap; gap: .4rem .8rem; color: var(--zc-muted); font-size: .66rem; }
+.zc-calculator .zc-badges span::before { content: "✓"; color: var(--zc-accent); margin-right: .25rem; }
+.zc-calculator .zc-note { margin: 1rem 0 1.2rem; padding-left: .7rem; border-left: 3px solid var(--zc-border); color: var(--zc-muted); font-size: .68rem; line-height: 1.7; }
+.zc-calculator .zc-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(12rem, .48fr); gap: 1rem; align-items: start; }
+.zc-calculator .zc-fields, .zc-calculator .zc-field { min-width: 0; }
+.zc-calculator .zc-card { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--zc-border); border-radius: .55rem; background: var(--zc-surface); }
+.zc-calculator .zc-section-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.zc-calculator .zc-section-heading h2 { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: .9rem; font-weight: 700; line-height: 1.5; }
+.zc-calculator .zc-step { color: var(--zc-accent); font-size: .68rem; font-variant-numeric: tabular-nums; }
+.zc-calculator .zc-weight { color: var(--zc-muted); font-size: .63rem; white-space: nowrap; }
+.zc-calculator h3 { margin: 1.1rem 0 .35rem; font-size: .78rem; font-weight: 700; }
+.zc-calculator .zc-max { color: var(--zc-muted); font-size: .65rem; font-weight: 400; white-space: nowrap; }
+.zc-calculator label { display: block; font-weight: 600; font-size: .7rem; margin-bottom: .3rem; }
+.zc-calculator input:not([type="radio"]):not([type="file"]), .zc-calculator textarea, .zc-calculator select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.1rem;
+  padding: .5rem .6rem;
+  border: 1px solid var(--zc-border);
+  border-radius: .35rem;
+  background: var(--zc-surface);
+  color: var(--md-default-fg-color);
+  font: inherit;
+  font-size: .75rem;
+  line-height: 1.4;
+}
+.zc-calculator input::placeholder, .zc-calculator textarea::placeholder { color: var(--zc-muted); opacity: .8; }
+.zc-calculator textarea { resize: vertical; min-height: 5rem; }
+.zc-calculator :is(input, textarea, select, button, summary):focus-visible { outline: 2px solid var(--zc-accent); outline-offset: 3px; }
+.zc-calculator [aria-invalid="true"] { border-color: var(--zc-error) !important; }
+.zc-calculator .zc-help { margin: .35rem 0 .65rem; color: var(--zc-muted); font-size: .64rem; line-height: 1.65; }
+.zc-calculator .zc-error { margin: .3rem 0; color: var(--zc-error); font-size: .64rem; }
+.zc-calculator .zc-mode { display: flex; gap: .2rem; margin: 0 0 .9rem; padding: .2rem; border: 1px solid var(--zc-border); border-radius: .4rem; background: var(--zc-soft); }
+.zc-calculator .zc-mode label { position: relative; flex: 1; margin: 0; font-size: .68rem; font-weight: 500; cursor: pointer; }
+.zc-calculator .zc-mode input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.zc-calculator .zc-mode span { display: block; padding: .45rem .3rem; border-radius: .25rem; text-align: center; }
+.zc-calculator .zc-mode input:checked + span { background: var(--zc-surface); color: var(--zc-accent); font-weight: 700; box-shadow: 0 1px 4px #00000012; }
+.zc-calculator .zc-mode input:focus-visible + span { outline: 2px solid var(--zc-accent); outline-offset: 2px; }
+.zc-calculator .zc-review-grid, .zc-calculator .zc-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.zc-calculator .zc-review-item { padding: .65rem; background: var(--zc-soft); border-radius: .35rem; }
+.zc-calculator .zc-review-item select { margin: .3rem 0; font-size: .64rem; padding-top: .35rem; padding-bottom: .35rem; }
+.zc-calculator .zc-review-item textarea { min-height: 4.5rem; }
+.zc-calculator .zc-review-preview { min-height: 1rem; margin-bottom: 0; }
+.zc-calculator .zc-ability { margin-top: .5rem; padding-top: .7rem; border-top: 1px solid var(--zc-border); }
+.zc-calculator .zc-ability > input { max-width: 12rem; }
+.md-typeset .zc-calculator .zc-disclosure { margin: .7rem 0 0; padding: 0; border: 1px solid var(--zc-border); border-radius: .4rem; color: var(--md-default-fg-color); background: var(--zc-surface); box-shadow: none; font-size: inherit; overflow: hidden; }
+.md-typeset .zc-calculator .zc-disclosure > summary { display: block; margin: 0; padding: .7rem .75rem; border: 0; background: transparent; color: var(--md-default-fg-color); font-size: .7rem; font-weight: 600; line-height: 1.6; cursor: pointer; }
+.md-typeset .zc-calculator .zc-disclosure > summary::before { display: inline-block; position: static; content: "›"; width: auto; height: auto; margin-right: .4rem; background: none; mask: none; font-size: .9rem; line-height: 1; transform: none; }
+.md-typeset .zc-calculator .zc-disclosure[open] > summary::before { transform: rotate(90deg); }
+.md-typeset .zc-calculator .zc-disclosure > summary::after { display: none; }
+.zc-calculator .zc-disclosure-content { padding: 0 .75rem .75rem; }
+.zc-calculator .zc-disclosure-content > :last-child { margin-bottom: 0; }
+.zc-calculator .zc-summary-hint { float: right; color: var(--zc-muted); font-size: .62rem; font-weight: 400; }
+.md-typeset .zc-calculator .zc-import { margin: 0 0 1rem; }
+.zc-calculator .zc-course-row, .zc-calculator .zc-course-head { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, .7fr) minmax(0, .7fr) 2rem; gap: .3rem; align-items: center; margin-bottom: .4rem; }
+.zc-calculator .zc-course-head { color: var(--zc-muted); font-size: .6rem; }
+.zc-calculator .zc-course-row input { padding: .35rem !important; }
+.zc-calculator .zc-course-row button { padding: .3rem; font-size: .62rem; color: var(--zc-error); }
+.zc-calculator .zc-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0; }
+.zc-calculator .zc-button { display: inline-flex; align-items: center; justify-content: center; gap: .3rem; min-height: 2rem; padding: .4rem .7rem; border: 1px solid var(--zc-border); border-radius: .3rem; background: var(--zc-surface); color: var(--md-default-fg-color); font: inherit; font-size: .66rem; line-height: 1.5; cursor: pointer; }
+.zc-calculator .zc-button:hover { border-color: var(--zc-accent); color: var(--zc-accent); }
+.zc-calculator .zc-button-primary { background: var(--md-primary-fg-color); border-color: var(--md-primary-fg-color); color: var(--md-primary-bg-color); }
+.zc-calculator .zc-button-primary:hover { background: var(--md-accent-fg-color); border-color: var(--md-accent-fg-color); color: var(--md-accent-bg-color); }
+.zc-calculator .zc-button:disabled { opacity: .45; cursor: not-allowed; }
+.zc-calculator .zc-file-label { margin-top: .8rem; }
+.zc-calculator input[type="file"] { width: 100%; min-width: 0; color: var(--zc-muted); font-size: .64rem; }
+.zc-calculator input[type="file"]::file-selector-button { margin-right: .5rem; padding: .4rem .5rem; border: 1px solid var(--zc-border); border-radius: .3rem; background: var(--zc-soft); color: var(--md-default-fg-color); cursor: pointer; }
+.zc-calculator .zc-import-status { margin: .6rem 0 0; font-size: .65rem; color: var(--zc-accent); white-space: pre-line; overflow-wrap: anywhere; }
+.zc-calculator .zc-import-status[data-error="true"] { color: var(--zc-error); }
+.zc-calculator .zc-result { position: sticky; top: 4.8rem; padding: 1rem; border: 1px solid var(--zc-border); border-top: 3px solid var(--zc-accent); border-radius: .5rem; background: var(--zc-soft); }
+.zc-calculator .zc-result-eyebrow { margin: 0; font-size: .68rem; font-weight: 600; }
+.zc-calculator .zc-total { margin: .5rem 0 .2rem; color: var(--zc-accent); font-size: 2.2rem; font-weight: 750; letter-spacing: -.03em; line-height: 1.3; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.zc-calculator .zc-result-state { min-height: 1.8rem; margin: 0 0 .7rem; color: var(--zc-muted); font-size: .63rem; }
+.zc-calculator .zc-result[data-invalid="true"] .zc-result-state { color: var(--zc-error); }
+.zc-calculator .zc-contributions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; padding: .7rem 0; border-top: 1px solid var(--zc-border); border-bottom: 1px solid var(--zc-border); color: var(--zc-muted); font-size: .6rem; }
+.zc-calculator .zc-contributions strong { display: block; margin-top: .25rem; color: var(--md-default-fg-color); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.zc-calculator .zc-breakdown { margin: .8rem 0; font-size: .6rem; }
+.zc-calculator .zc-breakdown > div { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .2rem .5rem; padding: .3rem 0; }
+.zc-calculator .zc-breakdown dt { font-weight: 400; color: var(--zc-muted); }
+.zc-calculator .zc-breakdown dd { margin: 0; font-variant-numeric: tabular-nums; }
+.zc-calculator .zc-breakdown small { color: var(--zc-muted); font-size: .55rem; }
+.zc-calculator .zc-formula { padding-top: .6rem; border-top: 1px solid var(--zc-border); color: var(--zc-muted); font-size: .62rem; line-height: 1.8; }
+.zc-calculator .zc-reset { width: 100%; margin-top: .2rem; background: transparent; }
+.zc-calculator .zc-support-image { display: block; width: 240px; max-width: 100%; height: auto; margin: 1rem auto; border-radius: .35rem; }
+.zc-calculator .zc-license { margin-top: 1rem; color: var(--zc-muted); font-size: .62rem; line-height: 1.8; }
+.zc-calculator .zc-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+@media (max-width: 76.234375em) {
+  .zc-calculator .zc-layout { grid-template-columns: minmax(0, 1fr) minmax(12rem, .42fr); }
+}
+@media (max-width: 760px) {
+  .zc-calculator .zc-layout { grid-template-columns: minmax(0, 1fr); }
+  .zc-calculator .zc-result { position: static; }
+  .zc-calculator .zc-total { font-size: 2.5rem; }
+  .zc-calculator input:not([type="radio"]):not([type="file"]), .zc-calculator textarea, .zc-calculator select { font-size: max(16px, .75rem); }
+  .zc-calculator .zc-button { min-height: 44px; }
+}
+@media (max-width: 420px) {
+  .zc-calculator .zc-card { padding: .75rem; }
+  .zc-calculator .zc-review-grid, .zc-calculator .zc-input-grid { grid-template-columns: minmax(0, 1fr); }
+  .zc-calculator .zc-course-head { display: none; }
+  .zc-calculator .zc-course-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 2.4rem; padding-bottom: .6rem; margin-bottom: .6rem; border-bottom: 1px solid var(--zc-border); }
+  .zc-calculator .zc-course-row input[type="text"] { grid-column: 1 / -1; }
+  .zc-calculator .zc-summary-hint { float: none; display: block; padding-left: .75rem; }
+}

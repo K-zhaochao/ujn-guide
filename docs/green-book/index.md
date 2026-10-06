@@ -13,6 +13,7 @@ tags:
 
 | 分类 | 说明 |
 |------|------|
+| [🧰 实用工具](scholarship/zongce-calculator.md) | 综测计算器：绩点与综测计算、表格导入、校友开源工具 |
 | [📖 学业管理](academic/score-rules.md) | 成绩规则、推免保送、辅修、缓补考、重修、免修、免听、休学 |
 | [🎖️ 应征入伍指南](military/enlistment-conditions.md) | 入伍条件、优惠政策 |
 | [🔄 转专业指南](major-transfer/guide.md) | 转专业须知及各学期方案汇总 |
