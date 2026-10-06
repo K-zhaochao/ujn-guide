@@ -45,7 +45,10 @@ class FilterTests(unittest.TestCase):
         return {"date": "2026-10-07", "subject": subject, "pages": ["docs/a.md"]}
 
     def test_maintenance_commits_are_hidden(self) -> None:
-        for subject in ["重构：拆开主题覆盖层", "测试：补 5 个用例", "chore: bump deps", "文档：更新 BUILDING.md"]:
+        for subject in [
+            "重构：拆开主题覆盖层", "测试：补 5 个用例", "chore: bump deps", "文档：更新 BUILDING.md",
+            "feat(pets): 主站搜索支持投稿 ID 精确查找", "fix(pets,admin): 下拉滚动条同步",
+        ]:
             self.assertFalse(changelog.is_reader_relevant(self.entry(subject)), subject)
 
     def test_content_commits_are_shown(self) -> None:
@@ -56,11 +59,29 @@ class FilterTests(unittest.TestCase):
         self.assertFalse(changelog.is_reader_relevant(self.entry("Merge pull request #3 from x/y")))
 
 
+class ReaderSubjectTests(unittest.TestCase):
+    def test_prefix_becomes_tag(self) -> None:
+        self.assertEqual(changelog.reader_subject("功能：窄屏补上本页目录"), "✨ 窄屏补上本页目录")
+        self.assertEqual(changelog.reader_subject("修复：面板不再误关"), "🛠️ 面板不再误关")
+        self.assertEqual(changelog.reader_subject("回退：下线投稿系统"), "↩️ 下线投稿系统")
+
+    def test_internal_details_are_stripped(self) -> None:
+        cleaned = changelog.reader_subject("功能：接入综测计算器（纯静态资源 + 页面 + 构建校验）")
+        self.assertEqual(cleaned, "✨ 接入综测计算器")
+        cleaned = changelog.reader_subject("修复：恢复桌面端右侧「目录」栏（第 2 轮误开 toc.integrate）")
+        self.assertEqual(cleaned, "🛠️ 恢复桌面端右侧「目录」栏")
+        cleaned = changelog.reader_subject("功能：新增「本页目录」，本轮顺带修了两处指纹漂移")
+        self.assertNotIn("本轮", cleaned)
+
+    def test_plain_subject_is_kept(self) -> None:
+        self.assertEqual(changelog.reader_subject("🐾 宠物页分页条主题化"), "🐾 宠物页分页条主题化")
+
+
 class RenderTests(unittest.TestCase):
     def test_links_use_nav_titles_and_fall_back_to_file_stem(self) -> None:
         entries = [{"date": "2026-10-07", "subject": "内容：新增攻略", "pages": ["docs/phone-book/colleges.md", "docs/unknown/thing.md"]}]
         block = changelog.render(entries, {"phone-book/colleges.md": "📞 电话大全"})
-        self.assertIn("**2026-10-07** 内容：新增攻略（📞 电话大全、thing）", block)
+        self.assertIn("**2026-10-07** 📝 新增攻略（📞 电话大全、thing）", block)
         self.assertTrue(block.startswith(changelog.START))
         self.assertTrue(block.endswith(changelog.END))
 

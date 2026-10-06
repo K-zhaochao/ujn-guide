@@ -162,8 +162,22 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 - **相册弹窗**：焦点锁在弹窗内（Tab / Shift+Tab 循环）、Esc 关闭后焦点回到打开它的卡牌按钮、
   翻页用一个 `role="status" aria-live="polite"` 的隐藏区域播报「第 N 张，共 M 张」。
 
-## 本地预览
+### 站点体检工具
 
+`mkdocs build --strict` 只校验 Markdown 源文件之间的链接，管不到页面里 HTML 注入的链接、
+锚点和静态资源。构建之后跑一次这个，能把整站走一遍（257 个页面、4 万多个链接，几秒钟）：
+
+```powershell
+python scripts/site/check_links.py              # 站内链接 / 锚点 / 图片 PDF 等资源，可进 CI
+python scripts/site/check_links.py --external   # 再探一遍外链（需要网络，QQ、政务站会拦爬虫，仅供参考）
+```
+
+它抓到过一个真实问题：`overrides/main.html` 里手写 `{{ base_url }}/javascripts/...`，
+在 404 页（`base_url` 是 `/`）会拼成 `//javascripts/...`——那是「协议相对地址」，
+浏览器会去找一台叫 `javascripts` 的主机。**资源路径一律交给 Material 的 `| url` 过滤器**，
+它会把各种情况都归一化。
+
+## 本地预览
 站点是**纯静态**的，本地预览不需要任何后端：
 
 ```powershell
