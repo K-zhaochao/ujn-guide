@@ -12,8 +12,8 @@ hide:
 
 <!-- contributors:start -->
 <div class="ujn-contributors">
-  <a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">131 次提交 · GitHub</span></a>
-  <a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">131 次提交 · Gitee</span></a>
+  <a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">136 次提交 · GitHub</span></a>
+  <a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">136 次提交 · Gitee</span></a>
 </div>
 <!-- contributors:end -->
 

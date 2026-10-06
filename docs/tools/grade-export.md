@@ -72,17 +72,40 @@ title: 教务成绩导出
 
 ## 进阶：本地程序（真正的「一次输完就不管」）
 
-不想装脚本管理器、或者想要「输一次账号密码就全自动」的同学，用这个版本更省事：
+不想装脚本管理器、或者想要「输一次账号密码就全自动」的同学，用这个版本更省事。
 
-**Windows**：下载 [install.cmd](../assets/tools/install.cmd)（同目录的 [install.ps1](../assets/tools/install.ps1) 也要一起下），**双击 `install.cmd`** 即可。
+### 一、下载单文件版（**推荐**，双击即用，不用装任何东西）
 
-**macOS / Linux**：下载 [install.sh](../assets/tools/install.sh)（macOS 还可以直接下 [install.command](../assets/tools/install.command) 双击运行），然后
+按你的系统下载，双击就能跑（内置了 Node 运行时，所以文件约 100 MB）：
+
+| 你的系统 | 下载 |
+| --- | --- |
+| Windows | [ujn-grade-export-win32-x64.exe](https://github.com/K-zhaochao/ujn-guide/releases/latest/download/ujn-grade-export-win32-x64.exe) |
+| macOS（Apple 芯片 M1/M2/M3…） | [ujn-grade-export-darwin-arm64](https://github.com/K-zhaochao/ujn-guide/releases/latest/download/ujn-grade-export-darwin-arm64) |
+| macOS（Intel） | [ujn-grade-export-darwin-x64](https://github.com/K-zhaochao/ujn-guide/releases/latest/download/ujn-grade-export-darwin-x64) |
+| Linux | [ujn-grade-export-linux-x64](https://github.com/K-zhaochao/ujn-guide/releases/latest/download/ujn-grade-export-linux-x64) |
+
+双击后会依次问你：**学号** → **密码（输入时不显示）** → **学期**，成绩单直接存到**「下载」目录**。
+
+- macOS / Linux 第一次运行前给个执行权限：`chmod +x 你下载的文件`；
+- macOS 若提示「无法验证开发者」，**右键 → 打开**即可（这是自构建产物的临时签名，正常现象）；
+- 下载不动或想自己构建：`node scripts/tools/build-exe.mjs`（需要 Node 22），产物在 `dist/`。
+  全部版本也可以在 [Releases](https://github.com/K-zhaochao/ujn-guide/releases) 里找到
+  （Gitee 镜像：[gitee.com/Draven323/ujn-guide/releases](https://gitee.com/Draven323/ujn-guide/releases)）。
+
+### 二、或者用安装器（体积小，只有几 KB）
+
+**Windows**：下载 [install.cmd](../assets/tools/install.cmd) 后**双击**即可；
+如果同目录没有 `install.ps1`，它会自己从站点取（想离线用就把它一起下下来）。
+
+**macOS / Linux**：下载 [install.sh](../assets/tools/install.sh)（macOS 也可以直接下
+[install.command](../assets/tools/install.command) 双击），然后
 
 ```bash
 bash install.sh
 ```
 
-安装过程会问你两件事：**装到哪个目录**、**要不要在桌面建快捷方式**。之后双击桌面的「济大成绩导出」→ 依次输入 学号 → 密码（输入时不显示）→ 学期 → 成绩单直接存到**「下载」目录**。
+安装过程会问你两件事：**装到哪个目录**、**要不要在桌面建快捷方式**。之后双击桌面的「济大成绩导出」即可。
 
 | 它会做什么 | 它不会做什么 |
 | --- | --- |
@@ -91,8 +114,8 @@ bash install.sh
 | 登录教务系统、取加密公钥、导出 `.xls` | 不记录、不上传任何数据；卸载就是删目录 |
 
 !!! warning "用之前请看清这一条"
-    这个版本**会经手你的账号密码**——它需要密码才能替你登录。密码只在你自己的电脑内存里用一次，
-    本项目没有服务器，也没有任何地方会收到它。**如果你介意，请用上面的 Tampermonkey 方案**：
+    这两个版本**会经手你的账号密码**——它们需要密码才能替你登录。密码只在你自己的电脑内存里用一次，
+    本项目没有服务器，也没有任何地方会收到它。**如果你介意，请用最上面的 Tampermonkey 方案**：
     那个方案完全不需要密码。
 
 ## 常见问题
