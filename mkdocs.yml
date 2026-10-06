@@ -41,6 +41,7 @@ theme:
     - navigation.instant.progress
     - navigation.tracking        # 跟踪当前活动项
     - navigation.collapsible     # 侧边栏目录可折叠，默认折叠
+    - toc.integrate              # 手机端把本页目录并入抽屉导航，不必先滑到顶部
     - content.code.copy
     - content.tabs.link
 
@@ -172,14 +173,10 @@ nav:
         - 🪪 校园卡使用指南: site-guide/main-campus/campus-card-guide.md
     - 🏫 舜耕校区:
       - 舜耕校区总览: site-guide/shungeng-campus/index.md
-      - 舜耕校区 · 教学楼:
-        - 应急安全学院: site-guide/shungeng-campus/teaching-buildings.md
-        - 文史楼·继续教育学院: site-guide/shungeng-campus/teaching-buildings.md
-        - 经管楼·管理学院&商学院: site-guide/shungeng-campus/teaching-buildings.md
-        - 酒馆楼·文旅学院&烹饪学院: site-guide/shungeng-campus/teaching-buildings.md
-      - 舜耕校区 · 食堂:
-        - 第六食堂: site-guide/shungeng-campus/canteen.md
-        - 第七食堂: site-guide/shungeng-campus/canteen.md
+      # 每栋楼不再各占一个导航项：四条都指向同一页，点哪条都一样，还会同时高亮。
+      # 页面里的 H2（文史楼 / 经管楼 / 酒馆楼）自带锚点，右侧目录即可跳转。
+      - 舜耕校区 · 教学楼: site-guide/shungeng-campus/teaching-buildings.md
+      - 舜耕校区 · 食堂: site-guide/shungeng-campus/canteen.md
       - 舜耕校区 · 学习设施:
         - 图书馆: site-guide/shungeng-campus/library.md
         - 校医院: site-guide/shungeng-campus/hospital.md
@@ -275,6 +272,6 @@ nav:
       - 创新创业训练计划管理办法: rules/other/innovation-entrepreneurship.md
       - 学生社团管理办法: rules/other/student-organizations.md
       - 第二课堂成绩单实施办法: rules/other/second-classroom.md
-  - 💬 反馈与贡献: contribute/index.md
+  - 💡 反馈与贡献: contribute/index.md
   - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
   - ⚖️ 免责声明: disclaimer.md

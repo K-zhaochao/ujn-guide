@@ -1,7 +1,44 @@
 {% extends "base.html" %}
 
 {% block announce %}
-{{ config.extra.announce }}
+{# 公告栏：可关闭。关闭状态记在 localStorage，并与文案绑定——
+   改了 extra.announce 的文案之后，之前关掉的人会重新看到新公告。 #}
+<script>
+  (function () {
+    var KEY = "ujn-announce-dismissed";
+    var STAMP = {{ config.extra.announce | tojson }};
+
+    function dismiss() {
+      try {
+        localStorage.setItem(KEY, STAMP);
+      } catch (error) {
+        /* 隐私模式下写不了 localStorage，至少本次隐藏 */
+      }
+      document.documentElement.setAttribute("data-announce", "hidden");
+    }
+
+    try {
+      if (localStorage.getItem(KEY) === STAMP) {
+        document.documentElement.setAttribute("data-announce", "hidden");
+      }
+    } catch (error) {
+      /* 读不到就照常显示 */
+    }
+
+    // 事件委托而不是内联 onclick：不依赖 CSP 的 'unsafe-inline'
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      if (target && target.closest && target.closest(".ujn-announce__close")) {
+        event.preventDefault();
+        dismiss();
+      }
+    });
+  })();
+</script>
+<span class="ujn-announce__text">{{ config.extra.announce }}</span>
+<button class="ujn-announce__close" type="button" aria-label="关闭公告" title="关闭公告">
+  <span aria-hidden="true">✕</span>
+</button>
 {% endblock %}
 
 {% block header %}
@@ -16,6 +53,60 @@
 docs/javascripts/mathjax.js 负责先写好配置，只有当前页面真的出现 .arithmatex 公式时才按需加载引擎，
 地址与 SRI 在该文件顶部维护一份；这样没有公式的页面完全不请求 jsdelivr。 #}
 <style>
+  /* ===== 公告栏：右侧关闭按钮 ===== */
+  html[data-announce="hidden"] .md-banner {
+    display: none;
+  }
+
+  .md-banner__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+  }
+
+  .ujn-announce__text {
+    min-width: 0;
+  }
+
+  .ujn-announce__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 1px solid currentcolor;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    font-size: .68rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: .72;
+    transition: opacity .15s ease, background-color .15s ease;
+  }
+
+  .ujn-announce__close:hover,
+  .ujn-announce__close:focus-visible {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, .18);
+  }
+
+  @media (max-width: 520px) {
+    .md-banner__inner {
+      align-items: flex-start;
+      gap: .35rem;
+    }
+
+    .ujn-announce__close {
+      width: 1.35rem;
+      height: 1.35rem;
+      margin-top: .08rem;
+    }
+  }
+
   /* ===== 顶部 QQ 群入口（位于主题切换按钮左侧） ===== */
   .md-header__button.md-header__qq-group {
     position: relative;
