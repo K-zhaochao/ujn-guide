@@ -14,7 +14,7 @@ tags:
     </div>
     [🔗 在高德地图中打开](https://surl.amap.com/2aWqcPwM9is){ target="_blank" }
 
-![主校区地图](../../assets/images/地点通/济大主校区建筑/主校区地图.png)
+![主校区地图](../../assets/images/地点通/济大主校区建筑/主校区地图.webp)
 
 ---
 

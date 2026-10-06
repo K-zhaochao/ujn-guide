@@ -52,12 +52,25 @@
         meta.textContent = '搜索索引加载中…';
         window.__pagefindReady = false;
 
+        // 站点根路径：既支持根域名部署，也支持子路径部署（GitHub Pages 项目站点 /ujn-guide/）。
+        // {{ base_url }} 是当前页面到站点根的相对路径，这里换算成绝对路径；
+        // basePath 让 Pagefind 找到 wasm/索引分片，baseUrl 给搜索结果链接加前缀。
+        var SITE_ROOT = (function () {
+            try {
+                return new URL("{{ base_url }}/", window.location.href).pathname;
+            } catch (error) {
+                return '/';
+            }
+        })();
+
         // 使用动态 import() 加载 pagefind（兼容常规 script 标签）
         var initScript = document.createElement('script');
         initScript.textContent = [
-            'import("{{ base_url }}/pagefind/pagefind.js").then(function(m) {',
+            'import("' + SITE_ROOT + 'pagefind/pagefind.js").then(function(m) {',
             '  window.__pagefindMod = m;',
-            '  return m.init();',
+            '  return m.options({ basePath: "' + SITE_ROOT + 'pagefind/", baseUrl: "' + SITE_ROOT + '" });',
+            '}).then(function(pair) {',
+            '  return window.__pagefindMod.init();',
             '}).then(function() {',
             '  window.__pagefindReady = true;',
             '  var meta = document.getElementById("pagefind-search-meta");',
@@ -112,8 +125,9 @@
                     li.className = 'md-search-result__item';
 
                     var title = data.meta.title || '无标题';
-                    // Pagefind 返回的 url 是以 / 开头的站点根绝对路径，直接使用即可
-                    var url = data.url || '/';
+                    // Pagefind 已经用上面的 baseUrl 给结果链接加好了站点前缀，
+                    // 根域名部署是 /pets/，子路径部署是 /ujn-guide/pets/。
+                    var url = data.url || SITE_ROOT;
 
                     var excerpt = '';
                     if (data.excerpt && data.excerpt.length > 0) {

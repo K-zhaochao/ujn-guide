@@ -14,7 +14,7 @@ tags:
     </div>
     [🔗 在高德地图中打开](https://surl.amap.com/1KrVXW3186Dw){ target="_blank" }
 
-![舜耕校区地图](../../assets/images/地点通/济大舜耕校区建筑/舜耕校区地图.png)
+![舜耕校区地图](../../assets/images/地点通/济大舜耕校区建筑/舜耕校区地图.webp)
 
 ---
 

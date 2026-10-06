@@ -12,9 +12,9 @@
 {# Umami 统计：自托管动态脚本，每次构建哈希会变化，无法用 SRI 固定；
 已通过 Nginx CSP 将 script-src 限制为 um.matehub.top，降低被替换风险 #}
 <script defer src="https://um.matehub.top/script.js" data-website-id="7ec2b9a9-781e-4987-8664-60bd987d3a7e"></script>
-{# MathJax 3.2.2：固定版本 + SRI 完整性校验，防 CDN 投毒 #}
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"
-  integrity="sha384-Wuix6BuhrWbjDBs24bXrjf4ZQ5aFeFWBuKkFekO2t8xFU0iNaLQfp2K6/1Nxveei" crossorigin="anonymous"></script>
+{# MathJax 3.2.2：不再在这里无条件引入（引擎约 1 MB）。
+docs/javascripts/mathjax.js 负责先写好配置，只有当前页面真的出现 .arithmatex 公式时才按需加载引擎，
+地址与 SRI 在该文件顶部维护一份；这样没有公式的页面完全不请求 jsdelivr。 #}
 <style>
   /* ===== 顶部 QQ 群入口（位于主题切换按钮左侧） ===== */
   .md-header__button.md-header__qq-group {
@@ -1316,6 +1316,18 @@
 {% block scripts %}
 {{ super() }}
 <script>
+  /* ===== 站点根路径 =====
+     支持部署在子路径下（例如 GitHub Pages 项目站点 /ujn-guide/）。
+     {{ base_url }} 是当前页面到站点根的相对路径，加载时换算成绝对路径后固定下来，
+     这样即使 navigation.instant 之后页面深度变了，资源地址也不会错。 */
+  var UJN_SITE_ROOT = (function () {
+    try {
+      return new URL("{{ base_url }}/", window.location.href).pathname;
+    } catch (error) {
+      return "/";
+    }
+  })();
+
   document.addEventListener("DOMContentLoaded", function () {
 
     /* ===== 修复 navigation.instant 滚动位置问题 ===== */
@@ -1373,7 +1385,7 @@
 
       var img = document.createElement("img");
       img.className = "donate-qrcode";
-      img.src = "/assets/images/\u6536\u6B3E\u7801/\u6536\u6B3E\u7801.webp";
+      img.src = UJN_SITE_ROOT + "assets/images/\u6536\u6B3E\u7801/\u6536\u6B3E\u7801.webp";
       img.alt = "\u6536\u6B3E\u7801";
       img.loading = "lazy";
       card.appendChild(img);
@@ -1428,7 +1440,7 @@
       var fleaWxWrap = document.createElement("div");
       fleaWxWrap.className = "flea-qr-img-wrap";
       var fleaWxImg = document.createElement("img");
-      fleaWxImg.src = "/assets/images/\u8DF3\u86A4\u5E02\u573A/\u8DF3\u86A4\u5E02\u573A-\u5FAE\u4FE1\u5C0F\u7A0B\u5E8F\u7248.webp";
+      fleaWxImg.src = UJN_SITE_ROOT + "assets/images/\u8DF3\u86A4\u5E02\u573A/\u8DF3\u86A4\u5E02\u573A-\u5FAE\u4FE1\u5C0F\u7A0B\u5E8F\u7248.webp";
       fleaWxImg.alt = "\u5FAE\u4FE1\u5C0F\u7A0B\u5E8F\u4E8C\u7EF4\u7801";
       fleaWxImg.loading = "lazy";
       fleaWxWrap.appendChild(fleaWxImg);
@@ -1449,7 +1461,7 @@
       fleaQqLink.target = "_blank";
       fleaQqLink.rel = "noopener";
       var fleaQqImg = document.createElement("img");
-      fleaQqImg.src = "/assets/images/\u8DF3\u86A4\u5E02\u573A/\u8DF3\u86A4\u5E02\u573A-QQ\u9891\u9053.webp";
+      fleaQqImg.src = UJN_SITE_ROOT + "assets/images/\u8DF3\u86A4\u5E02\u573A/\u8DF3\u86A4\u5E02\u573A-QQ\u9891\u9053.webp";
       fleaQqImg.alt = "QQ\u9891\u9053\u4E8C\u7EF4\u7801";
       fleaQqImg.loading = "lazy";
       fleaQqLink.appendChild(fleaQqImg);
