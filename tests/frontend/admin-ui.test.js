@@ -8,6 +8,7 @@ const require = createRequire(import.meta.url);
 const stateModule = require('../../server/public/admin-ui-state.js');
 const viewsModule = require('../../server/public/admin-ui-views.js');
 const pickerModule = require('../../server/public/admin-picker.js');
+const contentModelModule = require('../../server/public/admin-content-model.js');
 // 显式基于本文件定位源码，避免依赖进程 cwd（vitest --root 可能改变 cwd）
 const adminUiCode = readFileSync(require.resolve('../../server/public/admin-ui.js'), 'utf8');
 
@@ -30,6 +31,11 @@ const SAMPLE_SUB = {
   location: '操场', createdAt: '2026-08-01T10:00:00Z', rowVersion: 1,
   contributor: { provider: 'github', username: 'tester', nickname: '测试' },
   images: [], likes: 0, liked: false,
+};
+const MODEL_CONFIG = {
+  mode: 'direct', revision: 5, schemaVersion: 1,
+  types: [{ id: 'cat', code: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1, visible: true, acceptSubmission: true }],
+  fields: [], bindings: [],
 };
 
 /**
@@ -60,8 +66,7 @@ function standardRoutes({ user = ADMIN, overrides = {} } = {}) {
     }),
     '/api/admin/notification-groups': () => jsonResponse({ groups: [{ id: 2, name: '志愿者', memberCount: 4 }] }),
     '/api/admin/site-notification-audience?audienceType=all': () => jsonResponse({ audience: { audienceType: 'all', audienceLabel: '全站用户', recipientCount: 12 } }),
-    '/api/admin/content-model/draft': () => jsonResponse({ draft: { draftRevision: 5, types: [{ id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1 }], fields: [], bindings: [] }, diff: null, validation: null }),
-    '/api/admin/content-model/versions?page=1&pageSize=10': () => jsonResponse({ versions: [], total: 0 }),
+    '/api/admin/content-model/config': () => jsonResponse({ config: MODEL_CONFIG }),
     '/api/admin/settings': () => jsonResponse({ settings: { allowSubmit: true, allowEdit: true, allowDelete: true, maintenanceMode: false, maxDailySubmit: 3, maxSubmitRequestsPerMinute: 20, auditRetentionDays: 180, maxImagesPerSubmission: 10, revision: 1 }, policy: [], runtime: {} }),
     '/api/admin/settings/history?page=1&pageSize=10': () => jsonResponse({ items: [], total: 0 }),
     '/api/admin/backups?limit=5': () => jsonResponse({ exports: [] }),
@@ -94,6 +99,7 @@ function boot({ user = ADMIN, fetchImpl, overrides = {} } = {}) {
   window.AdminUiState = stateModule;
   window.AdminUiViews = viewsModule;
   window.AdminPicker = pickerModule;
+  window.AdminContentModel = contentModelModule;
   window.__ADMIN_CFG = { LOGO: '/admin/assets/favicon.svg', MAIN_SITE: 'http://localhost:3005' };
   const fetchCalls = [];
   const impl = fetchImpl || standardRoutes({ user, overrides });
@@ -118,6 +124,18 @@ async function waitFor(doc, selector, timeout = 800) {
 }
 
 const settle = () => new Promise(r => setTimeout(r, 10));
+const deferredResponse = () => {
+  let resolve;
+  const promise = new Promise(yes => { resolve = yes; });
+  return { promise, resolve };
+};
+const RESTORE_IMPORT = { id: 'restore_test', fileName: 'synthetic.ujnbak', status: 'preflighted', sizeBytes: 100,
+  preflightHash: 'hash-fixture', backupId: 'backup-fixture', preflight: { compatible: true, settings: { present: true } } };
+const restoreRoutes = extra => ({
+  '/api/admin/restore-imports?limit=20': () => jsonResponse({ imports: [RESTORE_IMPORT] }),
+  '/api/admin/restore-jobs?limit=20': () => jsonResponse({ jobs: [] }),
+  ...extra,
+});
 
 describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () => {
   let instances = [];
@@ -129,6 +147,120 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     instances.push(inst);
     return inst;
   }
+
+  it('恢复页：旧请求在切换待审核后才返回，不覆盖当前内容或重新轮询', async () => {
+    const old = deferredResponse();
+    const { document, fetchCalls } = bootTracked({ overrides: restoreRoutes({ '/api/admin/restore-imports?limit=20': () => old.promise }) });
+    await waitFor(document, '.nav-item[data-view="restore"]');
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    await settle();
+    document.querySelector('.nav-item[data-view="pending"]').click();
+    await waitFor(document, '[data-check-id="sub_1"]');
+    const content = document.getElementById('view-root').innerHTML;
+    old.resolve(jsonResponse({ imports: [RESTORE_IMPORT] })); await settle();
+    expect(document.getElementById('view-root').innerHTML).toBe(content);
+    expect(fetchCalls.filter(c => c.url.includes('/restore-imports?'))).toHaveLength(1);
+  });
+
+  it('恢复页：同页刷新采用最新响应，失败可重试且旧失败不抹掉新数据', async () => {
+    const old = deferredResponse();
+    let requests = 0;
+    const { document } = bootTracked({ overrides: restoreRoutes({ '/api/admin/restore-imports?limit=20': () => ++requests === 1 ? old.promise : jsonResponse({ imports: [{ ...RESTORE_IMPORT, fileName: 'fresh-file' }] }) }) });
+    await waitFor(document, '.nav-item[data-view="restore"]');
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    await settle(); document.querySelector('[data-action="view-refresh"]').click();
+    await waitFor(document, '[data-action="restore-preflight"]');
+    old.resolve(jsonResponse({ message: 'stale failure' }, 500)); await settle();
+    expect(document.getElementById('view-root').textContent).toContain('fresh-file');
+    expect(document.getElementById('view-root').textContent).not.toContain('stale failure');
+  });
+
+  it('恢复页：活动任务轮询离页即清理，迟到的轮询回调也不发请求', async () => {
+    let active = true;
+    const { window, document, fetchCalls } = bootTracked({ overrides: restoreRoutes({ '/api/admin/restore-jobs?limit=20': () => jsonResponse({ jobs: active ? [{ id: 'job1', status: 'promoting' }] : [] }) }) });
+    const timers = new Map();
+    const originalSet = window.setTimeout.bind(window), originalClear = window.clearTimeout.bind(window);
+    window.setTimeout = (callback, ms, ...args) => {
+      const handle = originalSet(ms === 3000 ? () => {} : callback, ms === 3000 ? 60000 : ms, ...args);
+      if (ms === 3000) timers.set(handle, callback);
+      return handle;
+    };
+    window.clearTimeout = handle => { timers.delete(handle); originalClear(handle); };
+    await waitFor(document, '.nav-item[data-view="restore"]');
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    await waitFor(document, '[data-action="restore-upload"]');
+    expect(timers.size).toBe(1);
+    const stale = [...timers.values()][0];
+    document.querySelector('.nav-item[data-view="pending"]').click(); await settle();
+    expect(timers.size).toBe(0);
+    const calls = fetchCalls.length;
+    stale(); await settle(); expect(fetchCalls.length).toBe(calls);
+    active = false;
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    await waitFor(document, '[data-action="restore-upload"]');
+    expect(timers.size).toBe(0);
+  });
+
+  it('恢复向导：离页关闭口令/确认弹窗，不继续发预检或恢复写请求', async () => {
+    const { document, fetchCalls } = bootTracked({ overrides: restoreRoutes() });
+    await waitFor(document, '.nav-item[data-view="restore"]');
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    await waitFor(document, '[data-action="restore-preflight"]');
+    document.querySelector('[data-action="restore-preflight"]').click();
+    const password = await waitFor(document, '[data-restore-pass]');
+    password.value = 'synthetic-secret-passphrase';
+    const oldConfirm = document.querySelector('[data-ib-ok]');
+    document.querySelector('.nav-item[data-view="pending"]').click();
+    oldConfirm.click(); await settle();
+    expect(document.querySelector('.cf-overlay')).toBeNull();
+    expect(password.value).toBe('');
+    expect(fetchCalls.some(c => c.url.endsWith('/preflight'))).toBe(false);
+    expect(fetchCalls.some(c => c.url.endsWith('/confirm'))).toBe(false);
+  });
+
+  it('恢复向导：迟到的身份重验证不在新页面自动提交全量恢复', async () => {
+    const reauth = deferredResponse();
+    const { document, fetchCalls } = bootTracked({ overrides: restoreRoutes({ '/api/admin/reauth': () => reauth.promise }) });
+    await waitFor(document, '.nav-item[data-view="restore"]');
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    (await waitFor(document, '[data-action="restore-confirm-full"]')).click();
+    (await waitFor(document, '[data-restore-pass]')).value = 'synthetic-restore-passphrase';
+    document.querySelector('[data-ib-ok]').click(); await settle();
+    document.querySelector('[data-ib-input]').value = '恢复全量数据';
+    document.querySelector('[data-ib-ok]').click(); await settle();
+    document.querySelector('[data-ib-input]').value = 'root';
+    document.querySelector('[data-ib-ok]').click(); await settle();
+    expect(fetchCalls.some(c => c.url === '/api/admin/reauth')).toBe(true);
+    document.querySelector('.nav-item[data-view="pending"]').click();
+    await waitFor(document, '[data-check-id="sub_1"]');
+    reauth.resolve(jsonResponse({ success: true })); await settle();
+    expect(fetchCalls.some(c => c.url.endsWith('/confirm'))).toBe(false);
+    expect(document.querySelector('.cf-overlay')).toBeNull();
+  });
+
+  it('恢复页：取消结果迟到不刷新其他页面；上传创建完成后若离页则不继续 PUT', async () => {
+    const cancellation = deferredResponse(), creation = deferredResponse();
+    const { window, document, fetchCalls } = bootTracked({ overrides: restoreRoutes({
+      '/api/admin/restore-imports/restore_test': () => cancellation.promise,
+      '/api/admin/restore-imports': () => creation.promise,
+    }) });
+    await waitFor(document, '.nav-item[data-view="restore"]');
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    (await waitFor(document, '[data-action="restore-import-cancel"]')).click();
+    (await waitFor(document, '[data-cf-ok]')).click(); await settle();
+    document.querySelector('.nav-item[data-view="pending"]').click();
+    await waitFor(document, '[data-check-id="sub_1"]');
+    const content = document.getElementById('view-root').innerHTML;
+    cancellation.resolve(jsonResponse({ success: true })); await settle();
+    expect(document.getElementById('view-root').innerHTML).toBe(content);
+    document.querySelector('.nav-item[data-view="restore"]').click();
+    const upload = await waitFor(document, '[data-action="restore-upload"]');
+    Object.defineProperty(document.querySelector('[data-restore-file]'), 'files', { value: [new window.File(['test'], 'synthetic.ujnbak')] });
+    upload.click(); await settle();
+    document.querySelector('.nav-item[data-view="pending"]').click(); await settle();
+    creation.resolve(jsonResponse({ uploadUrl: '/api/admin/restore-imports/new_fixture/file' })); await settle();
+    expect(fetchCalls.some(c => c.opts?.method === 'PUT' && c.url.endsWith('/file'))).toBe(false);
+  });
 
   it('未登录：渲染登录页并展示 OAuth 提供方', async () => {
     const { document } = bootTracked({ fetchImpl: async (url) => {
@@ -330,7 +462,7 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(document.getElementById('view-root').textContent).toContain('媒体');
   });
 
-  it('审批冲突：自动重拉 rowVersion 并重试成功', async () => {
+  it('审批冲突：保留现场，不重拉版本或自动重试', async () => {
     let approveAttempts = 0;
     const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
       '/api/admin/submissions/sub_1/approve': async (url, opts) => {
@@ -345,11 +477,12 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     await waitFor(document, '[data-action="approve"]');
     document.querySelector('[data-action="approve"]').click();
     await settle();
-    expect(approveAttempts).toBe(2);
+    expect(approveAttempts).toBe(1);
     const approveCalls = fetchCalls.filter(c => c.url === '/api/admin/submissions/sub_1/approve');
-    expect(approveCalls.length).toBe(2);
-    expect(JSON.parse(approveCalls[1].opts.body).rowVersion).toBe(2);
-    expect(document.getElementById('pet-toast').textContent).toContain('已通过');
+    expect(approveCalls.length).toBe(1);
+    expect(JSON.parse(approveCalls[0].opts.body).rowVersion).toBe(1);
+    expect(fetchCalls.some(c => c.url === '/api/admin/submissions/sub_1')).toBe(false);
+    expect(document.getElementById('pet-toast').textContent).toContain('本次操作未执行');
   });
 
   it('批量通过：勾选后确认并提交批量接口', async () => {
@@ -367,7 +500,40 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(batch).toBeTruthy();
     expect(batch.opts.method).toBe('POST');
     expect(JSON.parse(batch.opts.body).action).toBe('approve');
-    expect(JSON.parse(batch.opts.body).ids).toContain('sub_1');
+    expect(JSON.parse(batch.opts.body).items).toEqual([{ id: 'sub_1', rowVersion: 1 }]);
+    expect(JSON.parse(batch.opts.body).ids).toBeUndefined();
+  });
+
+  it('批量确认冻结卡片版本；部分冲突不读取最新版自动重试', async () => {
+    const { window, document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/submissions/batch': () => jsonResponse({ success: true, okCount: 0, failCount: 1, message: '请重新查看后确认', results: [{ id: 'sub_1', ok: false, code: 'SUBMISSION_CONFLICT', currentRowVersion: 2, message: '投稿已变化' }] }),
+    } });
+    const checkbox = await waitFor(document, '[data-check][data-check-id]');
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new window.Event('change', { bubbles: true }));
+    document.querySelector('[data-action="bulk-approve"]').click();
+    await waitFor(document, '[data-cf-ok]');
+    window.__subData.sub_1 = { ...SAMPLE_SUB, rowVersion: 2 };
+    checkbox.dataset.checkVersion = '2';
+    document.querySelector('[data-cf-ok]').click();
+    await settle();
+    const calls = fetchCalls.filter(c => c.url === '/api/admin/submissions/batch');
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0].opts.body).items).toEqual([{ id: 'sub_1', rowVersion: 1 }]);
+    expect(fetchCalls.some(c => c.url === '/api/admin/submissions/sub_1')).toBe(false);
+    expect(document.querySelector('[data-check]').checked).toBe(false);
+  });
+
+  it('批量操作遇到缺失的卡片版本时不提交', async () => {
+    const { window, document, fetchCalls } = bootTracked({ user: ADMIN });
+    const checkbox = await waitFor(document, '[data-check][data-check-id]');
+    checkbox.checked = true;
+    delete checkbox.dataset.checkVersion;
+    checkbox.dispatchEvent(new window.Event('change', { bubbles: true }));
+    document.querySelector('[data-action="bulk-approve"]').click();
+    await settle();
+    expect(document.getElementById('pet-toast').textContent).toContain('版本信息不完整');
+    expect(fetchCalls.some(c => c.url === '/api/admin/submissions/batch')).toBe(false);
   });
 
   it('编辑投稿弹窗：照片张数提示使用运行时生效值而非 schema 快照', async () => {
@@ -395,6 +561,67 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(meta).toContain('2MB');
     expect(meta).not.toContain('5MB');
     expect(fetchCalls.some(c => c.url === '/api/admin/settings')).toBe(true);
+  });
+
+  it('后台编辑配置冲突：保留全部输入和照片，核对后再次提交才写入', async () => {
+    const definitions = [{ id: 1, key: 'name', label: '名称', dataType: 'text', showInAdmin: true }, { id: 2, key: 'old_note', label: '旧备注', dataType: 'text', showInAdmin: true }];
+    let detail = { ...SAMPLE_SUB, typeId: 'cat', schemaVersion: 1, currentSchemaVersion: 1, fields: { name: '小白', old_note: '历史备注' }, fieldDefinitions: definitions, images: [{ url: 'https://example.invalid/kept.png' }] };
+    let config = MODEL_CONFIG;
+    const { window, document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/content-model/config': () => jsonResponse({ config }),
+      '/api/admin/submissions/sub_1': (url, opts) => opts.method === 'PUT'
+        ? jsonResponse({ code: 'SUBMISSION_CONFLICT', message: '已被其他人修改' }, 409)
+        : jsonResponse({ submission: detail }),
+    } });
+    await waitFor(document, '[data-action="edit"][data-id]');
+    document.querySelector('[data-action="edit"]').click(); await waitFor(document, '#m-save');
+    document.querySelector('[data-admin-field-key="name"]').value = '我正在修改';
+    document.querySelector('[data-admin-field-key="old_note"]').value = '先保留旧输入';
+    config = { ...MODEL_CONFIG, schemaVersion: 2, revision: 6 };
+    detail = { ...detail, currentSchemaVersion: 2, rowVersion: 2, fieldDefinitions: [definitions[0], { ...definitions[1], archivedNow: true, readOnly: true }] };
+    window.dispatchEvent(new window.Event('focus')); await waitFor(document, '#m-review-config');
+    expect(document.querySelector('#m-save').disabled).toBe(true);
+    document.querySelector('#m-review-config').click(); await waitFor(document, '#m-confirm-config');
+    document.querySelector('[data-admin-field-key="name"]').value = '核对时继续输入';
+    document.querySelector('#m-confirm-config').click();
+    expect(fetchCalls.filter(call => call.opts.method === 'PUT')).toHaveLength(0);
+    expect(document.querySelector('[data-admin-field-key="old_note"]').disabled).toBe(true);
+    expect(document.querySelector('[data-admin-field-key="old_note"]').value).toBe('先保留旧输入');
+    expect(document.querySelectorAll('#m-image-grid img')).toHaveLength(1);
+    document.querySelector('#m-save').click(); await waitFor(document, '#m-review-config');
+    const writes = fetchCalls.filter(call => call.opts.method === 'PUT');
+    expect(writes).toHaveLength(1);
+    expect(JSON.parse(writes[0].opts.body)).toMatchObject({ schemaVersion: 1, currentSchemaVersion: 2, rowVersion: 2, fields: { name: '核对时继续输入' } });
+    expect(JSON.parse(writes[0].opts.body).fields).not.toHaveProperty('old_note');
+    expect(document.querySelector('[data-admin-field-key="name"]').value).toBe('核对时继续输入');
+  });
+
+  it('后台软删除冲突保留现场，不更新 rowVersion 或自动重试', async () => {
+    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/submissions/sub_1/soft-delete': () => jsonResponse({ code: 'SUBMISSION_CONFLICT' }, 409),
+      '/api/admin/submissions/sub_1': () => jsonResponse({ submission: { ...SAMPLE_SUB, rowVersion: 2 } }),
+    } });
+    await waitFor(document, '[data-action="softdelete"]');
+    document.querySelector('[data-action="softdelete"]').click(); await waitFor(document, '[data-cf-ok]');
+    document.querySelector('[data-cf-ok]').click(); await settle();
+    const writes = fetchCalls.filter(call => call.url === '/api/admin/submissions/sub_1/soft-delete');
+    expect(writes).toHaveLength(1);
+    expect(JSON.parse(writes[0].opts.body).rowVersion).toBe(1);
+    expect(fetchCalls.some(call => call.url === '/api/admin/submissions/sub_1')).toBe(false);
+    expect(document.getElementById('pet-toast').textContent).toContain('本次操作未执行');
+  });
+
+  it('后台异步打开编辑后切走视图，迟到详情不能打开旧弹窗', async () => {
+    let finish;
+    const { document } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/submissions/sub_1': () => new Promise(resolve => { finish = resolve; }),
+    } });
+    await waitFor(document, '[data-action="edit"][data-id]');
+    document.querySelector('[data-action="edit"]').click(); await settle();
+    document.querySelector('.nav-item[data-view="model"]').click(); await waitFor(document, '.cm-card');
+    finish(jsonResponse({ submission: SAMPLE_SUB })); await settle();
+    expect(document.querySelector('#m-save')).toBeNull();
+    expect(document.querySelector('.cm-card')).toBeTruthy();
   });
 
   it('设置两窗口冲突：保存遇 SETTINGS_CONFLICT 提示并自动重拉最新值', async () => {
@@ -427,51 +654,43 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(getCallsAfter).toBeGreaterThan(getCallsBefore);
   });
 
-  it('内容模型发布：预览确认后调用发布接口并携带草稿修订号', async () => {
-    const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
-      '/api/admin/content-model/preview': () => jsonResponse({ preview: { valid: true, errors: [], warnings: [], impact: { submissions: 0 }, draftRevision: 5 } }),
-      '/api/admin/content-model/publish': () => jsonResponse({ ok: true, message: '内容模型已发布' }),
+  it('类型完整保存：只有一个即时写请求，携带并发标记与 CSRF', async () => {
+    const { window, document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
+      '/api/admin/content-model/types/cat': () => jsonResponse({ success: true, changed: true, config: MODEL_CONFIG }),
     } });
     await waitFor(document, '.nav-item[data-view="model"]');
     document.querySelector('.nav-item[data-view="model"]').click();
-    await waitFor(document, '[data-action="modelpublish"]');
-    document.querySelector('[data-action="modelpublish"]').click();
-    // 预览弹窗（confirmBox 挂载在 body）
-    await waitFor(document, '[data-cf-ok]');
-    expect(document.body.textContent).toContain('内容模型影响预览');
-    document.querySelector('[data-cf-ok]').click();
+    await waitFor(document, '[data-action="modeltypeedit"]');
+    document.querySelector('[data-action="modeltypeedit"]').click();
+    document.querySelector('[data-cm="name"]').value = '校园猫';
+    document.querySelector('[data-cm-form]').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
     await settle();
-    const preview = fetchCalls.find(c => c.url === '/api/admin/content-model/preview');
-    expect(preview).toBeTruthy();
-    expect(preview.opts.method).toBe('POST');
-    const publish = fetchCalls.find(c => c.url === '/api/admin/content-model/publish');
-    expect(publish).toBeTruthy();
-    expect(JSON.parse(publish.opts.body).expectedDraftRevision).toBe(5);
+    const writes = fetchCalls.filter(c => c.url.includes('/content-model/') && c.opts.method !== 'GET');
+    expect(writes).toHaveLength(1);
+    expect(writes[0].opts.method).toBe('PATCH');
+    expect(writes[0].opts.headers['X-Content-Model-Mode']).toBe('direct');
+    expect(writes[0].opts.headers['X-CSRF-Token']).toBe('csrf-1');
+    expect(JSON.parse(writes[0].opts.body)).toMatchObject({ name: '校园猫', fields: [], expectedRevision: 5 });
+    expect(fetchCalls.some(c => /\/(draft|publish|rollback|versions)(\?|$)/.test(c.url))).toBe(false);
   });
 
-  it('内容模型回滚：确认后携带目标版本与草稿修订号', async () => {
+  it('类型删除：确认历史保留说明后调用逻辑删除', async () => {
     const { document, fetchCalls } = bootTracked({ user: ADMIN, overrides: {
-      '/api/admin/content-model/versions?page=1&pageSize=10': () => jsonResponse({
-        versions: [{ version: 1, status: 'published', basedOnVersion: null, checksum: 'abc123', createdAt: '2026-08-01T10:00:00Z' }],
-        total: 1,
-      }),
-      '/api/admin/content-model/rollback': () => jsonResponse({ ok: true, message: '已回滚并发布新版本' }),
+      '/api/admin/content-model/types/cat': () => jsonResponse({ success: true, removed: true, retainedHistoricalData: true, config: { ...MODEL_CONFIG, types: [{ ...MODEL_CONFIG.types[0], archived: true }] } }),
     } });
     await waitFor(document, '.nav-item[data-view="model"]');
     document.querySelector('.nav-item[data-view="model"]').click();
-    // 切到「发布历史」tab 才渲染版本列表与回滚按钮
-    await waitFor(document, '[data-action="modeltab"][data-tab="versions"]');
-    document.querySelector('[data-action="modeltab"][data-tab="versions"]').click();
-    await waitFor(document, '[data-action="modelrollback"]');
-    document.querySelector('[data-action="modelrollback"]').click();
+    await waitFor(document, '[data-action="modeltypedelete"]');
+    document.querySelector('[data-action="modeltypedelete"]').click();
     await waitFor(document, '[data-cf-ok]');
+    expect(document.body.textContent).toContain('不会删除已有投稿或历史字段值');
     document.querySelector('[data-cf-ok]').click();
     await settle();
-    const rollback = fetchCalls.find(c => c.url === '/api/admin/content-model/rollback');
-    expect(rollback).toBeTruthy();
-    expect(rollback.opts.method).toBe('POST');
-    expect(JSON.parse(rollback.opts.body).version).toBe(1);
-    expect(JSON.parse(rollback.opts.body).expectedDraftRevision).toBe(5);
+    const removed = fetchCalls.find(c => c.url === '/api/admin/content-model/types/cat');
+    expect(removed.opts.method).toBe('DELETE');
+    expect(JSON.parse(removed.opts.body).expectedRevision).toBe(5);
+    document.querySelector('[data-action="modeldeleted"]').click();
+    expect(document.querySelector('[data-action="modeltyperestore"]')).toBeTruthy();
   });
 
   it('审计清理任务重试：确认后调用重试接口并刷新任务列表', async () => {
@@ -585,13 +804,14 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
     expect(lastDeletedCall.url).not.toContain('deletedDays');
   });
 
-  it('内容模型：数据安全列正确渲染对象数组原因（不出现 [object Object]）', async () => {
+  it('类型删除：有历史引用仍提供逻辑删除，不再展示永久删除资格', async () => {
     const { document } = bootTracked({ user: ADMIN, overrides: {
-      '/api/admin/content-model/draft': () => jsonResponse({
-        draft: {
-          draftRevision: 5,
+      '/api/admin/content-model/config': () => jsonResponse({
+        config: {
+          ...MODEL_CONFIG,
           types: [{
             id: 'cat', name: '猫猫', icon: '🐱', sortOrder: 1,
+            submissionCount: 3,
             deletionEligibility: { deletable: false, reasons: [
               { code: 'SUBMISSION_REFERENCED', count: 3 },
               { code: 'SCHEMA_VERSION_REFERENCED', versions: [1, 2] },
@@ -599,18 +819,16 @@ describe('管理后台前端交互控制器（admin-ui.js 组件测试）', () =
           }],
           fields: [], bindings: [],
         },
-        diff: null, validation: null,
       }),
     } });
     await waitFor(document, '.nav-item[data-view="model"]');
     document.querySelector('.nav-item[data-view="model"]').click();
-    await waitFor(document, '.model-delete-state.protected');
-    const cell = document.querySelector('.model-delete-state.protected');
+    await waitFor(document, '.cm-card');
+    const cell = document.querySelector('.cm-card');
     expect(cell.textContent).not.toContain('[object Object]');
-    expect(cell.textContent).toContain('仅可归档');
-    expect(cell.textContent).toContain('已有投稿引用（3 处）');
-    expect(cell.textContent).toContain('已发布 Schema 引用（1, 2）');
-    expect(cell.title).toContain('已有投稿引用（3 处）');
+    expect(cell.textContent).not.toContain('永久删除');
+    expect(cell.textContent).toContain('关联投稿 3 条');
+    expect(cell.querySelector('[data-action="modeltypedelete"]')).toBeTruthy();
   });
 
   it('系统设置：创建备份弹窗口令一致后按钮可用', async () => {

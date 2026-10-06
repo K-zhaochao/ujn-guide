@@ -25,7 +25,6 @@ function makeViews(overrides) {
     getCounts: () => ({ pending: 3, approved: 12, rejected: 1, deleted: 0 }),
     isSuper: () => true,
     getSchema: () => ({ types: [], fields: [], bindings: [] }),
-    getDraftDiff: () => null,
     getSettingsHistoryPage: () => 1,
     getAuditCleanupTaskState: () => ({ page: 1, pageSize: 8, total: 20 }),
   }, overrides || {}));
@@ -263,15 +262,15 @@ describe('管理后台渲染层（admin-ui-views）', () => {
       const v = makeViews();
       const html = v.settingsRuntimeHtml({
         environment: { mainSiteUrl: 'https://pets.example.com', oauthConfigured: true, lskyConfigured: false, maxImagesPerSubmission: 3 },
-        contentModel: { publishedVersion: 5, hasUnpublishedChanges: true, draftRevision: 6 },
+        contentModel: { mode: 'direct', updatedAt: '2026-09-07T03:00:00Z' },
       });
       expect(html).toContain('主站 / 后台');
       expect(html).toContain('https://pets.example.com');
       expect(html).toContain('OAuth 已配置');
       expect(html).toContain('图床：未配置');
-      expect(html).toContain('已发布 Schema');
-      expect(html).toContain('v5');
-      expect(html).toContain('有待发布草稿（修订 6）');
+      expect(html).toContain('配置已生效');
+      expect(html).toContain('最近修改');
+      expect(html).not.toContain('待发布草稿');
     });
 
     it('settingsHistoryHtml：修订记录表格与空态', () => {
@@ -311,70 +310,18 @@ describe('管理后台渲染层（admin-ui-views）', () => {
       expect(v.modelStatusBadge(false, '显示', '隐藏')).toContain('badge deleted');
     });
 
-    it('pendingDiffBadge：有差异时输出摘要按钮，无差异为空', () => {
-      const v = makeViews({ getDraftDiff: () => ({
-        hasDifferences: true,
-        summary: { types: { added: 1 }, fields: { changed: 2 }, bindings: {} },
-      }) });
-      const html = v.pendingDiffBadge();
-      expect(html).toContain('data-action="modeldraftdiff"');
-      expect(html).toContain('草稿待发布');
-      expect(html).toContain('types +1');
-      const noDiff = makeViews({ getDraftDiff: () => null });
-      expect(noDiff.pendingDiffBadge()).toBe('');
+    it('退役的草稿、差异和版本工作台不再导出', () => {
+      const v = makeViews();
+      for (const name of ['pendingDiffBadge', 'diffTotal', 'diffSummaryChip', 'diffItemRow', 'versionDiffBlocks', 'renderDraftRevisionView']) expect(v[name]).toBeUndefined();
     });
 
-    it('diffTotal / diffSummaryChip：差异统计', () => {
+    it('历史只读字段及已移除选项保留显示，不自动赋值', () => {
       const v = makeViews();
-      expect(v.diffTotal({ added: 1, removed: 2, changed: 3 })).toBe(6);
-      expect(v.diffSummaryChip('类型', { added: 2 })).toContain('类型 +2');
-      expect(v.diffSummaryChip('类型', {})).toBe('');
-    });
-
-    it('diffItemRow：条目渲染与撤回按钮', () => {
-      const v = makeViews();
-      const html = v.diffItemRow('add', '+', { name: '猫猫', code: 'cat' }, 'type');
-      expect(html).toContain('diff-item add');
-      expect(html).toContain('猫猫');
-      expect(html).toContain('data-kind="type"');
-      expect(html).toContain('data-key="cat"');
-    });
-
-    it('versionDiffBlocks：有差异时输出摘要与卡片，无差异输出空态', () => {
-      const v = makeViews();
-      const diff = {
-        summary: { types: { added: 1 }, fields: {}, bindings: {} },
-        types: { added: [{ name: '校园猫', code: 'campus_cat' }] },
-        fields: { added: [], removed: [], changed: [] },
-        bindings: { added: [], removed: [], changed: [] },
-      };
-      const html = v.versionDiffBlocks(diff);
-      expect(html).toContain('1 处差异');
-      expect(html).toContain('校园猫');
-      const empty = v.versionDiffBlocks({ summary: { types: {}, fields: {}, bindings: {} }, types: {}, fields: {}, bindings: {} });
-      expect(empty).toContain('两个版本没有差异');
-    });
-
-    it('renderDraftRevisionView：概览、校验与差异块完整输出', () => {
-      const v = makeViews();
-      const draft = {
-        draftRevision: 6, baseVersion: 5,
-        types: [{ id: 1, code: 'cat', name: '猫猫', icon: '🐱' }],
-        fields: [], bindings: [],
-      };
-      const diff = {
-        hasDifferences: true,
-        summary: { types: { added: 1 }, fields: {}, bindings: {} },
-        types: { added: [{ name: '校园猫', code: 'campus_cat' }] },
-        fields: { added: [], removed: [], changed: [] },
-        bindings: { added: [], removed: [], changed: [] },
-      };
-      const validation = { valid: true, errors: [], warnings: [] };
-      const html = v.renderDraftRevisionView(draft, diff, validation);
-      expect(html).toContain('草稿修订概览');
-      expect(html).toContain('校验通过');
-      expect(html).toContain('校园猫');
-      expect(html).toContain('草稿内容清单');
+      const html = v.adminFieldControl({ key: 'coat', label: '毛色', dataType: 'select', archivedNow: true, options: [{ code: 'white', label: '白色', activeNow: false }] }, 'white');
+      expect(html).toContain('disabled');
+      expect(html).toContain('白色（已停用）');
+      expect(html).toContain('仅保留历史值');
+      expect(v.adminFieldControl({ key: 'coat', dataType: 'select', options: [] }, 'lost')).toContain('已移除：lost');
     });
 
     it('modelCheck：复选框渲染', () => {

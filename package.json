@@ -12,7 +12,7 @@
     "test:build": "python -m unittest discover -s tests -p test_*.py",
     "test:dev": "node --test tests/dev/*.test.js",
     "test:frontend": "vitest run",
-    "test:release": "node --test tests/release/release-manifest.test.js",
+    "test:release": "node --test tests/release/*.test.js",
     "verify:site": "python scripts/verify_site_build.py",
     "verify:local-deployment": "node scripts/release/local-deployment-smoke.js",
     "verify": "powershell -ExecutionPolicy Bypass -File ./verify.ps1 -Target site"
@@ -20,6 +20,6 @@
   "devDependencies": {
     "jsdom": "26.1.0",
     "pagefind": "1.5.2",
-    "vitest": "3.2.4"
+    "vitest": "3.2.7"
   }
 }

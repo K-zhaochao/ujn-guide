@@ -2,24 +2,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadNginxConfig, validateNginx } = require('./nginx-config');
 
-const MEBIBYTE = 1024 * 1024;
-
-function boundedInteger(value, fallback, min, max) {
-  const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
-}
-
-function uploadRequestPolicy(env = {}) {
-  const imageCount = boundedInteger(env.MAX_IMAGES_PER_SUBMISSION, 5, 1, 5);
-  const imageSizeMb = boundedInteger(env.MAX_IMAGE_SIZE_MB, 5, 1, 50);
-  const imageBytes = imageSizeMb * MEBIBYTE;
-  const encodedImageBytes = Math.ceil(imageBytes / 3) * 4 + 128;
-  const requestBodyBytes = imageCount * encodedImageBytes + MEBIBYTE;
-  return {
-    requestBodyBytes,
-    nginxBodyMb: Math.ceil(requestBodyBytes / MEBIBYTE),
-  };
+function uploadRequestPolicy(env = {}, serverDir = path.resolve(__dirname, '../../server')) {
+  const contractFile = path.join(serverDir, 'upload-policy.js');
+  const reader = require(contractFile).readDeploymentUploadPolicy;
+  if (typeof reader !== 'function') throw new Error('候选后端缺少纯上传策略契约，不能使用旧默认值继续发布');
+  return reader(env);
 }
 
 function parseEnv(contents) {
@@ -54,20 +43,7 @@ function parseHttpsOrigin(name, raw, errors) {
   }
 }
 
-function hasLocation(nginx, pattern) {
-  return pattern.test(String(nginx || ''));
-}
-
-function nginxBodySizeBytes(nginxText) {
-  const match = String(nginxText || '').match(/(^|\n)\s*client_max_body_size\s+(\d+(?:\.\d+)?)\s*([kmg])?\s*;/im);
-  if (!match) return null;
-  const amount = Number(match[2]);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-  const multiplier = { k: 1024, m: MEBIBYTE, g: MEBIBYTE * 1024 }[(match[3] || '').toLowerCase()] || 1;
-  return Math.floor(amount * multiplier);
-}
-
-function validateConfig(env, nginxText) {
+function validateConfig(env, nginxText, { serverDir } = {}) {
   const errors = [];
   const mainSite = parseHttpsOrigin('MAIN_SITE_URL', env.MAIN_SITE_URL, errors);
   const configuredAllowedOrigins = String(env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean)
@@ -85,24 +61,10 @@ function validateConfig(env, nginxText) {
   const adminPath = String(env.ADMIN_PATH || '').trim().replace(/\/+$/, '');
   if (adminPath && adminPath !== '/admin') errors.push('同源发布的 ADMIN_PATH 如保留必须为 /admin');
 
-  const nginx = String(nginxText || '');
-  if (!hasLocation(nginx, /(^|\n)\s*location\s+\^~\s+\/api\/\s*\{/m)) {
-    errors.push('Nginx 缺少高优先级 /api/ 反向代理');
-  }
-  if (!hasLocation(nginx, /(^|\n)\s*location\s*=\s*\/admin\s*\{/m)
-    || !hasLocation(nginx, /(^|\n)\s*location\s+\^~\s+\/admin\/\s*\{/m)) {
-    errors.push('Nginx 缺少 /admin 反向代理');
-  }
-  if (Number.isSafeInteger(port) && !new RegExp(`proxy_pass\\s+http://127\\.0\\.0\\.1:${port}(?:[;\\s])`).test(nginx)) {
-    errors.push('Nginx 反向代理端口与 PORT 不一致');
-  }
-  const uploadPolicy = uploadRequestPolicy(env);
-  const nginxBodyBytes = nginxBodySizeBytes(nginx);
-  if (nginxBodyBytes === null) {
-    errors.push(`Nginx 缺少 client_max_body_size；当前上传策略至少需要 ${uploadPolicy.nginxBodyMb}m`);
-  } else if (nginxBodyBytes < uploadPolicy.requestBodyBytes) {
-    errors.push(`Nginx client_max_body_size 低于当前上传策略所需的 ${uploadPolicy.nginxBodyMb}m`);
-  }
+  try {
+    const uploadPolicy = uploadRequestPolicy(env, serverDir);
+    errors.push(...validateNginx(nginxText, { hostname: mainSite ? new URL(mainSite).hostname : '', port, uploadPolicy }));
+  } catch (error) { errors.push(error.message); }
   return { ok: errors.length === 0, errors };
 }
 
@@ -110,10 +72,10 @@ function parseArgs(argv) {
   const args = {};
   for (let index = 0; index < argv.length; index++) {
     const token = argv[index];
-    if (token === '--env-file' || token === '--nginx-config') {
+    if (['--env-file', '--nginx-config', '--server-dir', '--nginx-prefix'].includes(token)) {
       const value = argv[++index];
       if (!value || value.startsWith('--')) throw new Error(`${token} 缺少路径参数`);
-      args[token === '--env-file' ? 'envFile' : 'nginxConfig'] = path.resolve(value);
+      args[{ '--env-file': 'envFile', '--nginx-config': 'nginxConfig', '--server-dir': 'serverDir', '--nginx-prefix': 'nginxPrefix' }[token]] = path.resolve(value);
     } else if (token === '--help' || token === '-h') args.help = true;
     else throw new Error(`未知参数：${token}`);
   }
@@ -123,13 +85,13 @@ function parseArgs(argv) {
 function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   if (args.help) {
-    console.log('用法：node validate-production-config.js --env-file /etc/ujn-guide/pet.env --nginx-config /etc/nginx/sites-enabled/ujn-guide');
+    console.log('用法：node validate-production-config.js --server-dir <candidate/server> --env-file <external.env> --nginx-config <vhost.conf> [--nginx-prefix <nginx-prefix>]');
     return { ok: true };
   }
-  if (!args.envFile || !args.nginxConfig) throw new Error('必须提供 --env-file 和 --nginx-config');
+  if (!args.envFile || !args.nginxConfig || !args.serverDir) throw new Error('必须提供 --server-dir、--env-file 和 --nginx-config');
   const envContents = fs.readFileSync(args.envFile, 'utf8');
-  const nginxContents = fs.readFileSync(args.nginxConfig, 'utf8');
-  const result = validateConfig(parseEnv(envContents), nginxContents);
+  const nginxContents = loadNginxConfig(args.nginxConfig, { prefix: args.nginxPrefix });
+  const result = validateConfig(parseEnv(envContents), nginxContents, { serverDir: args.serverDir });
   if (!result.ok) {
     console.error(result.errors.join('\n'));
     process.exitCode = 2;
@@ -144,4 +106,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { nginxBodySizeBytes, parseEnv, uploadRequestPolicy, validateConfig, main };
+module.exports = { parseEnv, uploadRequestPolicy, validateConfig, main };
