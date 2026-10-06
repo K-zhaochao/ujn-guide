@@ -95,14 +95,17 @@ def collect_photos(page: Path, text: str, pets_dir: Path) -> list[str]:
         if not target.is_file():
             raise GalleryError(f"{page.name} 引用的图片不存在：{src}")
         # 不能用 os.path.relpath：Windows 上仓库和临时目录可能不在同一个盘符，
-        # ntpath 跨盘符算不出相对路径，会退回「一串 ../ 再拼绝对路径」——
-        # CI 上 test_card_carries_every_photo_in_page_order 就是这么挂的。
-        # 这里改成按「相对 docs 根的路径段」来算，与盘符无关。
+        # ntpath 跨盘符算不出相对路径，会退回「一串 ../ 再拼绝对路径」。
+        # 也不能拿 resolve() 过的 target 去和没 resolve 的目录比：Windows 的临时目录
+        # 常带 8.3 短名（C:\Users\RUNNER~1\...），resolve() 后会展开成 runneradmin，
+        # 两边字符串不同 → relative_to 抛 ValueError → 又退回旧逻辑。
+        # 所以：**全部先 resolve，再算相对路径**。
         try:
-            docs_root = pets_dir.parent
+            pets_root = Path(pets_dir).resolve()
+            docs_root = pets_root.parent
             relative = (
-                "../" * len(pets_dir.relative_to(docs_root).parts)
-                + target.relative_to(docs_root).as_posix()
+                "../" * len(pets_root.relative_to(docs_root).parts)
+                + Path(target).resolve().relative_to(docs_root).as_posix()
             )
         except ValueError:
             relative = os.path.relpath(target, pets_dir).replace(os.sep, "/")
