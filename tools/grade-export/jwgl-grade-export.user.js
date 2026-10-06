@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         济大教务 · 成绩一键导出
 // @namespace    https://ujn.matehub.top/
-// @version      1.0.0
+// @version      1.2.0
 // @description  在教务系统页面右下角加一个「导出成绩」小面板，一键把本人成绩导出成 Excel。不接触账号密码。
 // @author       济南大学校园通（参考由一位不愿意透露信息的学长提供）
 // @match        *://*.ujn.edu.cn/*
@@ -121,14 +121,56 @@
     return hit ? hit.value : '';
   }
 
+  /**
+   * 找**学校自己的导出按钮**。
+   *
+   * 为什么优先用它：v1.1 自己拼参数请求导出接口时，真实系统返回的是通用错误页
+   * （「出错啦！」= 某个参数被服务端判为非法）。各校各版本的 dcclbh / 导出列 /
+   * xnm 取值形式都不同，**猜不如不猜**——让学校自己的代码去发这个请求，永远一致。
+   * 找不到按钮时才退回自己构造请求（v1.1 的逻辑，保留作兜底）。
+   */
+  function findNativeExport() {
+    const nodes = Array.from(document.querySelectorAll('a, button, input[type="button"], input[type="submit"]'));
+    const byText = nodes.find((el) => (el.textContent || el.value || '').replace(/\s+/g, '').includes('导出'));
+    if (byText) return byText;
+    return document.querySelector('a[href*="dcXsKccj"], a[href*="dcKccj"], a[onclick*="dcXsKccj"]');
+  }
+
+  /** 把页面的学年/学期下拉框同步成面板里的选择（学校按钮会读它们）。 */
+  function syncPageFilters(year, term) {
+    const set = (selector, wanted) => {
+      const select = document.querySelector(selector);
+      if (!select || !wanted) return;
+      const options = Array.from(select.options || []);
+      const hit = options.find((option) => option.value === String(wanted))
+        || options.find((option) => option.textContent.trim().startsWith(String(wanted).slice(0, 4)));
+      if (!hit) return;
+      select.value = hit.value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    set('#xnm', year);
+    set('#xqm', term);
+  }
+
   run.addEventListener('click', async () => {
     const year = panel.querySelector('#ujn-export-year').value;
     const term = panel.querySelector('#ujn-export-term').value;
     const page = readPageParams();
     run.disabled = true;
-    say('正在请求教务系统…');
+    say('正在导出…');
 
     try {
+      // 首选：同步筛选条件 → 点学校自己的导出按钮（参数由学校代码构造，不会对不上）
+      const native = findNativeExport();
+      if (native) {
+        console.log('[成绩导出] 找到学校自带的导出控件，改用它：', native);
+        syncPageFilters(year, term);
+        native.click();
+        say('已触发学校自带的导出，请留意浏览器的下载提示', 'ok');
+        return;
+      }
+      console.warn('[成绩导出] 没找到学校自带的导出按钮，退回自己构造请求');
+
       const xnm = optionValue('#xnm', year) || page.xnm || year;
       const xqm = optionValue('#xqm', term) || page.xqm || term;
 
