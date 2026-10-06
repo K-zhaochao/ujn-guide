@@ -11,9 +11,23 @@ hide:
 这份指南由下面这些同学一起维护（GitHub 与 Gitee 两个仓库的提交合并统计）：
 
 <!-- contributors:start -->
-<div class="ujn-contributors">
-  <a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">136 次提交 · GitHub</span></a>
-  <a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">136 次提交 · Gitee</span></a>
+<div class="ujn-contributors-tabs" data-ujn-tabs>
+  <div class="ujn-contributors-tabs__bar" role="tablist" aria-label="贡献者来源">
+    <button class="ujn-contributors-tabs__tab" type="button" role="tab" id="ujn-contributor-tab-github" aria-controls="ujn-contributor-panel-github" aria-selected="true" tabindex="0" data-ujn-tab="github">GitHub <span class="ujn-contributors-tabs__count">1</span></button>
+    <button class="ujn-contributors-tabs__tab" type="button" role="tab" id="ujn-contributor-tab-gitee" aria-controls="ujn-contributor-panel-gitee" aria-selected="false" tabindex="-1" data-ujn-tab="gitee">Gitee <span class="ujn-contributors-tabs__count">1</span></button>
+  </div>
+  <div class="ujn-contributors-panel" id="ujn-contributor-panel-github" role="tabpanel" aria-labelledby="ujn-contributor-tab-github" data-ujn-panel="github">
+    <p class="ujn-contributors-panel__title">GitHub</p>
+    <div class="ujn-contributors">
+  <a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">137 次提交 · GitHub</span></a>
+    </div>
+  </div>
+  <div class="ujn-contributors-panel" id="ujn-contributor-panel-gitee" role="tabpanel" aria-labelledby="ujn-contributor-tab-gitee" data-ujn-panel="gitee">
+    <p class="ujn-contributors-panel__title">Gitee</p>
+    <div class="ujn-contributors">
+  <a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">137 次提交 · Gitee</span></a>
+    </div>
+  </div>
 </div>
 <!-- contributors:end -->
 

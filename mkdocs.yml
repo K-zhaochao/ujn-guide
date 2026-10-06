@@ -1,4 +1,4 @@
-﻿site_name: 济南大学校园通
+site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
@@ -129,6 +129,7 @@ extra_css:
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
   - assets/stylesheets/ujn.css?v=20261007-18
+    - assets/stylesheets/ujn-contributors.css?v=20261007-1
 
 extra_javascript:
   - javascripts/mathjax.js?v=20260907-1

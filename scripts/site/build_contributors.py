@@ -124,13 +124,13 @@ def person_html(person: dict[str, object]) -> str:
 
 
 def render(people: list[dict[str, object]]) -> str:
-    if people:
-        body = [
-            '<div class="ujn-contributors">',
-            *[person_html(person) for person in people],
-            "</div>",
-        ]
-    else:
+    """按来源（GitHub / Gitee）分组，输出带滑动切换的结构。
+
+    渐进增强：**默认（没有 JS）两个面板都显示**，每块顶上有一行小标题；
+    JS 生效时给 html 加 ujn-js，CSS 才把面板收起来、改用标签栏切换。
+    这样「禁用 JS 就看不到一部分贡献者」的情况不会发生。
+    """
+    if not people:
         # 仓库还没推送、或者构建时没网：别留空白，给出去处
         body = [
             "!!! quote \"还没有提交记录\"",
@@ -139,6 +139,50 @@ def render(people: list[dict[str, object]]) -> str:
             "[GitHub](https://github.com/K-zhaochao/ujn-guide) 或 "
             "[Gitee](https://gitee.com/Draven323/ujn-guide) 提 issue。",
         ]
+        return "\n".join([START, *body, END])
+
+    groups: list[tuple[str, str, list[dict[str, object]]]] = []
+    for source in SOURCES:
+        members = [person for person in people if person.get("source") == source["label"]]
+        if members:
+            groups.append((source["key"], source["label"], members))
+    # 理论上可能出现第三来源；没分到组的照旧显示，不丢人
+    rest = [person for person in people if not any(person in members for _, _, members in groups)]
+    if rest:
+        groups.append(("other", "其他", rest))
+
+    tabs = ["  <div class=\"ujn-contributors-tabs__bar\" role=\"tablist\" aria-label=\"贡献者来源\">"]
+    for index, (key, label, members) in enumerate(groups):
+        selected = "true" if index == 0 else "false"
+        tabs.append(
+            f'    <button class="ujn-contributors-tabs__tab" type="button" role="tab"'
+            f' id="ujn-contributor-tab-{key}" aria-controls="ujn-contributor-panel-{key}"'
+            f' aria-selected="{selected}" tabindex="{0 if index == 0 else -1}" data-ujn-tab="{key}">'
+            f"{label} <span class=\"ujn-contributors-tabs__count\">{len(members)}</span></button>"
+        )
+    tabs.append("  </div>")
+
+    panels = []
+    for index, (key, label, members) in enumerate(groups):
+        # 注意：**不能**在 HTML 里写 hidden —— 那样没有 JS 时第二个面板也会被藏起来，
+        # 等于把一半贡献者藏了。收起面板是 JS 生效后的行为（脚本里设 hidden），
+        # 没有 JS 时两个面板都照常显示。
+        panels.append(
+            f'  <div class="ujn-contributors-panel" id="ujn-contributor-panel-{key}"'
+            f' role="tabpanel" aria-labelledby="ujn-contributor-tab-{key}" data-ujn-panel="{key}">'
+        )
+        panels.append(f'    <p class="ujn-contributors-panel__title">{label}</p>')
+        panels.append('    <div class="ujn-contributors">')
+        panels.extend(person_html(person) for person in members)
+        panels.append("    </div>")
+        panels.append("  </div>")
+
+    body = [
+        '<div class="ujn-contributors-tabs" data-ujn-tabs>',
+        *tabs,
+        *panels,
+        "</div>",
+    ]
     return "\n".join([START, *body, END])
 
 
