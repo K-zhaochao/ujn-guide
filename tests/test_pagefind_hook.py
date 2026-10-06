@@ -52,7 +52,9 @@ class PagefindHookTests(unittest.TestCase):
                 return make_result(0, stdout="Indexed 3 pages")
 
             self.assertTrue(run_pagefind_index(site_dir, runner=runner))
-            self.assertEqual(seen["cmd"][0], "npx")
+            # 命令名的断言要容忍 .cmd 与绝对路径：Windows 上 npx 实际是 npx.cmd，
+            # 而 shell=False 时 CreateProcess 不做 PATHEXT 查找，必须给出解析后的完整路径。
+            self.assertIn(Path(seen["cmd"][0]).name.lower(), {"npx", "npx.cmd"})
             self.assertIn("pagefind", seen["cmd"])
             self.assertIn(str(site_dir), seen["cmd"])
             self.assertEqual(seen["cwd"], str(site_dir.parent))

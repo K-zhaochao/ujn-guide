@@ -12,6 +12,7 @@ on_post_build 仅做配置适配与失败退出。
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -65,14 +66,19 @@ def run_pagefind_index(site_dir: Path, runner: Optional[Runner] = None) -> bool:
     printer("[hooks] >> 运行 Pagefind 搜索引擎索引...")
 
     run = runner or _default_runner
+    # 关键：不要用 shell=True 配列表——POSIX 下 sh -c 只吃第一个参数，
+    # 实际只执行了 npx，Pagefind 压根没跑（Windows 下列表会被拼成命令行，所以本地看着正常）。
+    # 这就是 CI 上「Pagefind 运行完毕，但未找到 site/pagefind」的真正原因。
+    # npx 在 Windows 上是 npx.cmd，shell=False 时必须显式找到它。
+    npx = shutil.which("npx") or "npx"
     result = run(
-        ["npx", "--no-install", "pagefind", "--site", str(site_dir)],
+        [npx, "--no-install", "pagefind", "--site", str(site_dir)],
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
         cwd=str(site_dir.parent),
-        shell=True,
+        shell=False,
     )
 
     if result.stdout:

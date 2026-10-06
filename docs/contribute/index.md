@@ -11,8 +11,10 @@ hide:
 这份指南由下面这些同学一起维护（GitHub 与 Gitee 两个仓库的提交合并统计）：
 
 <!-- contributors:start -->
-!!! quote "还没有提交记录"
-    这两个仓库目前都还没有提交，所以还没有贡献者名单。成为第一个？改动流程见下面的第 3、4 节；也可以直接在 [GitHub](https://github.com/K-zhaochao/ujn-guide) 或 [Gitee](https://gitee.com/Draven323/ujn-guide) 提 issue。
+<div class="ujn-contributors">
+  <a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">127 次提交 · GitHub</span></a>
+  <a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">127 次提交 · Gitee</span></a>
+</div>
 <!-- contributors:end -->
 
 ---

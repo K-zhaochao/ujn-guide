@@ -94,7 +94,18 @@ def collect_photos(page: Path, text: str, pets_dir: Path) -> list[str]:
         target = (page.parent / src).resolve()
         if not target.is_file():
             raise GalleryError(f"{page.name} 引用的图片不存在：{src}")
-        relative = os.path.relpath(target, pets_dir).replace(os.sep, "/")
+        # 不能用 os.path.relpath：Windows 上仓库和临时目录可能不在同一个盘符，
+        # ntpath 跨盘符算不出相对路径，会退回「一串 ../ 再拼绝对路径」——
+        # CI 上 test_card_carries_every_photo_in_page_order 就是这么挂的。
+        # 这里改成按「相对 docs 根的路径段」来算，与盘符无关。
+        try:
+            docs_root = pets_dir.parent
+            relative = (
+                "../" * len(pets_dir.relative_to(docs_root).parts)
+                + target.relative_to(docs_root).as_posix()
+            )
+        except ValueError:
+            relative = os.path.relpath(target, pets_dir).replace(os.sep, "/")
         photos.append(quote(relative, safe="/"))
     return photos
 
