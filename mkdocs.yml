@@ -1,4 +1,4 @@
-﻿site_name: 济南大学校园通
+site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
@@ -247,14 +247,17 @@ nav:
     - 组织机构: phone-book/organizations.md
     - 学院: phone-book/colleges.md
     - 科研平台: phone-book/research-platforms.md
-  - 🎭 社团与组织:
-    - 社团与组织: clubs/index.md
-    - 学校组织: clubs/organizations/index.md
-    - 社团: clubs/societies/index.md
-    - 学生组织: clubs/student-groups/index.md
-  - 🏘️ 老乡群: hometown-groups/index.md
+  # 校园生活：社团、老乡群、校历这三块都属于「课外」，
+  # 合成一个 tab 后顶栏更短，它们的页面一个都没少。
+  - 🎓 校园生活:
+    - 🎭 社团与组织:
+      - 社团与组织: clubs/index.md
+      - 学校组织: clubs/organizations/index.md
+      - 社团: clubs/societies/index.md
+      - 学生组织: clubs/student-groups/index.md
+    - 🏘️ 老乡群: hometown-groups/index.md
+    - 📅 校历: school-calendar/index.md
   - 🐾 宠物收集录: pets/index.md
-  - 📅 校历: school-calendar/index.md
   - 📜 规章制度:
     - 规章制度总览: rules/index.md
     - 📖 教育管理规定:
@@ -280,9 +283,13 @@ nav:
       - 创新创业训练计划管理办法: rules/other/innovation-entrepreneurship.md
       - 学生社团管理办法: rules/other/student-organizations.md
       - 第二课堂成绩单实施办法: rules/other/second-classroom.md
-  - 💡 反馈与贡献: contribute/index.md
-  - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
-  - ⚖️ 免责声明: disclaimer.md
+  # 「关于」把站点自身的几个页面收在一起：反馈、更新记录、联系方式、免责声明。
+  # 顶级 tab 从 12 个降到 8 个，读者在顶栏一眼能扫完（见 BUILDING.md 的导航约定）。
+  - ℹ️ 关于:
+    - 💡 反馈与贡献: contribute/index.md
+    - 🕒 最近更新: changelog.md
+    - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
+    - ⚖️ 免责声明: disclaimer.md
 
 
 

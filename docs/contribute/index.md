@@ -22,7 +22,7 @@
 [:fontawesome-solid-comment-dots: 在 Gitee 提 Issue](https://gitee.com/Draven323/ujn-guide/issues/new){ .md-button .md-button--primary }
 [:fontawesome-brands-github: 在 GitHub 提 Issue](https://github.com/K-zhaochao/ujn-guide/issues/new){ .md-button }
 
-也可以用 QQ 群直接说（导航栏「联系作者」）。写的时候带上这几点，问题会好处理很多：
+也可以用 QQ 群直接说（导航栏「关于 → 联系作者」）。写的时候带上这几点，问题会好处理很多：
 
 | 要写清楚 | 例子 |
 | --- | --- |
