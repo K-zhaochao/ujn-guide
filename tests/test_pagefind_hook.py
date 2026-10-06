@@ -58,7 +58,11 @@ class PagefindHookTests(unittest.TestCase):
             self.assertIn("pagefind", seen["cmd"])
             self.assertIn(str(site_dir), seen["cmd"])
             self.assertEqual(seen["cwd"], str(site_dir.parent))
-            self.assertTrue(seen["shell"])
+            # 这里曾经断言 shell=True —— 那正是让 CI 挂掉的 bug：
+            # POSIX 下 shell=True 配参数列表时 sh -c 只吃第一个参数，等于只执行了 npx，
+            # Pagefind 根本没跑（Windows 下列表会被拼成命令行，所以本地一直看着正常）。
+            # 正确的期望是 shell=False。
+            self.assertFalse(seen["shell"])
 
     def test_failure_raises_system_exit(self) -> None:
         """Pagefind 返回码非 0 时抛出 SystemExit(1) 使构建失败。"""
