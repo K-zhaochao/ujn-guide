@@ -141,6 +141,41 @@
   }
 }
 
+/* ===== 搜索面板的「大家都在搜」 =====
+   标记在 overrides/partials/search.html，显隐由 javascripts/hot-search.js 控制
+   （查询词为空才出现）。胶囊形状复用 .ujn-pill。 */
+.md-search__hot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .3rem;
+  padding: .7rem .8rem .2rem;
+}
+
+.md-search__hot[hidden] {
+  display: none;
+}
+
+.md-search__hot-label {
+  width: 100%;
+  margin-bottom: .15rem;
+  color: var(--ujn-muted);
+  font-size: .6rem;
+  letter-spacing: .02em;
+}
+
+.md-search__hot-chip {
+  padding: .3rem .7rem;
+  border: 1px solid var(--ujn-hairline);
+  background: color-mix(in srgb, var(--ujn-accent) 5%, transparent);
+  color: var(--md-default-fg-color);
+}
+
+.md-search__hot-chip:hover {
+  border-color: var(--ujn-accent);
+  color: var(--ujn-accent);
+}
+
 /* ===== 只给读屏看的文本（视觉上不可见，但会被朗读） =====
    用于 aria-live 播报：视觉上的「3 / 7」对读屏太模糊，配一句完整的话更清楚。 */
 .ujn-visually-hidden {

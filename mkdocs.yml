@@ -125,13 +125,15 @@ extra_css:
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
-  - assets/stylesheets/ujn.css?v=20261007-1
+  - assets/stylesheets/ujn.css?v=20261007-2
 
 extra_javascript:
   - javascripts/mathjax.js?v=20260907-1
   - javascripts/github-issues.js?v=20260909-1
   # 窄屏的「本页目录」：桌面端目录栏在 1220px 以下会被 Material 隐藏，这个脚本补上
   - javascripts/mobile-toc.js?v=20260911-1
+  # 搜索面板的「大家都在搜」（标记在 overrides/partials/search.html）
+  - javascripts/hot-search.js?v=20261007-1
   - assets/zongce-calculator/calculator-core.js?v=20260907-1
   - assets/zongce-calculator/calculator.js?v=20260907-1
   - pets/gallery.js?v=20260910-3
@@ -281,6 +283,7 @@ nav:
   - 💡 反馈与贡献: contribute/index.md
   - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
   - ⚖️ 免责声明: disclaimer.md
+
 
 
 

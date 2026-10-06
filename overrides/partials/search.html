@@ -19,6 +19,19 @@
             </div>
         </form>
         <div class="md-search__output">
+            <!-- 空查询时给几个常见搜索词：新生往往不知道本站该搜什么。
+                 显示/隐藏与点击行为在 javascripts/hot-search.js 里（查询词为空才出现）。 -->
+            <div class="md-search__hot" id="pagefind-hot" hidden>
+                <span class="md-search__hot-label">大家都在搜</span>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="快递">快递</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="食堂">食堂</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="转专业">转专业</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="奖学金">奖学金</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="校历">校历</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="综测">综测</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="电话">电话</button>
+                <button class="ujn-pill md-search__hot-chip" type="button" data-query="社团">社团</button>
+            </div>
             <div class="md-search__scrollwrap" data-md-scrollfix>
                 <div class="md-search-result" data-md-component="search-result">
                     <div class="md-search-result__meta" id="pagefind-search-meta">
