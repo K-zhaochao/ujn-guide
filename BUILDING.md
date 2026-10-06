@@ -87,6 +87,7 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 | --- | --- |
 | `docs/assets/stylesheets/ujn.css` | 站点自定义样式（公告栏、QQ 群入口、搜索与 AI 助手、页脚按钮、两个弹窗）。改完**必须递增 `mkdocs.yml` 里的 `?v=`**，否则访客继续用缓存。 |
 | `docs/javascripts/ujn-ui.js` | 公告栏关闭、页脚按钮注入、跳蚤市场与赞助弹窗、即时导航滚动修复。站点根路径由脚本自身地址反推（`document.currentScript`），跳蚤市场配置读页面上的 `<script type="application/json" id="ujn-flea-config">`。 |
+| `docs/javascripts/mobile-toc.js` | 窄屏的「本页目录」折叠块。Material 在 1220px 以下会隐藏右侧目录栏，这个脚本在目录栏不可见时把正文的 h2/h3 收进一个 `<details>`；**不要靠 `toc.integrate` 解决**（那会让桌面端也失去目录栏）。 |
 | `overrides/main.html` | 只剩约 70 行模板：公告栏结构、header、extrahead（Umami）、scripts（引入上面两个文件）。**不要往模板里塞回大段 `<style>` / `<script>`。** |
 | 页面里的 `<style>` | `docs/pets/index.md`、`docs/contribute/index.md` 等页面自带的样式是有意内联的：只在当页加载、不影响其它页面；代价是不能缓存，少量规则可以接受。 |
 

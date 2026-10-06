@@ -85,6 +85,62 @@
   color: #0b1220;
 }
 
+/* ===== 窄屏「本页目录」（由 javascripts/mobile-toc.js 插入） =====
+   桌面端右侧有目录栏，脚本不会插入它；这里再用媒体查询兜一层，
+   即使脚本判断慢一拍也不会在宽屏上冒出来。断点跟 Material 显示目录栏的一致。
+   注意：<details> 在 .md-typeset 里会吃到 Material 自己的折叠样式（左侧图标 + 右侧箭头），
+   这里只覆盖面板底色与列表排版，不再自己画箭头。 */
+.ujn-mobile-toc {
+  margin: 0 0 1.2rem;
+  padding: .5rem .7rem;
+  border: 1px solid var(--ujn-hairline);
+  border-radius: var(--ujn-radius-md);
+  background: color-mix(in srgb, var(--ujn-accent) 4%, transparent);
+  font-size: .72rem;
+}
+
+.ujn-mobile-toc > summary {
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+.ujn-mobile-toc > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ujn-mobile-toc ul {
+  margin: .5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ujn-mobile-toc li {
+  margin: .22rem 0;
+  line-height: 1.5;
+}
+
+.ujn-mobile-toc li.ujn-mobile-toc__sub {
+  padding-left: .9rem;
+  font-size: .68rem;
+  opacity: .9;
+}
+
+.ujn-mobile-toc a {
+  color: var(--md-default-fg-color);
+  text-decoration: none;
+}
+
+.ujn-mobile-toc a:hover {
+  color: var(--ujn-accent);
+}
+
+@media screen and (min-width: 76.25em) {
+  .ujn-mobile-toc {
+    display: none;
+  }
+}
+
 /* ===== 只给读屏看的文本（视觉上不可见，但会被朗读） =====
    用于 aria-live 播报：视觉上的「3 / 7」对读屏太模糊，配一句完整的话更清楚。 */
 .ujn-visually-hidden {

@@ -1,4 +1,4 @@
-site_name: 济南大学校园通
+﻿site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
@@ -125,11 +125,13 @@ extra_css:
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
-  - assets/stylesheets/ujn.css?v=20260910-6
+  - assets/stylesheets/ujn.css?v=20260911-1
 
 extra_javascript:
   - javascripts/mathjax.js?v=20260907-1
   - javascripts/github-issues.js?v=20260909-1
+  # 窄屏的「本页目录」：桌面端目录栏在 1220px 以下会被 Material 隐藏，这个脚本补上
+  - javascripts/mobile-toc.js?v=20260911-1
   - assets/zongce-calculator/calculator-core.js?v=20260907-1
   - assets/zongce-calculator/calculator.js?v=20260907-1
   - pets/gallery.js?v=20260910-3
@@ -279,3 +281,4 @@ nav:
   - 💡 反馈与贡献: contribute/index.md
   - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
   - ⚖️ 免责声明: disclaimer.md
+
