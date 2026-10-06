@@ -1,4 +1,4 @@
-﻿site_name: 济南大学校园通
+site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
@@ -283,11 +283,12 @@ nav:
       - 创新创业训练计划管理办法: rules/other/innovation-entrepreneurship.md
       - 学生社团管理办法: rules/other/student-organizations.md
       - 第二课堂成绩单实施办法: rules/other/second-classroom.md
-  # 「关于」把站点自身的几个页面收在一起：反馈、更新记录、联系方式、免责声明。
-  # 顶级 tab 从 12 个降到 8 个，读者在顶栏一眼能扫完（见 BUILDING.md 的导航约定）。
+  # 导航约定：读者会主动找的页面直接给 tab；只有「关于本站」这类常规元信息才收进分组。
+  # 反馈与贡献、最近更新都曾被塞进「关于」分组，结果手机端要展开抽屉才知道有这些页面，
+  # 靠页面里写一句「这一组还有别的页面」补救更绕——已改回独立 tab。
+  - 💡 反馈与贡献: contribute/index.md
+  - 🕒 最近更新: changelog.md
   - ℹ️ 关于:
-    - 💡 反馈与贡献: contribute/index.md
-    - 🕒 最近更新: changelog.md
     - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
     - ⚖️ 免责声明: disclaimer.md
 

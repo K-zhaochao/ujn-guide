@@ -24,36 +24,6 @@
     见 **[最近更新](../changelog.md)**：那一页由 git 提交历史自动生成，会列出内容层面的改动
     （纯维护性的重构、测试之类不会出现）。你提的建议被采纳后，也会出现在那里。
 
-## 🧭 这一组还有别的页面
-
-「关于」这一组除了本页（反馈与贡献），还有下面三个页面。手机端的左侧目录要展开抽屉才看得到，
-所以这里直接列出入口——点卡片就行：
-
-<div class="grid cards" markdown>
-
-- :material-clock-outline: **最近更新**
-
-    ---
-    这份指南最近改了什么，按时间倒序，含每周的内容更新。
-
-    [:octicons-arrow-right-24: 查看更新记录](../changelog.md)
-
-- :material-qqchat: **联系作者**
-
-    ---
-    想直接找人说？扫码进 QQ 交流群，或加作者好友。
-
-    [:octicons-arrow-right-24: 加入交流群](https://qm.qq.com/q/GbM6rEhNWq){ target=_blank }
-
-- :material-scale-balance: **免责声明**
-
-    ---
-    本站信息的来源、时效性与使用边界，请先看一眼。
-
-    [:octicons-arrow-right-24: 阅读声明](../disclaimer.md)
-
-</div>
-
 ---
 
 ## 1. 🙋 提意见 / 报问题（不懂技术也能做）

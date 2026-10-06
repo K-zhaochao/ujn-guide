@@ -15,7 +15,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG = PROJECT_ROOT / "mkdocs.yml"
 DOCS = PROJECT_ROOT / "docs"
-MAX_TABS = 8
+MAX_TABS = 10
 
 
 class _Loader(yaml.SafeLoader):
@@ -69,13 +69,21 @@ class NavigationTests(unittest.TestCase):
         duplicates = [target for target, count in Counter(self.targets).items() if count > 1]
         self.assertEqual(duplicates, [], "同一个页面在导航里出现了多次")
 
-    def test_meta_pages_live_under_about(self) -> None:
-        """站点自身的页面收在「关于」里，别再单开标签。"""
+    def test_reader_facing_pages_are_top_level(self) -> None:
+        """读者会主动找的页面必须自己占一个 tab。
+        曾经把「反馈与贡献」「最近更新」塞进「关于」分组，手机端要展开抽屉才知道有这些页面，
+        靠页面里写一句「这一组还有别的页面」补救更绕——已改回独立标签。"""
+        top = collect_targets(self.nav, [])
+        for page in ["contribute/index.md", "changelog.md"]:
+            self.assertIn(page, top, f"{page} 应该是顶级标签")
+
+    def test_only_meta_pages_are_grouped(self) -> None:
+        """「关于」分组只放联系作者、免责声明这类常规元信息。"""
         about = next((item for item in self.nav if isinstance(item, dict) and "关于" in next(iter(item))), None)
         self.assertIsNotNone(about, "找不到「关于」分组")
         targets = collect_targets(about, [])
-        for page in ["contribute/index.md", "changelog.md", "disclaimer.md"]:
-            self.assertIn(page, targets, f"{page} 应该在「关于」分组里")
+        self.assertIn("disclaimer.md", targets)
+        self.assertNotIn("contribute/index.md", targets)
 
 
 if __name__ == "__main__":
