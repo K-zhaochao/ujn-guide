@@ -70,6 +70,20 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 - **外部运行时依赖保持最小**：目前只剩自托管 Umami、jsdelivr（按需的 MathJax）与 unpkg
   （仅图表页的 mermaid）。新增第三方 CDN 前先确认国内可达性，优先自托管。
 
+## 样式与脚本放在哪里
+
+主题覆盖层已经从「一个 1500 行的模板文件」拆开了，改东西前先看这张表：
+
+| 位置 | 放什么 |
+| --- | --- |
+| `docs/assets/stylesheets/ujn.css` | 站点自定义样式（公告栏、QQ 群入口、搜索与 AI 助手、页脚按钮、两个弹窗）。改完**必须递增 `mkdocs.yml` 里的 `?v=`**，否则访客继续用缓存。 |
+| `docs/javascripts/ujn-ui.js` | 公告栏关闭、页脚按钮注入、跳蚤市场与赞助弹窗、即时导航滚动修复。站点根路径由脚本自身地址反推（`document.currentScript`），跳蚤市场配置读页面上的 `<script type="application/json" id="ujn-flea-config">`。 |
+| `overrides/main.html` | 只剩约 70 行模板：公告栏结构、header、extrahead（Umami）、scripts（引入上面两个文件）。**不要往模板里塞回大段 `<style>` / `<script>`。** |
+| 页面里的 `<style>` | `docs/pets/index.md`、`docs/contribute/index.md` 等页面自带的样式是有意内联的：只在当页加载、不影响其它页面；代价是不能缓存，少量规则可以接受。 |
+
+搬迁前后用「截图 + computed style」指纹做过对比（6 个页面/视口，含两个弹窗与深色模式），
+像素完全一致。以后再动这类纯搬迁的改动，沿用同样办法验收：先存 before 指纹，改完再比一次。
+
 ## 本地预览
 
 站点是**纯静态**的，本地预览不需要任何后端：
