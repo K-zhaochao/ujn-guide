@@ -1,5 +1,16 @@
 # 💬 反馈与贡献
 
+## 🙌 贡献者
+
+这份指南由下面这些同学一起维护（GitHub 与 Gitee 两个仓库的提交合并统计）：
+
+<!-- contributors:start -->
+!!! quote "还没有提交记录"
+    这两个仓库目前都还没有提交，所以还没有贡献者名单。成为第一个？改动流程见下面的第 3、4 节；也可以直接在 [GitHub](https://github.com/K-zhaochao/ujn-guide) 或 [Gitee](https://gitee.com/Draven323/ujn-guide) 提 issue。
+<!-- contributors:end -->
+
+---
+
 这个页面写给两种人：
 
 - **只想提个意见、报个错误、问个问题**——不用懂技术，看第 1 节就够了；
