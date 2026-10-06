@@ -6,8 +6,13 @@ server/
 # ========================
 #  MkDocs 构建产物
 # ========================
-site/
+# 必须写成 /site/：不加开头斜杠时 git 会在**任意层级**匹配名为 site 的目录，
+# 于是 scripts/site/（changelog、贡献者、链接检查三个生成器）被一起静默忽略，
+# 推上远端后 CI 里找不到这些脚本，三个测试直接 FileNotFoundError。踩过一次，别改回去。
+/site/
 ujn-guide-site.zip
+!scripts/site/
+!scripts/site/**
 
 # ========================
 #  部署配置、运维文档与本机发布材料（不进入版本控制）

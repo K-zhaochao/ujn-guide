@@ -12,6 +12,11 @@ jobs:
   verify:
     name: Verify (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # Windows 运行器的默认控制台编码是 cp1252，脚本里打印中文会直接 UnicodeEncodeError
+    # （build_gallery.py 的「跳过 xxx.md」就踩了这个），统一强制 UTF-8。
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
     strategy:
       fail-fast: false
       matrix:
