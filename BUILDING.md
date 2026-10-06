@@ -92,6 +92,25 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 
 搬迁前后用「截图 + computed style」指纹做过对比（6 个页面/视口，含两个弹窗与深色模式），
 像素完全一致。以后再动这类纯搬迁的改动，沿用同样办法验收：先存 before 指纹，改完再比一次。
+注意基线必须取自「改动前的当前提交」——拿几天前的指纹去比，会把别的改动算进来。
+
+### 设计令牌与组件
+
+`ujn.css` 顶部有一组令牌，新样式请优先复用，别再写裸数值：
+
+| 令牌 | 用途 |
+| --- | --- |
+| `--ujn-radius-xs / -sm / -md / -lg / -circle` | 圆角（4px / 6px / 8px / 1rem / 50%） |
+| `--ujn-hairline`、`--ujn-muted`、`--ujn-accent` | 跟随主题的线条色、弱化文字、主色 |
+| `--ujn-shadow-soft`、`--ujn-shadow-modal`、`--ujn-scrim` | 轻阴影、弹窗阴影、遮罩底色 |
+
+弹窗已经抽成「基础组件 + 各自差异」两层，新增弹窗照这个来：
+
+- `.ujn-overlay`（固定定位 + 遮罩 + 居中 + 淡入）与 `.ujn-overlay--open`（`display: flex`）；
+- `.ujn-modal`（卡片底色、圆角、阴影、相对定位、上滑动画）；
+- 各弹窗自己的类只留差异，例如 `.flea-card` 只管 `max-width: 580px` 与滚动，
+  `.donate-card` 只管 `max-width: 380px` 与内边距；标记上同时带基础类与自己的类
+  （`class="ujn-overlay flea-overlay"`），`ujn-ui.js` 里就是按这个写法生成的。
 
 ## 本地预览
 

@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
     /* 赞助弹窗 */
     var overlay = document.createElement("div");
     overlay.id = "donate-modal-overlay";
-    overlay.className = "donate-overlay";
+    overlay.className = "ujn-overlay donate-overlay";
     overlay.onclick = function (e) {
       if (e.target === overlay) {
         overlay.classList.remove("donate-overlay--open");
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     var card = document.createElement("div");
-    card.className = "donate-card";
+    card.className = "ujn-modal donate-card";
 
     var closeBtn = document.createElement("button");
     closeBtn.className = "donate-close";
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", function () {
     /* ===== 跳蚤市场弹窗 ===== */
     var fleaOverlay = document.createElement("div");
     fleaOverlay.id = "flea-modal-overlay";
-    fleaOverlay.className = "flea-overlay";
+    fleaOverlay.className = "ujn-overlay flea-overlay";
     fleaOverlay.onclick = function (e) {
       if (e.target === fleaOverlay) {
         fleaOverlay.classList.remove("flea-overlay--open");
@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     var fleaCard = document.createElement("div");
-    fleaCard.className = "flea-card";
+    fleaCard.className = "ujn-modal flea-card";
 
     var fleaClose = document.createElement("button");
     fleaClose.className = "flea-close";

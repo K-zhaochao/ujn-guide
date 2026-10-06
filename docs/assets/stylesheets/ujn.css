@@ -11,6 +11,54 @@
    段落：公告栏 / QQ 群入口 / 搜索与 AI 助手 / 页脚按钮 / 跳蚤市场弹窗 / 赞助弹窗
    ========================================================================== */
 
+/* ===== 设计令牌 =====
+   取值与重构前逐字一致（例如 --ujn-radius-xs 就是原来的 4px），
+   新组件请优先复用这些令牌，别再写裸数值；改一次就能全站生效。 */
+:root {
+  /* 圆角 */
+  --ujn-radius-xs: 4px;
+  --ujn-radius-sm: 6px;
+  --ujn-radius-md: 8px;
+  --ujn-radius-lg: 1rem;
+  --ujn-radius-circle: 50%;
+
+  /* 跟随主题的线条与弱化文字 */
+  --ujn-hairline: var(--md-default-fg-color--lightest);
+  --ujn-muted: var(--md-default-fg-color--light);
+  --ujn-accent: var(--md-primary-fg-color);
+
+  /* 阴影与遮罩 */
+  --ujn-shadow-soft: 0 1px 4px rgba(0, 0, 0, 0.12);
+  --ujn-shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --ujn-scrim: rgba(0, 0, 0, 0.55);
+}
+
+/* ===== 弹窗骨架（跳蚤市场 / 赞助共用） =====
+   两个弹窗的遮罩与卡片原先各写一份完全相同的声明，这里抽成基础组件，
+   各自的差异（尺寸、内边距、关闭按钮位置）留在下面的组件类里。 */
+.ujn-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--ujn-scrim);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.ujn-modal {
+  background: var(--md-default-bg-color);
+  border-radius: var(--ujn-radius-lg);
+  position: relative;
+  box-shadow: var(--ujn-shadow-modal);
+  text-align: center;
+  animation: slideUp 0.25s ease;
+}
+
 /* ===== 只在窄屏出现的内容（首页的「手机端浏览提示」） =====
    桌面端没有左上角菜单按钮，这类提示对桌面读者是噪音。 */
 .ujn-mobile-only {
@@ -48,7 +96,7 @@ html[data-announce="hidden"] .md-banner {
   height: 1.5rem;
   padding: 0;
   border: 1px solid currentcolor;
-  border-radius: 50%;
+  border-radius: var(--ujn-radius-circle);
   background: transparent;
   color: inherit;
   font-size: .68rem;
@@ -112,7 +160,7 @@ html[data-announce="hidden"] .md-banner {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  border-radius: 50%;
+  border-radius: var(--ujn-radius-circle);
   color: #12b7f5;
   background: rgba(18, 183, 245, .16);
 }
@@ -183,7 +231,7 @@ html[data-announce="hidden"] .md-banner {
   padding-bottom: 56.25%;
   height: 0;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--ujn-radius-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
@@ -199,7 +247,7 @@ html[data-announce="hidden"] .md-banner {
 @media (max-width: 600px) {
   .iframe-wrapper {
     padding-bottom: 75%;
-    border-radius: 4px;
+    border-radius: var(--ujn-radius-xs);
   }
 }
 
@@ -294,7 +342,7 @@ html[data-announce="hidden"] .md-banner {
   text-decoration: none;
   transition: all 0.2s;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ujn-shadow-soft);
 }
 
 .md-footer-btn:hover {
@@ -342,27 +390,12 @@ html[data-announce="hidden"] .md-banner {
 }
 
 /* ===== 跳蚤市场弹窗 ===== */
-.flea-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease;
-}
-
+/* 遮罩与卡片骨架来自 .ujn-overlay / .ujn-modal（见文件顶部），这里只留差异 */
 .flea-overlay--open {
   display: flex;
 }
 
 .flea-card {
-  background: var(--md-default-bg-color);
-  border-radius: 1rem;
   padding: 2rem 1.2rem;
   max-width: 580px;
   width: 92%;
@@ -370,10 +403,6 @@ html[data-announce="hidden"] .md-banner {
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  text-align: center;
-  animation: slideUp 0.25s ease;
 }
 
 @media (max-width: 480px) {
@@ -390,7 +419,7 @@ html[data-announce="hidden"] .md-banner {
   float: right;
   background: var(--md-default-bg-color);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--ujn-radius-circle);
   font-size: 1.5rem;
   cursor: pointer;
   color: var(--md-default-fg-color--light);
@@ -398,7 +427,7 @@ html[data-announce="hidden"] .md-banner {
   padding: 0.5rem 0.9rem;
   line-height: 1;
   z-index: 10;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ujn-shadow-soft);
   min-width: 44px;
   min-height: 44px;
   display: flex;
@@ -503,34 +532,14 @@ html[data-announce="hidden"] .md-banner {
 }
 
 /* ===== 赞助弹窗 ===== */
-.donate-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease;
-}
-
 .donate-overlay--open {
   display: flex;
 }
 
 .donate-card {
-  background: var(--md-default-bg-color);
-  border-radius: 1rem;
   padding: 2rem 2.2rem;
   max-width: 380px;
   width: 90%;
-  position: relative;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  text-align: center;
-  animation: slideUp 0.25s ease;
 }
 
 .donate-close {
@@ -667,7 +676,7 @@ html[data-announce="hidden"] .md-banner {
   width: 10px;
   height: 10px;
   background: var(--md-default-bg-color);
-  border-radius: 50%;
+  border-radius: var(--ujn-radius-circle);
   transition: transform 0.2s, background 0.2s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
@@ -703,7 +712,7 @@ html[data-announce="hidden"] .md-banner {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: var(--ujn-radius-circle);
   transition: background 0.15s;
   color: var(--md-default-fg-color--light);
   font-size: 0.9rem;
@@ -791,7 +800,7 @@ html[data-announce="hidden"] .md-banner {
   color: var(--md-default-fg-color--light);
   background: var(--md-default-fg-color--transparent);
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   word-break: break-word;
 }
 
@@ -822,7 +831,7 @@ html[data-announce="hidden"] .md-banner {
   background: var(--md-default-fg-color--transparent);
   color: var(--md-default-fg-color--light);
   border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   padding: 0.15rem 0.5rem;
   font-size: 0.62rem;
   font-weight: 600;
@@ -930,7 +939,7 @@ html[data-announce="hidden"] .md-banner {
 /* ——— 限流卡片 ——— */
 .ai-limit-card {
   background: var(--md-default-fg-color--transparent);
-  border-radius: 6px;
+  border-radius: var(--ujn-radius-sm);
   padding: 0.7rem;
   text-align: center;
 }
@@ -962,7 +971,7 @@ html[data-announce="hidden"] .md-banner {
   align-items: center;
   gap: 0.25rem;
   padding: 0.3rem 0.65rem;
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   border: none;
   font-size: 0.68rem;
   font-weight: 600;
@@ -1014,7 +1023,7 @@ html[data-announce="hidden"] .md-banner {
 
 .ai-settings-card {
   background: var(--md-default-bg-color);
-  border-radius: 8px;
+  border-radius: var(--ujn-radius-md);
   padding: 1.4rem 1.6rem;
   max-width: 380px;
   width: 88%;
@@ -1035,7 +1044,7 @@ html[data-announce="hidden"] .md-banner {
   cursor: pointer;
   color: var(--md-default-fg-color--light);
   padding: 0.15rem 0.35rem;
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   transition: background 0.15s;
   line-height: 1;
 }
@@ -1075,7 +1084,7 @@ html[data-announce="hidden"] .md-banner {
   align-items: center;
   gap: 0.4rem;
   padding: 0.35rem 0.55rem;
-  border-radius: 6px;
+  border-radius: var(--ujn-radius-sm);
   border: 1.5px solid var(--md-default-fg-color--transparent);
   cursor: pointer;
   transition: all 0.15s;
@@ -1112,7 +1121,7 @@ html[data-announce="hidden"] .md-banner {
   width: 100%;
   padding: 0.4rem 0.55rem;
   border: 1px solid var(--md-default-fg-color--lightest);
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   font-size: 0.72rem;
   color: var(--md-typeset-color);
   background: var(--md-default-bg-color);
@@ -1151,7 +1160,7 @@ html[data-announce="hidden"] .md-banner {
   background: var(--md-default-fg-color);
   color: var(--md-default-bg-color);
   padding: 0.4rem 0.9rem;
-  border-radius: 6px;
+  border-radius: var(--ujn-radius-sm);
   font-size: 0.72rem;
   font-weight: 500;
   opacity: 0;
@@ -1191,7 +1200,7 @@ html[data-announce="hidden"] .md-banner {
 .ai-toggle-track {
   width: 32px;
   height: 16px;
-  border-radius: 8px;
+  border-radius: var(--ujn-radius-md);
 }
 
 .ai-toggle-track::after {
@@ -1248,7 +1257,7 @@ html[data-announce="hidden"] .md-banner {
   font-weight: 700;
   font-size: 0.72rem;
   padding: 0.35rem 0.6rem;
-  border-radius: 6px;
+  border-radius: var(--ujn-radius-sm);
   border-left: 3px solid var(--md-accent-fg-color);
 }
 
@@ -1283,7 +1292,7 @@ html[data-announce="hidden"] .md-banner {
 
 .ai-answer-content pre {
   background: var(--md-code-bg-color);
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   padding: 0.6rem;
   overflow-x: auto;
   font-size: 0.75rem;
@@ -1306,7 +1315,7 @@ html[data-announce="hidden"] .md-banner {
   font-size: 0.65rem;
   font-weight: 500;
   padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  border-radius: var(--ujn-radius-xs);
   border: 1px solid var(--md-default-fg-color--lightest);
 }
 
