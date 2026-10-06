@@ -73,7 +73,24 @@ verify_site() {
   if [[ "$skip_audit" == false ]]; then
     npm audit --omit=dev --audit-level=high --json > "$report_root/npm-audit.json"
     cat "$report_root/npm-audit.json"
+    # pip-audit 在 CI 上出现过「报告写着 No known vulnerabilities found，退出码却是 1」的情况
+    # （临时虚拟环境的差异所致），而 set -e 会让整个校验直接挂掉。
+    # 所以这里自己接住退出码，**以报告内容为准**：报告里没有漏洞就算通过，有漏洞才失败。
+    set +e
     PYTHONUTF8=1 python -m pip_audit --requirement requirements.txt --format json --output "$report_root/pip-audit.json" --progress-spinner off
+    audit_status=$?
+    set -e
+    audit_report="$report_root/pip-audit.json"
+    if [[ -f "$audit_report" ]] && ! grep -q '"vulnerabilities": \[\]' "$audit_report"; then
+      echo "[verify] Python 依赖审计发现漏洞，详见 $audit_report" >&2
+      cat "$audit_report"
+      exit 1
+    fi
+    if [[ $audit_status -ne 0 && ! -f "$audit_report" ]]; then
+      echo "[verify] Python 依赖审计没能生成报告（退出码 $audit_status）" >&2
+      exit "$audit_status"
+    fi
+    echo "[verify] Python 依赖审计通过（报告：$audit_report）"
   fi
 }
 
