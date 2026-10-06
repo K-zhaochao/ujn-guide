@@ -20,6 +20,7 @@
   --ujn-radius-sm: 6px;
   --ujn-radius-md: 8px;
   --ujn-radius-lg: 1rem;
+  --ujn-radius-pill: 999px;
   --ujn-radius-circle: 50%;
 
   /* 跟随主题的线条与弱化文字 */
@@ -57,6 +58,31 @@
   box-shadow: var(--ujn-shadow-modal);
   text-align: center;
   animation: slideUp 0.25s ease;
+}
+
+/* ===== 胶囊按钮 / 页签 =====
+   宠物图鉴的分页页码与反馈页的「开放中 / 已关闭」页签原先各写一套完全相同的
+   形状、字号字重与选中态配色，这里抽成共用组件；各自的尺寸、边框、间距差异
+   留在页面自己的样式里（页面选择器优先级更高，会覆盖组件里的同名声明）。 */
+.ujn-pill {
+  border: 0;
+  border-radius: var(--ujn-radius-pill);
+  background: transparent;
+  color: var(--md-default-fg-color);
+  font-family: inherit;
+  font-size: .66rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+
+.ujn-pill.is-active {
+  background: var(--ujn-accent);
+  color: #fff;
+}
+
+[data-md-color-scheme="slate"] .ujn-pill.is-active {
+  color: #0b1220;
 }
 
 /* ===== 只在窄屏出现的内容（首页的「手机端浏览提示」） =====

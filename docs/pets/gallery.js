@@ -132,7 +132,8 @@
             continue;
           }
           var number = sequence[i];
-          var item = button('pet-pager__num', '第 ' + number + ' 页', String(number));
+          // 胶囊形状与选中态配色来自共用的 .ujn-pill（见 ujn.css）
+          var item = button('ujn-pill pet-pager__num', '第 ' + number + ' 页', String(number));
           if (number === page) {
             item.classList.add('is-active');
             item.setAttribute('aria-current', 'page');

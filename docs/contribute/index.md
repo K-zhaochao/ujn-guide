@@ -34,8 +34,8 @@
 
 <div id="gh-issues" data-repo="K-zhaochao/ujn-guide" data-state="open">
   <div class="gh-issues__tabs" role="tablist">
-    <button class="gh-issues__tab is-active" type="button" role="tab" aria-selected="true" data-state="open">开放中</button>
-    <button class="gh-issues__tab" type="button" role="tab" aria-selected="false" data-state="closed">已关闭</button>
+    <button class="ujn-pill gh-issues__tab is-active" type="button" role="tab" aria-selected="true" data-state="open">开放中</button>
+    <button class="ujn-pill gh-issues__tab" type="button" role="tab" aria-selected="false" data-state="closed">已关闭</button>
   </div>
   <p class="gh-issues__status">正在加载 GitHub 上的 issue…</p>
   <ol class="gh-issues__list"></ol>
@@ -66,30 +66,13 @@
   background: color-mix(in srgb, var(--gh-accent) 6%, transparent);
 }
 
+/* 页签的形状、字号字重与选中态配色来自共用的 .ujn-pill（见 ujn.css），这里只留内边距 */
 #gh-issues .gh-issues__tab {
   padding: .32rem .8rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--md-default-fg-color);
-  font-family: inherit;
-  font-size: .66rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color .15s ease, color .15s ease;
 }
 
 #gh-issues .gh-issues__tab:hover {
   color: var(--gh-accent);
-}
-
-#gh-issues .gh-issues__tab.is-active {
-  background: var(--gh-accent);
-  color: #fff;
-}
-
-[data-md-color-scheme="slate"] #gh-issues .gh-issues__tab.is-active {
-  color: #0b1220;
 }
 
 #gh-issues .gh-issues__status,

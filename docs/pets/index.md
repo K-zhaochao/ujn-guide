@@ -136,16 +136,27 @@ tags:
   display: none;
 }
 
-#pet-pager .pet-pager__btn,
-#pet-pager .pet-pager__num {
+/* 页码的形状、字号字重与选中态配色来自共用的 .ujn-pill（见 ujn.css），
+   这里只留它没有的：布局、自己的过渡（页码要让 border-color 与 box-shadow 参与过渡）
+   以及尺寸与边框。 */
+#pet-pager .pet-pager__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  border-radius: var(--ujn-radius-pill);
   font-size: .66rem;
   font-weight: 600;
   line-height: 1;
   cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease,
+    background-color .15s ease, color .15s ease;
+}
+
+#pet-pager .pet-pager__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease,
     background-color .15s ease, color .15s ease;
 }
@@ -176,8 +187,12 @@ tags:
   height: 1.65rem;
   padding: 0 .35rem;
   border: 1px solid var(--pet-hairline);
+}
+
+/* 底色只给未选中的页码：选中态的底色来自 .ujn-pill.is-active，
+   如果这里不加 :not()，ID 选择器会把它压回去（实测过，会让选中页码变白）。 */
+#pet-pager .pet-pager__num:not(.is-active) {
   background: var(--md-default-bg-color);
-  color: var(--md-default-fg-color);
 }
 
 #pet-pager .pet-pager__num:hover {
@@ -187,8 +202,6 @@ tags:
 
 #pet-pager .pet-pager__num.is-active {
   border-color: transparent;
-  background: var(--pet-accent);
-  color: #fff;
   box-shadow: 0 .1rem .35rem color-mix(in srgb, var(--pet-accent) 45%, transparent);
 }
 
@@ -489,7 +502,7 @@ body.pet-viewer-open {
 }
 
 /* ---------- 深色主题微调 ---------- */
-[data-md-color-scheme="slate"] #pet-pager .pet-pager__num.is-active,
+/* 深色主题下选中态的文字色由 .ujn-pill.is-active 统一处理，这里只剩查看器圆点 */
 [data-md-color-scheme="slate"] #pet-viewer .pet-viewer__dot.is-active {
   color: #0b1220;
 }
