@@ -79,7 +79,15 @@ function Invoke-SiteVerification {
             Invoke-NpmCommand "audit site Node dependencies" (Join-Path $reportRoot "npm-audit.json") @("audit", "--omit=dev", "--audit-level=high", "--json")
 
             Invoke-CheckedCommand "audit site Python dependencies" {
-                python -X utf8 -m pip_audit --requirement requirements.txt --format json --output (Join-Path $reportRoot "pip-audit.json") --progress-spinner off
+                # pip-audit 自己的退出码在 CI 上不可靠（报告无漏洞却返回非 0），
+                # 判据交给 check_pip_audit.py 解析报告：任一依赖的 vulns 非空才算失败。
+                $auditReport = Join-Path $reportRoot "pip-audit.json"
+                python -X utf8 -m pip_audit --requirement requirements.txt --format json --output $auditReport --progress-spinner off
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "[verify] pip-audit 退出码 $LASTEXITCODE，以报告内容为准" -ForegroundColor Yellow
+                }
+                $env:PYTHONUTF8 = "1"
+                python scripts/security/check_pip_audit.py $auditReport
             }
         }
     }
