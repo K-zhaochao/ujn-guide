@@ -291,7 +291,8 @@
         '<div class="pet-viewer__panel" role="dialog" aria-modal="true" aria-labelledby="pet-viewer-title">',
         '  <div class="pet-viewer__bar">',
         '    <span class="pet-viewer__title" id="pet-viewer-title"></span>',
-        '    <span class="pet-viewer__count"></span>',
+        '    <span class="pet-viewer__count" aria-hidden="true"></span>',
+        '    <span class="ujn-visually-hidden" role="status" aria-live="polite"></span>',
         '    <button class="pet-viewer__close" type="button" aria-label="关闭">✕</button>',
         '  </div>',
         '  <div class="pet-viewer__stage">',
@@ -316,6 +317,8 @@
         img: viewer.querySelector('.pet-viewer__img'),
         title: viewer.querySelector('.pet-viewer__title'),
         count: viewer.querySelector('.pet-viewer__count'),
+        status: viewer.querySelector('[role="status"]'),
+        panel: viewer.querySelector('.pet-viewer__panel'),
         close: viewer.querySelector('.pet-viewer__close'),
         stage: viewer.querySelector('.pet-viewer__stage'),
         prev: viewer.querySelector('.pet-viewer__nav--prev'),
@@ -356,7 +359,11 @@
       parts.img.classList.add('is-loading');
       parts.img.src = state.photos[wrapped];
       parts.img.alt = state.name + ' 的照片 ' + (wrapped + 1) + '/' + total;
+      // 视觉上的 3 / 7 对读屏是模糊的，用 live region 播报一句完整的话
       parts.count.textContent = (wrapped + 1) + ' / ' + total;
+      if (parts.status) {
+        parts.status.textContent = '第 ' + (wrapped + 1) + ' 张，共 ' + total + ' 张：' + state.name;
+      }
       parts.prev.disabled = total < 2;
       parts.next.disabled = total < 2;
       var dots = parts.dots.querySelectorAll('.pet-viewer__dot');
@@ -444,6 +451,18 @@
       }
     }
 
+    /** 弹窗内可聚焦的元素（用于把 Tab 锁在弹窗里）。 */
+    var FOCUSABLE = 'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    function focusables() {
+      if (!parts) return [];
+      return Array.prototype.slice
+        .call(parts.panel.querySelectorAll(FOCUSABLE))
+        .filter(function (node) {
+          return !node.disabled && node.getAttribute('aria-hidden') !== 'true';
+        });
+    }
+
     function onKeyDown(event) {
       if (!viewer || viewer.hidden) return;
       if (event.key === 'Escape') {
@@ -455,6 +474,23 @@
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
         show(state.index + 1);
+      } else if (event.key === 'Tab') {
+        // 焦点锁在弹窗内：否则 Tab 会跑到背景页面的链接上，读屏与键盘用户会迷路
+        var items = focusables();
+        if (!items.length) return;
+        var first = items[0];
+        var last = items[items.length - 1];
+        var active = document.activeElement;
+        if (!parts.panel.contains(active)) {
+          event.preventDefault();
+          first.focus();
+        } else if (event.shiftKey && active === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && active === last) {
+          event.preventDefault();
+          first.focus();
+        }
       }
     }
 

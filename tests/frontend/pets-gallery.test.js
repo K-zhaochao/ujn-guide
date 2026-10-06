@@ -244,4 +244,59 @@ describe('猫猫相册弹窗', () => {
     expect(document.querySelectorAll('#pet-viewer')).toHaveLength(1);
     expect(document.getElementById('pet-viewer').hidden).toBe(false);
   });
+
+  it('打开时焦点落在关闭按钮，翻页用 aria-live 播报完整句子', () => {
+    boot(deckHtml(2, 3));
+    openFirstCard();
+    const viewer = document.getElementById('pet-viewer');
+    const status = viewer.querySelector('[role="status"]');
+
+    expect(document.activeElement).toBe(viewer.querySelector('.pet-viewer__close'));
+    expect(status.getAttribute('aria-live')).toBe('polite');
+    expect(status.textContent).toBe('第 1 张，共 3 张：猫1');
+    // 视觉上的计数对读屏是重复信息
+    expect(viewer.querySelector('.pet-viewer__count').getAttribute('aria-hidden')).toBe('true');
+
+    viewer.querySelector('.pet-viewer__nav--next').click();
+    expect(status.textContent).toBe('第 2 张，共 3 张：猫1');
+    viewer.querySelectorAll('.pet-viewer__dot')[2].click();
+    expect(status.textContent).toBe('第 3 张，共 3 张：猫1');
+  });
+
+  it('Tab 焦点锁在弹窗内：末尾回到开头、开头 Shift+Tab 回到末尾、焦点在外面会被拉回来', () => {
+    boot(deckHtml(2, 3));
+    openFirstCard();
+    const viewer = document.getElementById('pet-viewer');
+    const panel = viewer.querySelector('.pet-viewer__panel');
+    const close = viewer.querySelector('.pet-viewer__close');
+    const lastDot = viewer.querySelectorAll('.pet-viewer__dot')[2];
+    const tab = (shiftKey = false) => document.dispatchEvent(
+      new window.KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true }),
+    );
+
+    // 末尾 → 开头
+    lastDot.focus();
+    expect(panel.contains(document.activeElement)).toBe(true);
+    tab();
+    expect(document.activeElement).toBe(close);
+
+    // 开头 Shift+Tab → 末尾
+    tab(true);
+    expect(document.activeElement).toBe(lastDot);
+
+    // 焦点在弹窗外（模拟点击背景/浏览器地址栏后回来）→ 拉回第一个可聚焦元素
+    document.body.focus();
+    tab();
+    expect(document.activeElement).toBe(close);
+  });
+
+  it('关闭后焦点回到打开它的卡牌按钮', () => {
+    boot(deckHtml(2, 3));
+    const shot = document.querySelector('#pet-deck .pet-card__shot');
+    shot.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(document.activeElement).not.toBe(shot);
+
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(document.activeElement).toBe(shot);
+  });
 });

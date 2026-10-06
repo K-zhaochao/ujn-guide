@@ -85,6 +85,20 @@
   color: #0b1220;
 }
 
+/* ===== 只给读屏看的文本（视觉上不可见，但会被朗读） =====
+   用于 aria-live 播报：视觉上的「3 / 7」对读屏太模糊，配一句完整的话更清楚。 */
+.ujn-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ===== 只在窄屏出现的内容（首页的「手机端浏览提示」） =====
    桌面端没有左上角菜单按钮，这类提示对桌面读者是噪音。 */
 .ujn-mobile-only {
