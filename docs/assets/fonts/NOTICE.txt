@@ -1,10 +1,22 @@
-﻿Great Vibes (latin subset)
+站点用到的自托管字体
 ====================
 
-用途：页脚签名 “Giving Sparks For Love”（docs/assets/fonts/great-vibes-latin.woff2）
-来源：Google Fonts（https://fonts.google.com/specimen/Great+Vibes）
-作者：TypeSETit
-许可：SIL Open Font License 1.1（https://openfontlicense.org/）
+1) Great Vibes（拉丁子集）
+   文件：great-vibes-latin.woff2（42 KB）
+   用途：页脚签名 “Giving Sparks For Love”
+   来源：Google Fonts（https://fonts.google.com/specimen/Great+Vibes）
+   作者：TypeSETit
+   许可：SIL Open Font License 1.1（https://openfontlicense.org/）
 
-字体文件按 OFL 允许随站点分发；这里只用到拉丁子集，42 KB，且为自托管，
-不向第三方 CDN 发请求。若要替换字体，请一并更新本说明。
+2) 霞鹜文楷 LXGW WenKai（标题子集）
+   文件：lxgw-wenkai-headings.woff2（194 KB）
+   用途：正文里的一级/二级标题（h1 / h2）
+   来源：https://github.com/lxgw/LxgwWenKai
+   作者：LXGW（落霞孤鹜）
+   许可：SIL Open Font License 1.1
+   说明：不是完整字体，只包含「站点标题里出现过的字 + ASCII + 常用标点」，
+        由 scripts/site/build_heading_font.py 生成；改了标题文字后要重新生成一次。
+        子集之外的字会自动回落到系统字体，不会出现方块。
+
+两个字体都随站点分发（OFL 允许），且为自托管，不向第三方 CDN 发请求。
+若要替换字体，请一并更新本说明。

@@ -33,6 +33,26 @@ body,
   font-family: var(--md-text-font-family);
 }
 
+/* 标题用的中文楷体子集：霞鹜文楷（LXGW WenKai，OFL 1.1），
+   只取「站点标题里真正出现过的字 + ASCII + 常用标点」，194 KB（源文件 24.4 MB）。
+   生成方式见 scripts/site/build_heading_font.py；换了标题文字后要重新跑一次。 */
+@font-face {
+  font-family: "UJN Heading Kai";
+  src: url("../fonts/lxgw-wenkai-headings.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 只作用于正文里的一级/二级标题：正文用系统黑体，标题用楷体——对比更明显、也更有味道。
+   子集里没有的字会自动回落到系统字体（font-family 列表的后半段），不会出现方块。 */
+.md-typeset h1,
+.md-typeset h2 {
+  font-family: "UJN Heading Kai", var(--md-text-font-family);
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
 /* ===== 设计令牌 =====
    取值与重构前逐字一致（例如 --ujn-radius-xs 就是原来的 4px），
    新组件请优先复用这些令牌，别再写裸数值；改一次就能全站生效。 */
