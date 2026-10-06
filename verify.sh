@@ -95,5 +95,8 @@ verify_server() {
   bash "$server_script" "${args[@]}"
 }
 
-[[ "$target" == site || "$target" == all ]] && verify_site
-[[ "$target" == server || "$target" == all ]] && verify_server
+# 用 if 而不是 `[[ … ]] && cmd`：后者在条件为假时会让**这一行**返回 1，
+# 而它是脚本最后一行 —— 于是「所有检查全部通过、脚本却退出 1」。
+# CI 上就是这么骗了我们好几轮：日志里每项都绿，最后来一句 exit code 1。
+if [[ "$target" == site || "$target" == all ]]; then verify_site; fi
+if [[ "$target" == server || "$target" == all ]]; then verify_server; fi
