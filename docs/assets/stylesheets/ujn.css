@@ -5,10 +5,11 @@
 
    - 模板只负责结构，样式可被浏览器缓存，不用每页重复下载；
    - 需要覆盖 Material 时优先用主题变量（--md-*），少用硬编码颜色；
-   - 组件类前缀约定：ujn-*（公告栏、页脚按钮等自有组件），
+   - 组件类前缀约定：ujn-*（公告栏、页脚签名、贡献者卡片等自有组件），
      其它 .md-* 规则属于对 Material 的定向覆盖，改前先确认没有现成 class 可用。
 
-   段落：公告栏 / QQ 群入口 / 搜索与 AI 助手 / 页脚按钮 / 跳蚤市场弹窗 / 赞助弹窗
+   段落：设计令牌 / 弹窗骨架 / 胶囊组件 / 本页目录 / 搜索热门词 / 贡献者名单 /
+   公告栏 / QQ 群入口 / 搜索与 AI 助手 / 页脚 / 跳蚤市场弹窗 / 赞助弹窗
    ========================================================================== */
 
 /* ===== 设计令牌 =====
@@ -526,18 +527,9 @@ html[data-announce="hidden"] .md-banner {
    其父项是 .md-nav__item--active，而不是 .md-nav__item--nested。属于死规则，已删除，
    需要时再按实际结构写。 */
 
-/* ===== 页脚按钮组 ===== */
-/* 页脚签名用的装饰字体：只用于一行英文，42 KB 自托管（见 assets/fonts/NOTICE.txt）。
-   不引第三方 CDN；取不到时回落到系统里的手写体/衬线体。 */
-@font-face {
-  font-family: "UJN Signature";
-  src: url("../fonts/great-vibes-latin.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* 页脚底部：按钮组与签名居中；Material 自带的版权行与社交图标不再显示 */
+/* ===== 页脚 =====
+   跳蚤市场与赞助已移到首页的入口卡片（见 docs/index.md），页脚只留一行居中签名；
+   Material 自带的版权行与社交图标不再显示。 */
 .md-footer-meta__inner {
   flex-direction: column;
   align-items: center;
@@ -550,12 +542,14 @@ html[data-announce="hidden"] .md-banner {
   display: none;
 }
 
-.md-footer-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
+/* 签名用的装饰字体：只用于一行英文，42 KB 自托管（见 assets/fonts/NOTICE.txt）。
+   不引第三方 CDN；取不到时回落到系统里的手写体/衬线体。 */
+@font-face {
+  font-family: "UJN Signature";
+  src: url("../fonts/great-vibes-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 .ujn-footer-signature {
@@ -572,63 +566,10 @@ html[data-announce="hidden"] .md-banner {
   -webkit-text-fill-color: transparent;
 }
 
-.md-footer-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.3rem 0.75rem;
-  border-radius: 2rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-  text-decoration: none;
-  transition: all 0.2s;
+/* ===== 首页入口卡片（跳蚤市场 / 赞助）：卡片里的按钮与文字对齐 ===== */
+.md-typeset .grid.cards button.md-button {
+  margin-top: .2rem;
   cursor: pointer;
-  box-shadow: var(--ujn-shadow-soft);
-}
-
-.md-footer-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
-}
-
-.md-footer-btn--market {
-  background: var(--md-accent-fg-color);
-  color: var(--md-accent-bg-color);
-}
-
-.md-footer-btn--donate {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-  color: #fff;
-  border: none;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgba(238, 90, 36, 0.3);
-}
-
-.md-footer-btn--donate:hover {
-  box-shadow: 0 3px 10px rgba(238, 90, 36, 0.4);
-}
-
-.md-footer-btn--contact {
-  background: #ffffff;
-  color: #1565c0;
-  border: 1px solid #1565c0;
-}
-
-.md-footer-btn--contact:hover {
-  background: #1565c0;
-  color: #ffffff;
-}
-
-[data-md-color-scheme="slate"] .md-footer-btn--contact {
-  background: var(--md-default-bg-color);
-  color: var(--md-typeset-a-color);
-  border: 1px solid var(--md-typeset-a-color);
-}
-
-[data-md-color-scheme="slate"] .md-footer-btn--contact:hover {
-  background: var(--md-typeset-a-color);
-  color: var(--md-default-bg-color);
 }
 
 /* ===== 跳蚤市场弹窗 ===== */

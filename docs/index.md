@@ -94,6 +94,30 @@ hide: [navigation]
 
 ---
 
+## 🧰 校园集市与支持
+
+二手交易、失物招领，以及支持本站长期运行——两个入口都在这里（点开是二维码，不需要另外跳转）。
+
+<div class="grid cards" markdown>
+
+- :material-cart-variant: **跳蚤市场**
+
+    ---
+    校内二手交易与失物招领，微信小程序 + QQ 频道双通道，扫码即用。
+
+    <button class="md-button md-button--primary" type="button" data-ujn-modal="flea">🛒 打开跳蚤市场</button>
+
+- :material-coffee-outline: **请作者喝杯奶茶**
+
+    ---
+    服务器与域名每年都要续费。一杯奶茶钱，能让这个站点多撑 10 天 ❤️
+
+    <button class="md-button" type="button" data-ujn-modal="donate">☕ 扫码赞助</button>
+
+</div>
+
+---
+
 ## 💬 反馈与建议
 
 校园信息在不断变化，如果发现内容有误或遗漏，欢迎告诉我！

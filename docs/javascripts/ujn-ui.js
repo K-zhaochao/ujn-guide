@@ -196,59 +196,30 @@ document.addEventListener("DOMContentLoaded", function () {
     document.body.appendChild(fleaOverlay);
   }
 
-  // ==================== 页脚按钮注入（每次导航重新执行）====================
-  var marketCfg = (function () {
+  // ==================== 页脚签名（每次导航重新执行）====================
+  // 跳蚤市场与赞助不再挂在页脚：它们是"站点级入口"，放在首页的卡片里更好找
+  // （点击由下面的 [data-ujn-modal] 代理处理）。页脚只留一行居中签名。
+  var marketName = (function () {
       var node = document.getElementById("ujn-flea-config");
-      if (!node) return {};
+      if (!node) return "";
       try {
-        return JSON.parse(node.textContent) || {};
+        return (JSON.parse(node.textContent) || {}).name || "";
       } catch (error) {
-        return {};
+        return "";
       }
     })();
 
-function injectFooterButtons() {
+function injectFooterSignature() {
   var footerMetaInner = document.querySelector(".md-footer-meta__inner");
   if (!footerMetaInner) return;
-  /* 如果已有按钮组说明已注入，跳过 */
-  if (footerMetaInner.querySelector(".md-footer-bar")) return;
+  if (footerMetaInner.querySelector(".ujn-footer-signature")) return;
 
-  /* 隐藏原有的 "Made with Material for MkDocs" 与社交图标。
-     Material 9 用的是 .md-copyright（旧版是 .md-footer-copyright），两个都试。 */
+  /* Material 9 用的是 .md-copyright（旧版是 .md-footer-copyright），两个都试 */
   var copyright = footerMetaInner.querySelector(".md-copyright, .md-footer-copyright");
   if (copyright) copyright.style.display = "none";
   var footerSocial = footerMetaInner.querySelector(".md-footer-social");
   if (footerSocial) footerSocial.style.display = "none";
 
-  /* 按钮组：居中一行，放在签名上方 */
-  var bar = document.createElement("div");
-  bar.className = "md-footer-bar";
-
-  /* 跳蚤市场按钮 */
-  var mkt = document.createElement("button");
-  mkt.textContent = "\uD83D\uDED2 " + (marketCfg.name || "跳蚤市场");
-  mkt.title = marketCfg.name || "跳蚤市场";
-  mkt.className = "md-footer-btn md-footer-btn--market";
-  mkt.onclick = function () {
-    var el = document.getElementById("flea-modal-overlay");
-    if (el) el.classList.add("flea-overlay--open");
-  };
-  bar.appendChild(mkt);
-
-  /* 赞助按钮 */
-  var donateBtn = document.createElement("button");
-  donateBtn.textContent = "\u2615 \u8BF7\u4F5C\u8005\u559D\u676F\u5976\u8336";
-  donateBtn.title = "赞助支持";
-  donateBtn.className = "md-footer-btn md-footer-btn--donate";
-  donateBtn.onclick = function () {
-    var el = document.getElementById("donate-modal-overlay");
-    if (el) el.classList.add("donate-overlay--open");
-  };
-  bar.appendChild(donateBtn);
-
-  footerMetaInner.insertBefore(bar, footerMetaInner.firstChild);
-
-  /* 页脚签名：居中的一行装饰英文（字体自托管，见 assets/fonts/NOTICE.txt） */
   var signature = document.createElement("p");
   signature.className = "ujn-footer-signature";
   signature.setAttribute("lang", "en");
@@ -256,14 +227,35 @@ function injectFooterButtons() {
   footerMetaInner.appendChild(signature);
 }
 
-// 初始化：创建弹窗 + 注入按钮
-createModals();
-injectFooterButtons();
+/** 打开首页卡片对应的弹窗：任何带 data-ujn-modal 的元素都能触发。 */
+function openModalByName(name) {
+  var overlayId = name === "donate" ? "donate-modal-overlay" : "flea-modal-overlay";
+  var openClass = name === "donate" ? "donate-overlay--open" : "flea-overlay--open";
+  var overlay = document.getElementById(overlayId);
+  if (!overlay) return false;
+  overlay.classList.add(openClass);
+  return true;
+}
 
-// 即时导航后：重新注入按钮（弹窗已存在，不需要重建）
+function onModalTriggerClick(event) {
+  var trigger = event.target && event.target.closest ? event.target.closest("[data-ujn-modal]") : null;
+  if (!trigger) return;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  if (typeof event.button === "number" && event.button !== 0) return;
+  if (openModalByName(trigger.getAttribute("data-ujn-modal"))) {
+    event.preventDefault();
+  }
+}
+
+// 初始化：创建弹窗 + 页脚签名；首页卡片上的入口用事件代理，只绑一次
+createModals();
+injectFooterSignature();
+document.addEventListener("click", onModalTriggerClick);
+
+// 即时导航后：重新注入签名（弹窗与代理监听已存在，不需要重建）
 if (typeof document$ !== "undefined") {
   document$.subscribe(function () {
-    injectFooterButtons();
+    injectFooterSignature();
   });
 }
 });
