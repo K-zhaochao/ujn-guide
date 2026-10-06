@@ -41,7 +41,8 @@ theme:
     - navigation.instant.progress
     - navigation.tracking        # 跟踪当前活动项
     - navigation.collapsible     # 侧边栏目录可折叠，默认折叠
-    - toc.integrate              # 手机端把本页目录并入抽屉导航，不必先滑到顶部
+    # 注意：不要开 toc.integrate。它在所有宽度下都会把本页目录并进左侧导航，
+    # 桌面端右侧的「目录」栏会整个消失（第 2 轮误开过一次，第 9 轮发现并回退）。
     - content.code.copy
     - content.tabs.link
 
@@ -124,7 +125,7 @@ extra_css:
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
-  - assets/stylesheets/ujn.css?v=20260910-5
+  - assets/stylesheets/ujn.css?v=20260910-6
 
 extra_javascript:
   - javascripts/mathjax.js?v=20260907-1

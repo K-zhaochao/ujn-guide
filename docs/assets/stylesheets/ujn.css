@@ -291,14 +291,16 @@ html[data-announce="hidden"] .md-banner {
   }
 }
 
-/* 右侧文章目录（TOC）：取消鼠标悬停变灰 */
+/* 右侧文章目录（TOC）：取消鼠标悬停变灰。
+   这两条选择器本身就比 Material 的 .md-nav__link:hover 更具体，!important 已去掉
+   （第 9 轮用强制 hover 的状态指纹验证：计算值 0 差异）。 */
 .md-sidebar--secondary .md-nav__link:hover {
-  color: var(--md-typeset-a-color) !important;
-  opacity: 1 !important;
+  color: var(--md-typeset-a-color);
+  opacity: 1;
 }
 
 .md-sidebar--secondary .md-nav__link--active:hover {
-  color: var(--md-accent-fg-color) !important;
+  color: var(--md-accent-fg-color);
 }
 
 /* ===== Pagefind 搜索 UI 优化 ===== */
@@ -360,12 +362,11 @@ html[data-announce="hidden"] .md-banner {
   opacity: 1;
 }
 
-/* 当前所在的分组标题：颜色要比其它分组更亮，这里保留 !important，
-   因为 Material 的 .md-nav__link--active 与它对赌，去掉后会退回默认色。 */
-.md-nav__item--nested>.md-nav__link--active {
-  color: var(--md-accent-fg-color) !important;
-  font-weight: 800 !important;
-}
+/* 原先这里还有一条 .md-nav__item--nested > .md-nav__link--active 的加亮规则（带 2 处
+   !important），第 9 轮实测在首页/宠物页/地点通/食堂页/反馈页/电话大全 6 个页面上
+   一次都匹配不到：Material 只给「当前页自己」的链接加 md-nav__link--active，
+   其父项是 .md-nav__item--active，而不是 .md-nav__item--nested。属于死规则，已删除，
+   需要时再按实际结构写。 */
 
 /* ===== 页脚按钮组 ===== */
 .md-footer-bar {

@@ -124,9 +124,17 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 
 | 处理 | 位置 | 依据 |
 | --- | --- | --- |
-| 已去掉 | QQ 群入口的 `color`；左侧分组标题的 `font-weight/color/opacity`；AI 控制栏下边框（浅色 + 深色）；搜索清除按钮的 `opacity/pointer-events` | 默认态 + hover 态 + 搜索面板打开态的 computed style 前后对比，**0 差异** |
-| 保留（可继续收敛） | 右侧目录 hover 的 `color/opacity`、目录选中项 hover 的 `color`（3 条）、左侧分组标题选中态的 `color/font-weight`（2 条） | 这 5 条依赖 hover / 选中组合。无头验收**可以**强制 `:hover`（CDP `CSS.forcePseudoState`），关键是强制后等 ~300ms 让过渡跑完，否则读到动画中间值、偶尔误报；下一轮照同一套指纹就能继续去掉 |
-| 保留（暂无法验收） | `.ai-result-container` 的 `padding/border`、`.ai-btn--stop` 的 `animation`、`.ai-mode--selected` 的 `border-color`（4 条） | 这些元素只在 AI 设置面板或回答过程中出现，无头会话里取不到；需要给 AI 面板加一个能直接打开的调试状态才能验收 |
+| 已去掉 | QQ 群入口的 `color`；左侧分组标题的 `font-weight/color/opacity`；AI 控制栏下边框（浅色 + 深色）；搜索清除按钮的 `opacity/pointer-events`（8 处） | 默认态 + hover 态 + 搜索面板打开态的 computed style 前后对比，**0 差异** |
+| 已去掉 | 右侧目录 hover 的 `color/opacity`、目录选中项 hover 的 `color`（3 处） | 选择器本就比 Material 的 `.md-nav__link:hover` 更具体；用 CDP 强制 `:hover` 验收，0 差异。要点：强制后等 ~300ms 让过渡跑完，否则读到动画中间值、偶尔误报 |
+| 已删除（死规则） | `.md-nav__item--nested > .md-nav__link--active` 的加亮规则（2 处） | 首页 / 宠物页 / 地点通 / 食堂页 / 反馈页 / 电话大全 6 个页面上**一次都匹配不到**：Material 只给「当前页自己」的链接加 `--active`，其父项是 `.md-nav__item--active` 而不是 `--nested` |
+| 仍保留（4 处） | `.ai-result-container` 的 `padding/border`、`.ai-btn--stop` 的 `animation`、`.ai-mode--selected` 的 `border-color` | 这些元素只在 AI 设置面板或回答过程中出现，无头会话里取不到；需要给 AI 面板加一个能直接打开的调试状态才能验收 |
+
+**踩过的坑：改主题特性开关（`theme.features`）时要验证「少了什么」。** 第 2 轮为了让手机端在抽屉里
+看到本页目录开了 `toc.integrate`，它在**所有宽度**下都会把本页目录并进左侧导航，桌面端右侧的
+`md-sidebar--secondary` 于是整个从产物里消失（`grep -c md-sidebar--secondary site/pets/index.html` = 0）。
+当时只确认了「手机端抽屉里多出目录」，没确认「桌面上少了目录」，直到第 9 轮做 `!important` 审计、
+要测右侧目录 hover 时才发现页面上根本没这个元素。教训：加特性前先给**将被影响的那块界面**拍指纹，
+加完再比一次——「新东西出现了」不等于「旧东西还在」。
 
 ## 本地预览
 
