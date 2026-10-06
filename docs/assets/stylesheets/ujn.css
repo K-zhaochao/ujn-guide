@@ -11,6 +11,18 @@
    段落：公告栏 / QQ 群入口 / 搜索与 AI 助手 / 页脚按钮 / 跳蚤市场弹窗 / 赞助弹窗
    ========================================================================== */
 
+/* ===== 只在窄屏出现的内容（首页的「手机端浏览提示」） =====
+   桌面端没有左上角菜单按钮，这类提示对桌面读者是噪音。 */
+.ujn-mobile-only {
+  display: none;
+}
+
+@media screen and (max-width: 640px) {
+  .ujn-mobile-only {
+    display: block;
+  }
+}
+
 /* ===== 公告栏：右侧关闭按钮 ===== */
 html[data-announce="hidden"] .md-banner {
   display: none;
