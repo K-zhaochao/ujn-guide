@@ -5,4 +5,4 @@ mkdocs-glightbox==0.5.2
 pymdown-extensions==11.0.1
 # 图片工具脚本用（scripts/images/：压缩大图、生成卡牌缩略图）。
 # 站点构建本身不需要它——缩略图是提交进仓库的产物。
-Pillow==12.0.0
+Pillow==12.3.0

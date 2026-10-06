@@ -63,7 +63,7 @@ verify_site() {
   run_and_log "run frontend unit tests" "$report_root/frontend-unit-tests.log" npm run test:frontend
   # server/ 是私有后端（在 .gitignore 里），公开仓库不含它；
   # release 工具测试依赖 server/upload-policy.js，缺了必然 MODULE_NOT_FOUND。
-  if [ -f "${PROJECT_ROOT}/server/upload-policy.js" ]; then
+  if [ -f "$(dirname "$0")/server/upload-policy.js" ]; then
     run_and_log "run release tool unit tests" "$report_root/release-tool-tests.log" npm run test:release
   else
     echo "[verify] skip release tool unit tests (server/ not present)"
