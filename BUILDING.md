@@ -201,6 +201,21 @@ python scripts/site/check_links.py --external   # 再探一遍外链（需要网
 浏览器会去找一台叫 `javascripts` 的主机。**资源路径一律交给 Material 的 `| url` 过滤器**，
 它会把各种情况都归一化。
 
+## 无头浏览器验收
+
+	ests/ 里的单元测试管不到「界面还是原来那样吗」「手机上会不会溢出」这类问题，
+所以另有一套基于无头 Chrome 的验收脚本，放在 scripts/verify/，用法与经验见那里的 README：
+
+`powershell
+npm run verify:ui          # 截图 + computed style 指纹（改前 before / 改后 after）
+npm run verify:ui:compare  # 两次指纹逐像素、逐属性比对
+npm run verify:responsive  # 13 个页面 × 4 个宽度扫横向溢出
+npm run verify:links       # 站内链接 / 锚点 / 资源（也已接进 npm run build）
+`
+
+它们抓到过的真问题（404 页脚本地址、桌面目录栏消失、搜索面板透明、胶囊组件状态漂移）
+都记在那个 README 里——那几条正是「只跑单元测试不会发现」的典型。
+
 ## 本地预览
 站点是**纯静态**的，本地预览不需要任何后端：
 

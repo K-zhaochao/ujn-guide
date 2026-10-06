@@ -15,7 +15,11 @@
     "test:release": "node --test tests/release/*.test.js",
     "verify:site": "python scripts/verify_site_build.py",
     "verify:local-deployment": "node scripts/release/local-deployment-smoke.js",
-    "verify": "powershell -ExecutionPolicy Bypass -File ./verify.ps1 -Target site"
+    "verify": "powershell -ExecutionPolicy Bypass -File ./verify.ps1 -Target site",
+    "verify:ui": "node scripts/verify/fingerprint.mjs",
+    "verify:ui:compare": "python scripts/verify/compare_fingerprint.py",
+    "verify:responsive": "node scripts/verify/responsive-sweep.mjs",
+    "verify:links": "python scripts/site/check_links.py"
   },
   "devDependencies": {
     "jsdom": "26.1.0",
