@@ -213,13 +213,14 @@ function injectFooterButtons() {
   /* 如果已有按钮组说明已注入，跳过 */
   if (footerMetaInner.querySelector(".md-footer-bar")) return;
 
-  /* 隐藏原有的 "Made with Material for MkDocs" */
-  var copyright = footerMetaInner.querySelector(".md-footer-copyright");
+  /* 隐藏原有的 "Made with Material for MkDocs" 与社交图标。
+     Material 9 用的是 .md-copyright（旧版是 .md-footer-copyright），两个都试。 */
+  var copyright = footerMetaInner.querySelector(".md-copyright, .md-footer-copyright");
   if (copyright) copyright.style.display = "none";
   var footerSocial = footerMetaInner.querySelector(".md-footer-social");
   if (footerSocial) footerSocial.style.display = "none";
 
-  /* 创建按钮容器，放在左侧 */
+  /* 按钮组：居中一行，放在签名上方 */
   var bar = document.createElement("div");
   bar.className = "md-footer-bar";
 
@@ -246,6 +247,13 @@ function injectFooterButtons() {
   bar.appendChild(donateBtn);
 
   footerMetaInner.insertBefore(bar, footerMetaInner.firstChild);
+
+  /* 页脚签名：居中的一行装饰英文（字体自托管，见 assets/fonts/NOTICE.txt） */
+  var signature = document.createElement("p");
+  signature.className = "ujn-footer-signature";
+  signature.setAttribute("lang", "en");
+  signature.textContent = "Giving Sparks For Love";
+  footerMetaInner.appendChild(signature);
 }
 
 // 初始化：创建弹窗 + 注入按钮

@@ -1,0 +1,10 @@
+﻿Great Vibes (latin subset)
+====================
+
+用途：页脚签名 “Giving Sparks For Love”（docs/assets/fonts/great-vibes-latin.woff2）
+来源：Google Fonts（https://fonts.google.com/specimen/Great+Vibes）
+作者：TypeSETit
+许可：SIL Open Font License 1.1（https://openfontlicense.org/）
+
+字体文件按 OFL 允许随站点分发；这里只用到拉丁子集，42 KB，且为自托管，
+不向第三方 CDN 发请求。若要替换字体，请一并更新本说明。

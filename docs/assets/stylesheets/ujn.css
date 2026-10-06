@@ -470,11 +470,49 @@ html[data-announce="hidden"] .md-banner {
    需要时再按实际结构写。 */
 
 /* ===== 页脚按钮组 ===== */
+/* 页脚签名用的装饰字体：只用于一行英文，42 KB 自托管（见 assets/fonts/NOTICE.txt）。
+   不引第三方 CDN；取不到时回落到系统里的手写体/衬线体。 */
+@font-face {
+  font-family: "UJN Signature";
+  src: url("../fonts/great-vibes-latin.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 页脚底部：按钮组与签名居中；Material 自带的版权行与社交图标不再显示 */
+.md-footer-meta__inner {
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+}
+
+.md-footer-meta__inner .md-copyright,
+.md-footer-meta__inner .md-footer-copyright,
+.md-footer-meta__inner .md-footer-social {
+  display: none;
+}
+
 .md-footer-bar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.6rem;
   flex-wrap: wrap;
+}
+
+.ujn-footer-signature {
+  margin: .55rem 0 .1rem;
+  text-align: center;
+  font-family: "UJN Signature", "Segoe Script", "Brush Script MT", "Snell Roundhand", cursive;
+  font-size: 1.6rem;
+  line-height: 1.3;
+  letter-spacing: .03em;
+  background: linear-gradient(96deg, #9fb0ff 0%, #d3a6ff 48%, #8fd0ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .md-footer-btn {
