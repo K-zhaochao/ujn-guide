@@ -31,12 +31,12 @@ hide: [navigation]
 
     [:octicons-arrow-right-24: 查看指南](green-book/index.md){ .md-button }
 
-- :material-calculator-variant-outline: **🧮 综测计算器**
+- :material-toolbox-outline: **🧰 实用工具**
 
     ---
-    填入绩点与综合素质成绩，实时计算综测结果。支持表格导入，由济大校友开源贡献，成绩仅在本地计算。
+    综测计算器、教务成绩导出…… 能省事的小工具都收在这里，全部在你的浏览器里本地运行，不收集你的数据。
 
-    [:octicons-arrow-right-24: 开始计算](green-book/scholarship/zongce-calculator.md){ .md-button }
+    [:octicons-arrow-right-24: 打开工具箱](tools/index.md){ .md-button }
 
 - :material-phone-in-talk: **📞 电话大全**
 

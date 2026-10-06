@@ -15,7 +15,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG = PROJECT_ROOT / "mkdocs.yml"
 DOCS = PROJECT_ROOT / "docs"
-MAX_TABS = 11
+MAX_TABS = 12
 
 
 class _Loader(yaml.SafeLoader):

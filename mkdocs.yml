@@ -1,4 +1,4 @@
-﻿site_name: 济南大学校园通
+site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
@@ -198,8 +198,12 @@ nav:
         - 其他设施: site-guide/shungeng-campus/other.md
   - 📗 绿皮书:
     - 绿皮书: green-book/index.md
+    # 实用工具：先给一个落地页（列出全部工具），再列各个工具。
+    # 新增工具时往这里加一行，同时在 docs/tools/index.md 的卡片里也加一张。
     - 实用工具:
+      - 实用工具: tools/index.md
       - 综测计算器: green-book/scholarship/zongce-calculator.md
+      - 教务成绩导出: tools/grade-export.md
     - 学业管理:
       - 成绩规则: green-book/academic/score-rules.md
       - 推免保送须知: green-book/academic/postgraduate-recommendation.md
