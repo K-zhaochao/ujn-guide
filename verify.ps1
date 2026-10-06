@@ -70,7 +70,9 @@ function Invoke-SiteVerification {
         Invoke-NpmCommand "run site build unit tests" (Join-Path $reportRoot "unit-tests.log") @("run", "test:build")
         Invoke-NpmCommand "run local site proxy unit tests" (Join-Path $reportRoot "local-proxy-tests.log") @("run", "test:dev")
         Invoke-NpmCommand "run frontend unit tests" (Join-Path $reportRoot "frontend-unit-tests.log") @("run", "test:frontend")
-        Invoke-NpmCommand "run release tool unit tests" (Join-Path $reportRoot "release-tool-tests.log") @("run", "test:release")
+        # server/ 是私有后端（在 .gitignore 里），公开仓库不含它；release 工具测试依赖
+        # server/upload-policy.js，缺了必然 MODULE_NOT_FOUND。有就照常跑，没有就跳过。
+        if (Test-Path -LiteralPath (Join-Path $ProjectRoot "server/upload-policy.js")) { Invoke-NpmCommand "run release tool unit tests" (Join-Path $reportRoot "release-tool-tests.log") @("run", "test:release") } else { Write-Host "[verify] skip release tool unit tests (server/ not present)" -ForegroundColor Yellow }
         Invoke-NpmCommand "run strict site build" (Join-Path $reportRoot "build.log") @("run", "build")
 
         if (-not $SkipAudit) {
