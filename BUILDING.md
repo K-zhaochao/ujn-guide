@@ -88,7 +88,7 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 | `docs/assets/stylesheets/ujn.css` | 站点自定义样式（公告栏、QQ 群入口、搜索与 AI 助手、页脚按钮、两个弹窗）。改完**必须递增 `mkdocs.yml` 里的 `?v=`**，否则访客继续用缓存。 |
 | `docs/javascripts/ujn-ui.js` | 公告栏关闭、页脚按钮注入、跳蚤市场与赞助弹窗、即时导航滚动修复。站点根路径由脚本自身地址反推（`document.currentScript`），跳蚤市场配置读页面上的 `<script type="application/json" id="ujn-flea-config">`。 |
 | `docs/javascripts/mobile-toc.js` | 窄屏的「本页目录」折叠块。Material 在 1220px 以下会隐藏右侧目录栏，这个脚本在目录栏不可见时把正文的 h2/h3 收进一个 `<details>`；**不要靠 `toc.integrate` 解决**（那会让桌面端也失去目录栏）。 |
-| `docs/javascripts/hot-search.js` | 搜索面板的「大家都在搜」胶囊（标记在 `overrides/partials/search.html`）。查询词为空时显示；点击后填入搜索框并**派发一次 `input` 事件**——Pagefind 的搜索逻辑本来就在监听它，两个模块不必互相知道对方存在。搜不到结果时，`search.html` 会调 `UJNHotSearch.suggest(文案)` 把同一组词再摆出来（换个标题），把死路变成出口；继续输入会自动收起并恢复默认标题。新增预设词请顺手在浏览器里点一遍，确认有结果。 |
+| `docs/javascripts/hot-search.js` | 搜索面板的「大家都在搜」胶囊（标记在 `overrides/partials/search.html`）。查询词为空时显示；点击后填入搜索框并**派发一次 `input` 事件**——Pagefind 的搜索逻辑本来就在监听它，两个模块不必互相知道对方存在。搜不到结果时，`search.html` 会调 `UJNHotSearch.suggest(文案)` 把同一组词再摆出来（换个标题），把死路变成出口；继续输入会自动收起并恢复默认标题。新增预设词请顺手在浏览器里点一遍，确认有结果。**注意**：Material 把下拉面板的底色画在 `.md-search__scrollwrap` 上，外层 `.md-search__output` 是透明的——往面板里加任何新块都要自己刷 `var(--md-default-bg-color)`，否则正文会从面板里透出来（踩过一次）。 |
 | `overrides/main.html` | 只剩约 70 行模板：公告栏结构、header、extrahead（Umami）、scripts（引入上面两个文件）。**不要往模板里塞回大段 `<style>` / `<script>`。** |
 | `docs/changelog.md` | 「最近更新」页。正文由 `scripts/site/build_changelog.py` 从 git 提交历史生成（读者可见的改动进列表，重构/测试/构建等维护性提交按前缀过滤）。页面**提交进仓库**，保证直接 `mkdocs build` 也不缺页；`scripts/build_site.py` 每次构建前会重生成一遍，所以线上永远是最新的。这一页天然**比最新一次提交慢一步**（提交信息要等提交完成才读得到），所以构建后看到它变了是正常的，跟着下一次提交一起提交即可。 |
 | 页面里的 `<style>` | `docs/pets/index.md`、`docs/contribute/index.md` 等页面自带的样式是有意内联的：只在当页加载、不影响其它页面；代价是不能缓存，少量规则可以接受。 |

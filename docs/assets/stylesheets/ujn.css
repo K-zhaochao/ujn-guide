@@ -143,13 +143,23 @@
 
 /* ===== 搜索面板的「大家都在搜」 =====
    标记在 overrides/partials/search.html，显隐由 javascripts/hot-search.js 控制
-   （查询词为空才出现）。胶囊形状复用 .ujn-pill。 */
+   （查询词为空才出现）。胶囊形状复用 .ujn-pill。
+
+   注意底色：Material 把下拉面板的底色画在 .md-search__scrollwrap（结果滚动区）上，
+   而 .md-search__output（外层容器）本身是透明的。这块胶囊是滚动区的**兄弟节点**，
+   不自己刷底色就会被看穿——读者会看到页面正文从搜索面板里透出来。
+   这里两层都补：容器兜底（以后往面板里加东西也不会再漏），本块自己也有，稳妥。 */
+.md-search__output {
+  background: var(--md-default-bg-color);
+}
+
 .md-search__hot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .3rem;
   padding: .7rem .8rem .2rem;
+  background: var(--md-default-bg-color);
 }
 
 .md-search__hot[hidden] {
