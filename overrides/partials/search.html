@@ -127,6 +127,11 @@
 
             if (!searchResult || !searchResult.results || searchResult.results.length === 0) {
                 meta.textContent = '未找到相关结果，试试换个关键词？';
+                // 把「没找到」变成出口：复用搜索面板顶部那组推荐词（见 javascripts/hot-search.js），
+                // 没有加载那个脚本时这里静默跳过，不影响搜索本身。
+                if (window.UJNHotSearch && typeof window.UJNHotSearch.suggest === 'function') {
+                    window.UJNHotSearch.suggest('没找到？这些词也许更合适');
+                }
                 return;
             }
 

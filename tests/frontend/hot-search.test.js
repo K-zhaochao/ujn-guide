@@ -16,6 +16,7 @@ function newSearchPanel({ chips = ['快递', '食堂', '转专业'], value = '' 
     </form>
     <div class="md-search__output">
       <div class="md-search__hot" id="pagefind-hot" hidden>
+        <span class="md-search__hot-label">大家都在搜</span>
         ${chips.map(chip => `<button class="ujn-pill md-search__hot-chip" type="button" data-query="${chip}">${chip}</button>`).join('')}
       </div>
       <ol class="md-search-result__list" id="pagefind-search-list"></ol>
@@ -103,5 +104,50 @@ describe('搜索面板「大家都在搜」', () => {
     panel.hot.appendChild(chip);
     chip.click();
     expect(panel.input.value).toBe('校历');
+  });
+
+  it('搜不到结果时可以把推荐词再摆出来，并换一句说明', () => {
+    const panel = newSearchPanel();
+    panel.api.bind(document);
+    const label = panel.hot.querySelector('.md-search__hot-label');
+
+    panel.input.value = 'zzz';
+    panel.input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(panel.hot.hidden).toBe(true);
+
+    panel.api.suggest('没找到？这些词也许更合适');
+    expect(panel.hot.hidden).toBe(false);
+    expect(label.textContent).toBe('没找到？这些词也许更合适');
+
+    // 继续输入 → 推荐收起、标题回到默认
+    panel.input.value = 'zzzz';
+    panel.input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(panel.hot.hidden).toBe(true);
+    expect(label.textContent).toBe('大家都在搜');
+
+    // 再次搜不到 → 又能摆出来
+    panel.api.suggest();
+    expect(panel.hot.hidden).toBe(false);
+    expect(label.textContent).toBe('没找到？试试这些');
+  });
+
+  it('点推荐词后回到平常状态：不带上一次的说明，查询词已填入', () => {
+    const panel = newSearchPanel();
+    panel.api.bind(document);
+    const label = panel.hot.querySelector('.md-search__hot-label');
+    panel.input.value = 'zzz';
+    panel.input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    panel.api.suggest('没找到？这些词也许更合适');
+
+    panel.hot.querySelectorAll('.md-search__hot-chip')[1].click();
+    expect(panel.input.value).toBe('食堂');
+    expect(panel.hot.hidden).toBe(true);
+    expect(label.textContent).toBe('大家都在搜');
+  });
+
+  it('suggest 在没有面板时安全返回 null', () => {
+    document.body.replaceChildren();
+    window.eval(source);
+    expect(window.UJNHotSearch.suggest('x')).toBeNull();
   });
 });
