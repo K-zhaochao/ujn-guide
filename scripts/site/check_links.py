@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 import urllib.error
@@ -58,13 +59,45 @@ def page_url(path: Path, site: Path = SITE) -> str:
     return "/" + relative
 
 
+def deployment_prefix() -> str:
+    """站点部署的子路径前缀（例如 /ujn-guide），根路径部署时返回空串。
+
+    GitHub Pages 的项目站点把站点放在 /<仓库名>/ 下，site_url 里就带着这个前缀，
+    于是 404.html 等页面里的站内链接全是 /ujn-guide/xxx。检查产物时必须先去掉它，
+    否则每一条都会被判成「指向不存在的文件」——CI 上 148 处误报就是这么来的
+    （本地开发是根路径部署，所以永远看不到这个错）。
+    """
+    config = SITE.parent / "mkdocs.yml"
+    value = ""
+    # 环境变量优先：CI 就是用 SITE_URL 覆盖 mkdocs.yml 里的 site_url 的，
+    # 只读文件会读到空前缀（我第一版就是这么写的，本地子路径复现仍然 148 处报错）。
+    env_value = os.environ.get("SITE_URL", "").strip()
+    if env_value:
+        value = env_value
+    else:
+        try:
+            text = config.read_text(encoding="utf-8")
+        except OSError:
+            return ""
+        match = re.search(r"^\s*site_url:\s*(.+)$", text, re.M)
+        if not match:
+            return ""
+        value = match.group(1).strip().strip("\"'")
+    path = urlparse(value).path.rstrip("/")
+    return "" if path in ("", "/") else path
+
+
 def resolve(target: str, base: str, site: Path = SITE) -> Path | None:
     """把链接解析到产物里的文件；返回 None 表示不需要检查（外链等）。"""
     absolute = urljoin(base, target)
     parsed = urlparse(absolute)
     if parsed.scheme in ("http", "https"):
         return None
-    candidate = site / unquote(parsed.path).lstrip("/")
+    path = unquote(parsed.path)
+    prefix = deployment_prefix()
+    if prefix and (path == prefix or path.startswith(prefix + "/")):
+        path = path[len(prefix):] or "/"
+    candidate = site / path.lstrip("/")
     if parsed.path.endswith("/") or candidate.is_dir():
         candidate = candidate / "index.html"
     return candidate
