@@ -118,6 +118,16 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 全局的 `.ujn-pill`；所以组件负责的声明不要留在页面里重复写，否则会把组件按回去——
 页码的未选中底色就因此写成 `:not(.is-active)`，把选中态让给组件。
 
+### `!important` 审计结论
+
+`ujn.css` 原有 17 处 `!important`，按「能否证明它不必要」逐个处理：**去掉 8 处、保留 9 处**。
+
+| 处理 | 位置 | 依据 |
+| --- | --- | --- |
+| 已去掉 | QQ 群入口的 `color`；左侧分组标题的 `font-weight/color/opacity`；AI 控制栏下边框（浅色 + 深色）；搜索清除按钮的 `opacity/pointer-events` | 默认态 + hover 态 + 搜索面板打开态的 computed style 前后对比，**0 差异** |
+| 保留（可继续收敛） | 右侧目录 hover 的 `color/opacity`、目录选中项 hover 的 `color`（3 条）、左侧分组标题选中态的 `color/font-weight`（2 条） | 这 5 条依赖 hover / 选中组合。无头验收**可以**强制 `:hover`（CDP `CSS.forcePseudoState`），关键是强制后等 ~300ms 让过渡跑完，否则读到动画中间值、偶尔误报；下一轮照同一套指纹就能继续去掉 |
+| 保留（暂无法验收） | `.ai-result-container` 的 `padding/border`、`.ai-btn--stop` 的 `animation`、`.ai-mode--selected` 的 `border-color`（4 条） | 这些元素只在 AI 设置面板或回答过程中出现，无头会话里取不到；需要给 AI 面板加一个能直接打开的调试状态才能验收 |
+
 ## 本地预览
 
 站点是**纯静态**的，本地预览不需要任何后端：

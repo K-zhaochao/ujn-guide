@@ -164,7 +164,7 @@ html[data-announce="hidden"] .md-banner {
   justify-content: center;
   gap: .08rem;
   border-radius: .2rem;
-  color: currentcolor !important;
+  color: currentcolor;
   background: transparent;
   opacity: 1;
   transition: background-color .16s ease;
@@ -330,19 +330,24 @@ html[data-announce="hidden"] .md-banner {
   padding: 0 0.1em;
 }
 
-/* 关键词为空时隐藏清除按钮（增强 :valid 行为） */
+/* 关键词为空时隐藏清除按钮（:placeholder-shown 与 Material 的 :valid 规则互斥，
+   实测去掉 !important 后计算值不变，见提交说明的状态指纹对比） */
 .md-search__input:placeholder-shown~.md-search__options .md-icon {
-  opacity: 0 !important;
-  pointer-events: none !important;
+  opacity: 0;
+  pointer-events: none;
 }
 
-/* 左侧导航栏：层级分组标题加粗加亮 */
+/* 左侧导航栏：层级分组标题加粗加亮。
+   选择器 .md-nav__item--nested > .md-nav__link 已经比 Material 的 .md-nav__link 更具体，
+   这三条原先带 !important，实测去掉后计算值不变（见提交说明里的状态指纹对比）。 */
 .md-nav__item--nested>.md-nav__link {
-  font-weight: 700 !important;
-  color: var(--md-typeset-a-color) !important;
-  opacity: 1 !important;
+  font-weight: 700;
+  color: var(--md-typeset-a-color);
+  opacity: 1;
 }
 
+/* 当前所在的分组标题：颜色要比其它分组更亮，这里保留 !important，
+   因为 Material 的 .md-nav__link--active 与它对赌，去掉后会退回默认色。 */
 .md-nav__item--nested>.md-nav__link--active {
   color: var(--md-accent-fg-color) !important;
   font-weight: 800 !important;
@@ -1206,9 +1211,10 @@ html[data-announce="hidden"] .md-banner {
    AI 问答助手 — 桌面端搜索面板颜色对比度优化
    ================================================================ */
 
-/* 控制栏：在搜索面板中增加清晰的分隔线 */
+/* 控制栏：在搜索面板中增加清晰的分隔线。
+   下面这条只改颜色，且位置在同名规则之后，靠源顺序即可生效，无需 !important。 */
 .ai-control-bar {
-  border-bottom-color: var(--md-default-fg-color--lightest) !important;
+  border-bottom-color: var(--md-default-fg-color--lightest);
   background: var(--md-default-bg-color);
   position: sticky;
   top: 0;
@@ -1380,7 +1386,7 @@ html[data-announce="hidden"] .md-banner {
 
 /* 深色模式下的特制修正 */
 [data-md-color-scheme="slate"] .ai-control-bar {
-  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
 }
 
 [data-md-color-scheme="slate"] .ai-mode-byok {
