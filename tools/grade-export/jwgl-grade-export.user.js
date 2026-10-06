@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         济大教务 · 成绩一键导出
 // @namespace    https://ujn.matehub.top/
-// @version      1.1.0
+// @version      1.0.0
 // @description  在教务系统页面右下角加一个「导出成绩」小面板，一键把本人成绩导出成 Excel。不接触账号密码。
 // @author       济南大学校园通（参考由一位不愿意透露信息的学长提供）
 // @match        *://*.ujn.edu.cn/*
