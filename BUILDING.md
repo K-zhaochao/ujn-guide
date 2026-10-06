@@ -165,12 +165,16 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 ### 站点体检工具
 
 `mkdocs build --strict` 只校验 Markdown 源文件之间的链接，管不到页面里 HTML 注入的链接、
-锚点和静态资源。构建之后跑一次这个，能把整站走一遍（257 个页面、4 万多个链接，几秒钟）：
+锚点和静态资源。构建之后跑一次这个，能把整站走一遍（257 个页面、4 万多个链接，十几秒）：
 
 ```powershell
 python scripts/site/check_links.py              # 站内链接 / 锚点 / 图片 PDF 等资源，可进 CI
 python scripts/site/check_links.py --external   # 再探一遍外链（需要网络，QQ、政务站会拦爬虫，仅供参考）
 ```
+
+**这一关已经接进构建**：`npm run build`（= `scripts/build_site.py`）在严格构建之后会跑一次站内体检，
+发现问题就让构建失败并打印报告——所以本地和 CI 都拦得住。外链只在手动加 `--external` 时探，
+结果不影响退出码。
 
 它抓到过一个真实问题：`overrides/main.html` 里手写 `{{ base_url }}/javascripts/...`，
 在 404 页（`base_url` 是 `/`）会拼成 `//javascripts/...`——那是「协议相对地址」，

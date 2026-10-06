@@ -47,6 +47,20 @@ def run_build(project_root: Path = PROJECT_ROOT) -> int:
     return result.returncode
 
 
+def check_links(project_root: Path = PROJECT_ROOT) -> bool:
+    """构建后做一次站内链接体检（链接、锚点、静态资源）。
+
+    `mkdocs --strict` 只管 Markdown 源文件之间的链接，管不到 HTML 注入的链接与锚点。
+    这里用子进程调用而不是 import：scripts/site 这个包名会和标准库的 site 撞车。
+    """
+    result = subprocess.run(
+        [sys.executable, str(project_root / "scripts" / "site" / "check_links.py")],
+        cwd=project_root,
+        check=False,
+    )
+    return result.returncode == 0
+
+
 def main() -> None:
     refresh_changelog()
     if run_build() != 0:
@@ -56,7 +70,11 @@ def main() -> None:
     except SiteBuildVerificationError as error:
         print(f"[build-site] {error}", file=sys.stderr)
         raise SystemExit(1) from error
-    print(f"[build-site] 严格构建通过，Pagefind 已生成 {file_count} 个文件")
+    print(f"[build-site] 严格构建通过，Pagefind 已生成 {file_count} 个文件", flush=True)
+    if not check_links():
+        print("[build-site] 站内链接体检未通过（见上面的报告）", file=sys.stderr)
+        raise SystemExit(1)
+    print("[build-site] 站内链接、锚点、静态资源全部正常")
 
 
 if __name__ == "__main__":
