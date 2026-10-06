@@ -1178,4 +1178,21 @@ ${context}`;
     });
   }
 
+  // ==================== 调试入口（?ai-debug=1） ====================
+  // AI 面板里的结果容器、停止按钮、模式选中态平时要「真的提问 / 点开设置」才会出现，
+  // 无头验收取不到，于是有 4 处 !important 一直没法判断能不能去掉。
+  // 带上 ?ai-debug=1 时暴露一个钩子：调用真实构造函数把 UI 造出来（不是另写一套假 DOM），
+  // 这样测到的样式就是线上样式。设置面板本来就有 window.__openAISettings()，不必重复。
+  if (/[?&]ai-debug=1(&|$)/.test(window.location.search)) {
+    window.__ujnAiDebug = {
+      sampleAnswer: function (question) {
+        var list = document.getElementById('pagefind-search-list');
+        if (!list) return null;
+        createResultContainer(list, question || '调试：示例问题');
+        return list.querySelector('.ai-result-container');
+      },
+      searchListId: 'pagefind-search-list',
+    };
+  }
+
 })();

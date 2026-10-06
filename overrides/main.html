@@ -61,9 +61,9 @@ docs/javascripts/mathjax.js 负责先写好配置，只有当前页面真的出�
 {{ super() }}
 {# 站点交互脚本已移到 docs/javascripts/ujn-ui.js（模板只提供下面这段配置数据）。 #}
 <script type="application/json" id="ujn-flea-config">{{ config.extra.flea_market | tojson }}</script>
-<script src="{{ base_url }}/javascripts/ujn-ui.js"></script>
+<script src="{{ base_url }}/javascripts/ujn-ui.js?v=20260911-1"></script>
 
 
-<!-- AI 问答助手 -->
-<script src="{{ base_url }}/javascripts/ai-assistant.js"></script>
+<!-- AI 问答助手（改了它也要递增下面的 ?v=，否则访客继续用缓存里的旧脚本） -->
+<script src="{{ base_url }}/javascripts/ai-assistant.js?v=20260911-1"></script>
 {% endblock %}

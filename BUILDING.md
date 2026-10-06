@@ -125,10 +125,21 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 
 | 处理 | 位置 | 依据 |
 | --- | --- | --- |
-| 已去掉 | QQ 群入口的 `color`；左侧分组标题的 `font-weight/color/opacity`；AI 控制栏下边框（浅色 + 深色）；搜索清除按钮的 `opacity/pointer-events`（8 处） | 默认态 + hover 态 + 搜索面板打开态的 computed style 前后对比，**0 差异** |
-| 已去掉 | 右侧目录 hover 的 `color/opacity`、目录选中项 hover 的 `color`（3 处） | 选择器本就比 Material 的 `.md-nav__link:hover` 更具体；用 CDP 强制 `:hover` 验收，0 差异。要点：强制后等 ~300ms 让过渡跑完，否则读到动画中间值、偶尔误报 |
-| 已删除（死规则） | `.md-nav__item--nested > .md-nav__link--active` 的加亮规则（2 处） | 首页 / 宠物页 / 地点通 / 食堂页 / 反馈页 / 电话大全 6 个页面上**一次都匹配不到**：Material 只给「当前页自己」的链接加 `--active`，其父项是 `.md-nav__item--active` 而不是 `--nested` |
-| 仍保留（4 处） | `.ai-result-container` 的 `padding/border`、`.ai-btn--stop` 的 `animation`、`.ai-mode--selected` 的 `border-color` | 这些元素只在 AI 设置面板或回答过程中出现，无头会话里取不到；需要给 AI 面板加一个能直接打开的调试状态才能验收 |
+| 已去掉（8 处） | QQ 群入口的 `color`；左侧分组标题的 `font-weight/color/opacity`；AI 控制栏下边框（浅色 + 深色）；搜索清除按钮的 `opacity/pointer-events` | 默认态 + hover 态 + 搜索面板打开态的 computed style 前后对比，**0 差异** |
+| 已去掉（3 处） | 右侧目录 hover 的 `color/opacity`、目录选中项 hover 的 `color` | 选择器本就比 Material 的 `.md-nav__link:hover` 更具体；CDP 强制 `:hover` 验收，0 差异。要点：强制后等 ~300ms 让过渡跑完，否则读到动画中间值、偶尔误报 |
+| 已删除死规则（2 处） | `.md-nav__item--nested > .md-nav__link--active` 的加亮规则 | 6 个代表性页面上**一次都匹配不到**：Material 只给「当前页自己」的链接加 `--active`，其父项是 `.md-nav__item--active` 而不是 `--nested` |
+| 已去掉（3 处） | `.ai-result-container` 的 `padding/border`、`.ai-btn--stop` 的 `animation` | 用 `?ai-debug=1` 造出真实 UI 后对比计算值，0 差异 |
+| 已换成提高权重（1 处） | `.ai-mode--selected` 的 `border-color` | 它要压过 `.ai-mode-option:hover`；直接去掉后**悬停会变回灰边**（实测确认），所以改写成 `.ai-mode-option.ai-mode--selected`（与 hover 同权重，靠源顺序取胜），悬停时边框仍是主色 |
+
+**结论：`ujn.css` 里的 `!important` 已清零（原 17 处）。** 顺序始终是「先能测，再动」——
+测不到就不动，能测到的都留了依据。
+
+### 怎么验收 AI 面板
+
+结果容器、停止按钮、模式选中态平时要真的提问或点开设置才会出现，无头会话里取不到。
+带 `?ai-debug=1` 打开任意页面时，脚本会暴露 `window.__ujnAiDebug.sampleAnswer(问题文本)`：
+它调用**真实**的构造函数把结果容器（含停止按钮）插进搜索结果列表；设置面板用现成的
+`window.__openAISettings()`。这样量到的就是线上样式，而不是另写一套假 DOM。
 
 **踩过的坑：改主题特性开关（`theme.features`）时要验证「少了什么」。** 第 2 轮为了让手机端在抽屉里
 看到本页目录开了 `toc.integrate`，它在**所有宽度**下都会把本页目录并进左侧导航，桌面端右侧的

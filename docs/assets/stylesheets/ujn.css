@@ -851,9 +851,11 @@ html[data-announce="hidden"] .md-banner {
 }
 
 /* ——— 结果容器 ——— */
+/* 这两个值是在压 Material 给 .md-search-result__item 的内边距与边框，
+   去掉 !important 后由状态指纹确认计算值不变（第 11 轮）。 */
 .ai-result-container {
-  padding: 0 !important;
-  border: none !important;
+  padding: 0;
+  border: none;
 }
 
 /* ——— 标签页（Material 下划线风格） ——— */
@@ -940,7 +942,7 @@ html[data-announce="hidden"] .md-banner {
   cursor: pointer;
   transition: all 0.15s;
   line-height: 1.5;
-  animation: none !important;
+  animation: none;
 }
 
 .ai-btn--stop:hover {
@@ -1197,8 +1199,11 @@ html[data-announce="hidden"] .md-banner {
   border-color: var(--md-default-fg-color--lightest);
 }
 
-.ai-mode--selected {
-  border-color: var(--md-accent-fg-color, #526cfe) !important;
+/* 选中态要压过 .ai-mode-option:hover 的边框色，所以把选择器写成
+   .ai-mode-option.ai-mode--selected（与 hover 同权重，靠源顺序取胜），
+   而不是用 !important —— 第 11 轮用强制 hover 的指纹确认过：悬停时边框仍是主色。 */
+.ai-mode-option.ai-mode--selected {
+  border-color: var(--md-accent-fg-color, #526cfe);
   background: var(--md-accent-fg-color--transparent);
 }
 
