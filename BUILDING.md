@@ -210,6 +210,7 @@ python scripts/site/check_links.py --external   # 再探一遍外链（需要网
 npm run verify:ui          # 截图 + computed style 指纹（改前 before / 改后 after）
 npm run verify:ui:compare  # 两次指纹逐像素、逐属性比对
 npm run verify:responsive  # 13 个页面 × 4 个宽度扫横向溢出
+npm run verify:hit         # 命中检测：真实鼠标坐标点击，抓「被透明层挡住、点不到」
 npm run verify:links       # 站内链接 / 锚点 / 资源（也已接进 npm run build）
 `
 

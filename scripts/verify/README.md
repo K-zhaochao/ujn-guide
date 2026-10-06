@@ -46,7 +46,28 @@ node scripts/verify/responsive-sweep.mjs
 每个顶层目录取一个代表页 + 几个深层页，在 390 / 768 / 1024 / 1440 四个宽度下量横向溢出，
 并列出超出视口的元素（tag + class + 越界像素）。
 
-### 3. 链接体检 —— 见 `scripts/site/check_links.py`
+### 3. 命中检测 —— 「看起来能点」的东西真的能点到吗
+
+```powershell
+npm run verify:hit
+```
+
+取元素中心坐标，用 CDP 在真实坐标上做命中检测，再对顶栏最后一个标签做一次**真实鼠标点击**
+（按下 + 抬起），确认地址真的变了。
+
+**为什么不能用 `element.click()`**：它绕过命中检测。曾经有个真 bug——顶栏最后一个标签
+「免责声明」点不动，因为搜索面板关闭时只是 `opacity: 0`，里面 234×195 的一块仍然可命中、
+正好压在那个标签上；用 `click()` 测了好几轮都没发现。
+
+写这个脚本时我踩了三个坑，都已修在 `cdp.mjs` 的 `centerOf()` 里：
+
+1. 元素在视口外时 `elementFromPoint` 一律返回 null —— 先 `scrollIntoView`；
+2. 行内元素（会换行的链接）整体外接框的中心可能落在两行之间的空隙 —— 改用第一个行盒的中心；
+3. 收起状态 `<details>` 里的元素照样有 `getClientRects()` —— 用 `checkVisibility()` 挡掉。
+
+（另外要排除 Material 的标题锚点 `.headerlink`：它悬停才显形，不是给读者点的。）
+
+### 4. 链接体检 —— 见 `scripts/site/check_links.py`
 
 它已经接进 `npm run build`（站内链接、锚点、静态资源），不需要手动跑；
 探外链时加 `--external`。
