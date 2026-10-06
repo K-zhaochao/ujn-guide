@@ -62,6 +62,58 @@ export async function connect({ port = 9222 } = {}) {
       await send('Input.dispatchKeyEvent', { type: 'keyUp', key: name, code, windowsVirtualKeyCode: vk, modifiers });
       await new Promise(resolve => setTimeout(resolve, 250));
     },
+    /**
+     * 命中检测：坐标上真正能收到点击的是哪个元素。
+     *
+     * 为什么必须有它：`element.click()` 会**绕过**命中检测，所以「元素被透明层挡住、
+     * 用户点不到」这类 bug 用 click() 永远测不出来——「免责声明」标签点不了就是这么漏掉的
+     * （真实命中结果是搜索面板里一个 opacity: 0 的 div）。
+     */
+    async hitTest(x, y) {
+      const raw = await evaluate(`(() => {
+        const el = document.elementFromPoint(${x}, ${y});
+        if (!el) return null;
+        const path = [];
+        for (let node = el; node && path.length < 4; node = node.parentElement) {
+          path.push(node.tagName.toLowerCase() + (node.id ? '#' + node.id : '')
+            + (node.className ? '.' + node.className.toString().trim().split(/\\s+/).slice(0, 2).join('.') : ''));
+        }
+        return path.join(' < ');
+      })()`);
+      return typeof raw === 'string' ? raw : null;
+    },
+    /** 在坐标上发一次真实鼠标点击（按下 + 抬起）。 */
+    async clickAt(x, y) {
+      for (const type of ['mousePressed', 'mouseReleased']) {
+        await send('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
+      }
+    },
+    /** 元素的中心点坐标（不可见元素返回 null）。
+     *  两个细节都是踩过的坑：
+     *  1. 先把元素滚进视口——否则 elementFromPoint 对屏幕外的坐标一律返回 null；
+     *  2. 行内元素（尤其会换行的链接）要用**第一个行盒**的中心，
+     *     用整体外接框的中心会落在两行之间的空隙里，变成误报。 */
+    async centerOf(selector) {
+      const raw = await evaluate(`(() => {
+        const el = document.querySelector(${JSON.stringify(selector)});
+        if (!el) return null;
+        // 收起状态 <details> 里的元素照样有 getClientRects()，但其实看不见、也点不到——
+        // 用 checkVisibility() 挡掉（「本页目录」折叠块里的链接就是这么被误报的）。
+        if (typeof el.checkVisibility === 'function'
+            && !el.checkVisibility({ checkVisibilityCSS: true, checkOpacity: false })) {
+          return null;
+        }
+        el.scrollIntoView({ block: 'center', inline: 'center' });
+        const rects = el.getClientRects();
+        const rect = rects.length ? rects[0] : el.getBoundingClientRect();
+        if (rect.width < 2 || rect.height < 2) return null;
+        const x = Math.round(rect.left + rect.width / 2);
+        const y = Math.round(rect.top + rect.height / 2);
+        if (y < 4 || y > window.innerHeight - 4) return null; // 滚完仍在视口外就跳过
+        return JSON.stringify([x, y]);
+      })()`);
+      return typeof raw === 'string' ? JSON.parse(raw) : null;
+    },
   };
 }
 

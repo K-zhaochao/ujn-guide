@@ -27,7 +27,11 @@ function deckHtml(count, photosPerCat = 2) {
       '  </div>',
     );
   }
-  return `<div class="pet-deck" id="pet-deck">\n${cards.join('\n')}\n</div>\n<nav class="pet-pager" id="pet-pager"></nav>`;
+  return `<div class="pet-filter">
+    <input class="pet-filter__input" id="pet-filter-input" type="search">
+    <span class="pet-filter__count" id="pet-filter-count" role="status" aria-live="polite"></span>
+  </div>
+<div class="pet-deck" id="pet-deck">\n${cards.join('\n')}\n</div>\n<nav class="pet-pager" id="pet-pager"></nav>`;
 }
 
 function boot(html, { mobile = false } = {}) {
@@ -298,5 +302,49 @@ describe('猫猫相册弹窗', () => {
 
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(document.activeElement).toBe(shot);
+  });
+  it('按名字找猫：只留命中项、收起分页条并给出计数', () => {
+    boot(deckHtml(6, 2));
+    const input = document.getElementById('pet-filter-input');
+    const pager = document.getElementById('pet-pager');
+    const count = document.getElementById('pet-filter-count');
+    expect(visibleNames().length).toBeGreaterThan(0);
+
+    // 真打字：派发 input 事件（控制器就是监听它的）
+    input.value = '猫3';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(visibleNames()).toEqual(['猫3']);
+    expect(count.textContent).toBe('找到 1 只');
+    expect(pager.hidden).toBe(true);
+
+    // 没命中：全部隐藏 + 给一句人话
+    input.value = '不存在的名字';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(visibleNames()).toEqual([]);
+    expect(count.textContent).toContain('没有匹配');
+
+    // 清空：恢复分页与计数
+    input.value = '';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(count.textContent).toBe('');
+    expect(pager.hidden).toBe(false);
+    expect(visibleNames().length).toBeGreaterThan(0);
+  });
+
+  it('筛选是大小写不敏感的子串匹配，且即时导航重跑后依然生效', () => {
+    boot(deckHtml(3, 1));
+    const input = document.getElementById('pet-filter-input');
+    input.value = '猫';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(visibleNames()).toEqual(['猫1', '猫2', '猫3']);
+
+    // 模拟即时导航：重新初始化后，筛选框应该重新接上（而不是留着上一次的状态）
+    input.value = '猫2';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    boot(deckHtml(3, 1));
+    const fresh = document.getElementById('pet-filter-input');
+    fresh.value = '猫1';
+    fresh.dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(visibleNames()).toEqual(['猫1']);
   });
 });
