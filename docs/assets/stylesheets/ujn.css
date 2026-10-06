@@ -378,6 +378,16 @@ html[data-announce="hidden"] .md-banner {
    Material 的 .md-header__option 带 margin-bottom: 10px，正是靠它让主题图标也落在 89。
    我上一轮把它归零、改成让其它图标降到 94，方向错了——这次让附加按钮对齐搜索框。 */
 
+/* 页头对齐：Material 给自己的两个控件留了**不对称的下边距**——
+   .md-header__option（主题切换）是 margin-bottom: 10px，搜索容器也有类似偏移——
+   于是同一排控件会差 5px（手机端实测：☰ 与 🔍 中心 112，其余 107）。
+   只清零这两个已知来源；**不要**写成 `.md-header__inner > *` 一刀切：
+   那会把 Material 自己标签本来就对称的外边距也清掉，反而制造出 2px 的新偏差（试过）。 */
+.md-header__option,
+.md-header .md-search {
+  margin-bottom: 0;
+}
+
 /* ===== 顶部附加按钮：交流群 / GitHub / Gitee =====
    与 Material 自带的页头按钮同构：**不设固定尺寸**，靠 .4rem 内边距 + 1.2rem 图标
    得到 40×40 的方框，外边距 .2rem。
@@ -387,9 +397,8 @@ html[data-announce="hidden"] .md-banner {
    「交流群」用群组图标而不是 QQ 品牌图标：品牌图标容易被误读成「加我 QQ」。 */
 .md-header__button.md-header__qq-group,
 .md-header__button.md-header__repo {
-  /* 上下不对称是故意的：Material 的主题切换表单靠 margin-bottom: 10px 把图标抬到搜索框的中心线，
-     这里照抄同样的办法，四个图标（群 / GitHub / Gitee / 主题）才会和搜索框在同一条线上。 */
-  margin: .2rem .2rem .7rem;
+  /* 对称外边距：配合上面那条「子项下边距清零」，所有控件都落在页头真正的垂直中心 */
+  margin: .2rem;
   padding: .4rem;
   display: inline-flex;
   align-items: center;
