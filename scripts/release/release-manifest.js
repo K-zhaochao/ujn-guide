@@ -118,16 +118,6 @@ function assertGitClean(directory, label) {
   if (status) throw new Error(`${label} 工作区不干净，拒绝创建不可变 release`);
 }
 
-function assertSameOriginFrontEnd(sourceRoot) {
-  const petScript = path.join(sourceRoot, 'docs', 'pets', 'pets.js');
-  const source = fs.readFileSync(petScript, 'utf8');
-  const match = source.match(/const\s+API_BASE\s*=\s*(['"])(.*?)\1\s*;/);
-  if (!match || match[2] !== '') throw new Error('宠物前端必须将 API_BASE 固定为同源空串');
-  if (/https?:\/\/(?:localhost|127\.0\.0\.1)/i.test(source)) {
-    throw new Error('宠物前端发布源码仍包含 localhost 或 127.0.0.1 地址');
-  }
-}
-
 function readRuntimeTemplate(sourceRoot) {
   const template = path.join(sourceRoot, 'scripts', 'release', 'templates', 'ujn-guide-nginx.conf');
   const contents = fs.readFileSync(template, 'utf8');
@@ -143,7 +133,6 @@ function releaseManifest({ releaseId, sourceRoot, serverDir, siteDir, migrations
   const root = path.resolve(sourceRoot || path.join(__dirname, '..', '..'));
   const server = path.resolve(serverDir || path.join(root, 'server'));
   const site = path.resolve(siteDir || path.join(root, 'site'));
-  assertSameOriginFrontEnd(root);
   const staticSite = hashDirectory(site);
   if (staticSite.fileCount === 0) throw new Error('静态站构建产物为空，拒绝创建 release');
   const migrationSource = path.join(server, 'migrations.js');
@@ -381,7 +370,6 @@ module.exports = {
   releaseManifest,
   createRelease,
   verifyRelease,
-  assertSameOriginFrontEnd,
   copyTrackedFiles,
   main,
 };

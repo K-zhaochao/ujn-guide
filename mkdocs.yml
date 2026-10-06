@@ -2,12 +2,18 @@ site_name: 济南大学校园通
 site_description: 济南大学新生/在校生一站式生活与学习指南
 site_author: 济南大学学子
 
-site_url: https://127.0.0.1:8000/
+# 生产站点地址。GitHub Pages 项目站点部署在子路径下，用环境变量覆盖即可：
+#   SITE_URL=https://<owner>.github.io/<repo>/ npm run build
+site_url: !ENV [SITE_URL, "https://ujn.matehub.top/"]
 
 theme:
   name: material
   custom_dir: overrides
   language: zh
+  # 关闭 Material 默认的 Google Fonts（Roboto / Roboto Mono）：那是一个阻塞渲染的
+  # 外部样式表，国内网络下经常挂起，还会把访客 IP 交给 Google。关掉后走系统字体栈，
+  # 中文交给 PingFang SC / 微软雅黑 / Noto Sans CJK 渲染。
+  font: false
   logo: assets/ujn-logo.webp
   favicon: assets/ujn-logo.webp
   palette: 
@@ -73,7 +79,6 @@ not_in_nav: |
   /green-book/scholarship/appendix/
   /green-book/youth-league/appendix/
   /pets/cats/
-  /pets/投稿审核与互动说明.md
   /rules/appendix/
   /site-guide/main-campus/图书馆须知与问答/
   /site-guide/shungeng-campus/library-*.md
@@ -89,6 +94,11 @@ plugins:
       touchNavigation: true
       loop: false
       effect: zoom
+      # 猫猫卡牌墙的照片由 docs/pets/gallery.js 自己处理（点击打开相册弹窗）。
+      # 带 pet-photo 类的图片必须跳过，否则插件会把 <img> 抽出来单独包一层 <a>，
+      # 破坏卡牌的 DOM 结构。
+      skip_classes:
+        - pet-photo
   - tags
   # - git-revision-date-localized:
   #     type: timeago
@@ -97,33 +107,27 @@ plugins:
 extra:
   announce: "🚧 近期项目维护较为频繁，部署期间服务会暂停 2~3 分钟，请见谅 🙏"
   # 顶部 QQ 群按钮链接：后续只需把空值替换为实际 HTTPS 群链接即可
-  qq_group_url: ""
+  qq_group_url: "https://qm.qq.com/q/USLqZInHwI"
   # 仓库链接已暂时隐藏，防止恶意爬取
   # social:
   #   - icon: fontawesome/brands/github
   #     link: https://github.com/K-zhaochao/ujn-guide
   #   - icon: fontawesome/brands/git-alt
-  #     link: https://gitee.com/K-zhaochao/ujn-guide
+  #     link: https://gitee.com/Draven323/ujn-guide
   #     name: Gitee
   flea_market:
     name: 跳蚤市场
     link: #flea-market
 
+extra_css:
+  - assets/zongce-calculator/calculator.css?v=20260907-1
+
 extra_javascript:
-  - javascripts/mathjax.js
-  - pets/pet-client.js?v=20260812-1
-  - pets/pet-view-model.js?v=20260812-1
-  - pets/pet-oauth.js?v=20260812-1
-  - pets/pet-modal.js?v=20260902-1
-  - pets/pet-format.js?v=20260812-2
-  - pets/pet-views.js?v=20260902-1
-  - pets/pet-likes.js?v=20260815-2
-  - pets/pet-like-list.js?v=20260902-1
-  - pets/pet-notifications.js?v=20260815-1
-  - pets/pet-picker.js?v=20260815-3
-  - pets/pet-mine.js?v=20260815-6
-  - pets/pet-submit.js?v=20260812-2
-  - pets/pets.js?v=20260902-1
+  - javascripts/mathjax.js?v=20260907-1
+  - javascripts/github-issues.js?v=20260909-1
+  - assets/zongce-calculator/calculator-core.js?v=20260907-1
+  - assets/zongce-calculator/calculator.js?v=20260907-1
+  - pets/gallery.js?v=20260909-1
 
 nav:
   - 首页: index.md
@@ -186,6 +190,8 @@ nav:
         - 其他设施: site-guide/shungeng-campus/other.md
   - 📗 绿皮书:
     - 绿皮书: green-book/index.md
+    - 实用工具:
+      - 综测计算器: green-book/scholarship/zongce-calculator.md
     - 学业管理:
       - 成绩规则: green-book/academic/score-rules.md
       - 推免保送须知: green-book/academic/postgraduate-recommendation.md
@@ -269,5 +275,6 @@ nav:
       - 创新创业训练计划管理办法: rules/other/innovation-entrepreneurship.md
       - 学生社团管理办法: rules/other/student-organizations.md
       - 第二课堂成绩单实施办法: rules/other/second-classroom.md
+  - 💬 反馈与贡献: contribute/index.md
   - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
   - ⚖️ 免责声明: disclaimer.md

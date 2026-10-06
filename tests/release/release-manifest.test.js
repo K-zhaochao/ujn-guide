@@ -9,7 +9,6 @@ const { execFileSync } = require('node:child_process');
 
 const {
   createRelease,
-  assertSameOriginFrontEnd,
   verifyRelease,
 } = require('../../scripts/release/release-manifest');
 const { verifyHealthPayload } = require('../../scripts/release/verify-running-release');
@@ -25,7 +24,6 @@ function makeFixture() {
   const source = path.join(root, 'source');
   const server = path.join(root, 'server');
   const site = path.join(root, 'site');
-  write(path.join(source, 'docs', 'pets', 'pets.js'), "const API_BASE = '';\n");
   write(path.join(source, 'scripts', 'release', 'templates', 'ujn-guide-nginx.conf'), [
     'root $release_root/current/site;',
     'location ^~ /api/ { proxy_pass http://127.0.0.1:$backend_port; }',
@@ -128,12 +126,6 @@ test('管理后台静态模块被篡改时 release 校验必须拒绝', () => {
   assert.ok(check.errors.includes('adminUi 资源集合不匹配'));
 });
 
-test('包含本机 API 地址的前端配置不能进入发布流程', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ujn-api-base-'));
-  write(path.join(root, 'docs', 'pets', 'pets.js'), "const API_BASE = 'http://127.0.0.1:3005';\n");
-  assert.throws(() => assertSameOriginFrontEnd(root), /同源空串/);
-});
-
 test('正式打包只复制 Git 已跟踪的后端文件，不携带被忽略密钥', () => {
   const fixture = makeFixture();
   write(path.join(fixture.server, '.gitignore'), '.env.*\n!.env.example\n');
@@ -160,8 +152,10 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
     'PORT=3100',
   ].join('\n'));
   const nginx = [
+    'access_log off; error_log /dev/null crit;',
     'client_max_body_size 35m;',
     'location ^~ /api/ { proxy_pass http://127.0.0.1:3100; }',
+    'location ^~ /api/admin/restore-imports/ { client_max_body_size 128m; proxy_pass http://127.0.0.1:3100; }',
     'location = /admin { proxy_pass http://127.0.0.1:3100; }',
     'location ^~ /admin/ { proxy_pass http://127.0.0.1:3100; }',
   ].join('\n');
@@ -181,10 +175,10 @@ test('生产配置必须保持同源 OAuth、CORS、Nginx 和后端端口契约'
   assert.ok(customAdminPath.errors.includes('同源发布的 ADMIN_PATH 如保留必须为 /admin'));
 
   const tooSmallBody = validateConfig(env, nginx.replace('35m', '15m'));
-  assert.ok(tooSmallBody.errors.includes('Nginx client_max_body_size 低于当前上传策略所需的 35m'));
+  assert.ok(tooSmallBody.errors.some(message => message.includes('至少需要 28m')));
 
   const customUploadPolicy = validateConfig({ ...env, MAX_IMAGES_PER_SUBMISSION: '1', MAX_IMAGE_SIZE_MB: '1' }, nginx.replace('35m', '1m'));
-  assert.ok(customUploadPolicy.errors.includes('Nginx client_max_body_size 低于当前上传策略所需的 3m'));
+  assert.ok(customUploadPolicy.errors.some(message => message.includes('至少需要 3m')));
 });
 
 test('部署脚本默认检查同源后端的 3005 health 端点', () => {
