@@ -71,8 +71,24 @@
     var media = typeof window.matchMedia === 'function' ? window.matchMedia(MOBILE_QUERY) : null;
 
     // ==================== 分页 ====================
+    /** 当前卡牌墙实际排了几列（跟着响应式变，所以每次现算）。 */
+    function columnCount() {
+      if (!deck || typeof window.getComputedStyle !== 'function') return 1;
+      var template = window.getComputedStyle(deck).gridTemplateColumns || '';
+      var count = template.split(' ').filter(Boolean).length;
+      return count > 1 ? count : 1;
+    }
+
+    /** 每页数量取「列数的整数倍」：否则最后一行只填一半，读者会以为内容没加载完。 */
+    function alignedPageSize(size) {
+      var columns = columnCount();
+      if (columns < 2 || size <= 0) return size;
+      return Math.ceil(size / columns) * columns;
+    }
+
     function totalPages() {
-      return pageSize > 0 ? Math.max(1, Math.ceil(cards.length / pageSize)) : 1;
+      var size = alignedPageSize(pageSize);
+      return size > 0 ? Math.max(1, Math.ceil(cards.length / size)) : 1;
     }
 
     // ==================== 按名字找猫 ====================
@@ -104,8 +120,9 @@
     function applyPage() {
       var pages = totalPages();
       page = clamp(page, 1, pages);
-      var start = pageSize > 0 ? (page - 1) * pageSize : 0;
-      var end = pageSize > 0 ? start + pageSize : cards.length;
+      var size = alignedPageSize(pageSize);
+      var start = size > 0 ? (page - 1) * size : 0;
+      var end = size > 0 ? start + size : cards.length;
       var hits = applyFilter();
       for (var i = 0; i < cards.length; i += 1) {
         var visible = query ? matches(cards[i]) : (i >= start && i < end);
@@ -221,7 +238,7 @@
       button.setAttribute('aria-label', '每页显示数量');
       var value = document.createElement('span');
       value.className = 'pet-pager__size-value';
-      value.textContent = sizeLabel(pageSize);
+      value.textContent = sizeLabel(alignedPageSize(pageSize));  // 显示实际每页数量，和分页一致
       var caret = document.createElement('span');
       caret.className = 'pet-pager__size-caret';
       caret.setAttribute('aria-hidden', 'true');

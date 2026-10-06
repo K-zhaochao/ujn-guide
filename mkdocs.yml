@@ -139,7 +139,7 @@ extra_javascript:
   - javascripts/hot-search.js?v=20261007-2
   - assets/zongce-calculator/calculator-core.js?v=20260907-1
   - assets/zongce-calculator/calculator.js?v=20260907-1
-  - pets/gallery.js?v=20261007-1
+  - pets/gallery.js?v=20261007-2
 
 nav:
   - 首页: index.md
@@ -298,6 +298,7 @@ nav:
   - 🕒 最近更新: changelog.md
   - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
   - ⚖️ 免责声明: disclaimer.md
+
 
 
 
