@@ -1,8 +1,9 @@
 ---
 title: 最近更新
-icon: material/clock-outline
+# 图标只保留导航里那个 🕒：这里再写一个会变成两个时钟（读者反馈过）
 hide:
   - toc
+  - navigation
 ---
 
 # 最近更新

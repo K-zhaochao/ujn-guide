@@ -15,7 +15,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG = PROJECT_ROOT / "mkdocs.yml"
 DOCS = PROJECT_ROOT / "docs"
-MAX_TABS = 10
+MAX_TABS = 11
 
 
 class _Loader(yaml.SafeLoader):
@@ -77,13 +77,17 @@ class NavigationTests(unittest.TestCase):
         for page in ["contribute/index.md", "changelog.md"]:
             self.assertIn(page, top, f"{page} 应该是顶级标签")
 
-    def test_only_meta_pages_are_grouped(self) -> None:
-        """「关于」分组只放联系作者、免责声明这类常规元信息。"""
-        about = next((item for item in self.nav if isinstance(item, dict) and "关于" in next(iter(item))), None)
-        self.assertIsNotNone(about, "找不到「关于」分组")
-        targets = collect_targets(about, [])
-        self.assertIn("disclaimer.md", targets)
-        self.assertNotIn("contribute/index.md", targets)
+    def test_meta_pages_are_top_level_too(self) -> None:
+        """连「联系作者 / 免责声明」也独立成 tab。
+        曾经把它们和反馈与贡献一起放进「关于」分组：分组 tab 点下去会跳到第一个子项，
+        于是点「关于」直接跳去了 QQ 外链，读者根本找不到免责声明。"""
+        top = collect_targets(self.nav, [])
+        for page in ["disclaimer.md", "contribute/index.md", "changelog.md"]:
+            self.assertIn(page, top, f"{page} 应该是顶级标签")
+        self.assertFalse(
+            [item for item in self.nav if isinstance(item, dict) and "关于" in next(iter(item))],
+            "不该再有「关于」分组",
+        )
 
 
 if __name__ == "__main__":

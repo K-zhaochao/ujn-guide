@@ -107,6 +107,9 @@ plugins:
 
 # 顶部全局公告栏
 extra:
+  # 页头两个开源仓库按钮（见 overrides/partials/palette.html）
+  github_url: https://github.com/K-zhaochao/ujn-guide
+  gitee_url: https://gitee.com/Draven323/ujn-guide
   announce: "🚧 近期项目维护较为频繁，部署期间服务会暂停 2~3 分钟，请见谅 🙏"
   # 顶部 QQ 群按钮链接：后续只需把空值替换为实际 HTTPS 群链接即可
   qq_group_url: "https://qm.qq.com/q/USLqZInHwI"
@@ -125,7 +128,7 @@ extra_css:
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
-  - assets/stylesheets/ujn.css?v=20261007-7
+  - assets/stylesheets/ujn.css?v=20261007-11
 
 extra_javascript:
   - javascripts/mathjax.js?v=20260907-1
@@ -283,14 +286,18 @@ nav:
       - 创新创业训练计划管理办法: rules/other/innovation-entrepreneurship.md
       - 学生社团管理办法: rules/other/student-organizations.md
       - 第二课堂成绩单实施办法: rules/other/second-classroom.md
-  # 导航约定：读者会主动找的页面直接给 tab；只有「关于本站」这类常规元信息才收进分组。
-  # 反馈与贡献、最近更新都曾被塞进「关于」分组，结果手机端要展开抽屉才知道有这些页面，
-  # 靠页面里写一句「这一组还有别的页面」补救更绕——已改回独立 tab。
+  # 导航约定：读者会主动找的页面直接给 tab，不要塞进分组。
+  # 血泪教训（两次）：分组 tab 点下去会跳到「第一个子项」——把反馈与贡献塞进「关于」时，
+  # 手机端要展开抽屉才看得到；把联系作者（外链）放成「关于」的第一个子项后，
+  # 点「关于」直接跳去了 QQ，读者找不到免责声明。所以：全部独立成 tab。
   - 💡 反馈与贡献: contribute/index.md
   - 🕒 最近更新: changelog.md
-  - ℹ️ 关于:
-    - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
-    - ⚖️ 免责声明: disclaimer.md
+  - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
+  - ⚖️ 免责声明: disclaimer.md
+
+
+
+
 
 
 

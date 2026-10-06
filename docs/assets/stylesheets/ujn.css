@@ -324,16 +324,24 @@ html[data-announce="hidden"] .md-banner {
   }
 }
 
-/* ===== 顶部 QQ 群入口（位于主题切换按钮左侧） =====
-   与 Material 自带的页头按钮（主题切换、搜索）用同一套尺寸与基线：
-   同样 2.4rem 见方的方框、同样 .4rem 内边距、图标 1.2rem。
-   原先做成「图标 + 小字」竖排，比旁边的按钮矮一截、还偏下，看上去就不齐。
-   小字说明移到 title / aria-label（见 overrides/partials/palette.html），
-   图标保留 QQ 蓝，方便一眼认出来。 */
-.md-header__button.md-header__qq-group {
-  width: 2.4rem;
-  height: 2.4rem;
-  margin: 0;
+/* Material 的 .md-header__option（主题切换）带了个 margin-bottom: 10px 的怪值，
+   于是它的图标比同排按钮高 5px——阅读器里量出来的：它 iconCenter 89，我加的按钮 94。
+   归零之后所有图标都落在页头真正的垂直中心（58px 的条里 24px 图标居中）。
+   不要给单个按钮加补偿边距，那只是把怪值再抄一遍。 */
+.md-header__option {
+  margin-bottom: 0;
+}
+
+/* ===== 顶部附加按钮：交流群 / GitHub / Gitee =====
+   与 Material 自带的页头按钮同构：**不设固定尺寸**，靠 .4rem 内边距 + 1.2rem 图标
+   得到 40×40 的方框，外边距 .2rem。
+   这两条都是量出来的，别看小：我一开始写成 2.4rem 见方（48×48），
+   结果比主题切换按钮的图标低了 5px——因为 Material 的 .md-header__option 还带
+   margin-bottom: 10px，居中的是各自的外框，外框高度不同就错开了。
+   「交流群」用群组图标而不是 QQ 品牌图标：品牌图标容易被误读成「加我 QQ」。 */
+.md-header__button.md-header__qq-group,
+.md-header__button.md-header__repo {
+  margin: .2rem;
   padding: .4rem;
   display: inline-flex;
   align-items: center;
@@ -345,13 +353,22 @@ html[data-announce="hidden"] .md-banner {
   transition: background-color .16s ease;
 }
 
-.md-header__button.md-header__qq-group:hover {
+.md-header__button.md-header__qq-group:hover,
+.md-header__button.md-header__repo:hover {
   background-color: rgba(255, 255, 255, .12);
 }
 
-.md-header__button.md-header__qq-group:focus-visible {
+.md-header__button.md-header__qq-group:focus-visible,
+.md-header__button.md-header__repo:focus-visible {
   outline: 2px solid currentcolor;
   outline-offset: 2px;
+}
+
+.md-header__button.md-header__repo svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  fill: currentColor;
+  flex: 0 0 auto;
 }
 
 .md-header__qq-icon {
