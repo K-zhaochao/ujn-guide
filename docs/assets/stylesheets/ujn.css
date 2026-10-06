@@ -1488,3 +1488,28 @@ html[data-announce="hidden"] .md-banner {
 [data-md-color-scheme="slate"] .ai-tab--active {
   color: var(--md-accent-fg-color);
 }
+
+/* ==========================================================================
+   尊重系统的「减少动态效果」设置
+   ==========================================================================
+   开启该设置的用户（前庭功能敏感、晕动症等）不希望界面元素动来动去。
+   这一条全局规则关掉本站的动画与过渡，包括**页面级内联样式**里的那些：
+   ujn.css 由 extra_css 引入、页面内联 <style> 在文档里更靠后，
+   只有 !important 才能稳定压住，所以这里是**故意**用的
+   ——与「!important 审计」不冲突：那一轮清掉的是多余的，这一条是必需的。
+
+   用 .01ms 而不是 none：动画/过渡事件（animationend、transitionend）仍会触发，
+   站内依赖这些事件的逻辑（例如相册弹窗的过渡收尾）不会因此卡住。
+
+   放在文件最后：既方便一眼看到，也让它压过前面所有组件规则。
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

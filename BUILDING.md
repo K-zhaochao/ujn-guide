@@ -149,6 +149,18 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
 要测右侧目录 hover 时才发现页面上根本没这个元素。教训：加特性前先给**将被影响的那块界面**拍指纹，
 加完再比一次——「新东西出现了」不等于「旧东西还在」。
 
+### 无障碍：动态效果与键盘
+
+- **`prefers-reduced-motion`**：`ujn.css` 最后有一条全局媒体查询，把动画与过渡压到 `.01ms`
+  （不是 `none`——事件仍要触发，否则依赖 `transitionend` 的逻辑会卡住）。这里是**故意**用
+  `!important` 的：页面级内联 `<style>` 在文档里更靠后，只有它才能稳定压住；与前面
+  「`!important` 审计」不冲突，那一轮清掉的是多余的。改动后用 CDP 媒体模拟验收：
+  `Emulation.setEmulatedMedia({features:[{name:'prefers-reduced-motion', value:'reduce'}]})`，
+  在 `reduce` 与 `no-preference` 下各测一次，确认前者≈0、后者恢复原时长（普通访客不受影响）。
+  `tests/frontend/reduced-motion.test.js` 做文本级守卫，防止重构时被顺手删掉。
+- **相册弹窗**：焦点锁在弹窗内（Tab / Shift+Tab 循环）、Esc 关闭后焦点回到打开它的卡牌按钮、
+  翻页用一个 `role="status" aria-live="polite"` 的隐藏区域播报「第 N 张，共 M 张」。
+
 ## 本地预览
 
 站点是**纯静态**的，本地预览不需要任何后端：
