@@ -67,6 +67,15 @@ GPA 直接使用教务处给出的值；能力分使用学院审核值，不在�
   脚本会转成 WebP、按 `--max-width` 缩放、改写 `docs/**/*.md` 里的引用，并在体积确实变小时
   删除原图（git 历史仍保留）。校区地图从 14261px / 4.88 MB 降到 2400px / 0.24 MB，属于这类
   素材的典型处理方式；PDF 等文档不在此脚本范围内。
+- **卡牌封面用缩略图**。猫猫原图常见 1600~2133px（单张最大 2 MB），而卡牌只有两三百像素宽：
+
+  ```powershell
+  python scripts/images/build_thumbs.py          # 生成 thumbs/（93 张，27.6 MB -> 6.6 MB）
+  python scripts/images/build_thumbs.py --check  # CI：缺失或过期即失败
+  ```
+
+  缩略图是**提交进仓库的产物**，站点构建不需要 Pillow；换图后要重新生成，否则
+  `scripts/pets/build_gallery.py` 会明确报错，`npm run test:build` 也会失败。
 - **外部运行时依赖保持最小**：目前只剩自托管 Umami、jsdelivr（按需的 MathJax）与 unpkg
   （仅图表页的 mermaid）。新增第三方 CDN 前先确认国内可达性，优先自托管。
 

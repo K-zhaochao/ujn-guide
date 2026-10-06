@@ -12,6 +12,10 @@ is not listed is appended at the end, so adding a cat never shuffles the wall.
 
 Every card carries the photo list it needs (``data-photos``), which lets the
 front-end open a swipeable viewer for that cat without any API request.
+
+卡牌封面用的是 ``thumbs/`` 里的缩略图（见 ``scripts/images/build_thumbs.py``）：
+原图往往 1600~2133px、单张最大 2 MB，而卡牌只有两三百像素宽。缩略图是提交进仓库的
+产物，站点构建不需要 Pillow；换图后要重新生成，否则这里会明确报错。
 """
 
 from __future__ import annotations
@@ -22,7 +26,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PETS_DIR = PROJECT_ROOT / "docs" / "pets"
@@ -100,9 +104,16 @@ def detail_url(page: Path) -> str:
     return quote(f"cats/{page.stem}/", safe="/")
 
 
-def card_html(name: str, url: str, photos: list[str]) -> str:
+def thumb_url(cover_url: str) -> str:
+    """由原图 URL 推出卡牌缩略图 URL：同目录下的 thumbs/ 子目录，同名文件。"""
+    head, _, name = cover_url.rpartition("/")
+    return f"{head}/thumbs/{name}"
+
+
+def card_html(name: str, url: str, photos: list[str], cover_thumb: str) -> str:
     safe_name = html.escape(name, quote=True)
-    cover = photos[0]
+    # 卡牌封面用缩略图：原图 1600~2133px、单张最大 2 MB，而卡牌只有两三百像素宽。
+    # 相册弹窗仍按 data-photos 里的原图列表加载，点开还是高清。
     # 照片用 <button> 而不是链接：MkDocs Material 的 navigation.instant 会接管站内
     # <a> 的点击并做无刷新跳转，preventDefault 拦不住，会导致照片点不开相册弹窗。
     # 名字铭牌仍保留链接，没有 JS 时也能进入猫猫页面。
@@ -110,7 +121,7 @@ def card_html(name: str, url: str, photos: list[str]) -> str:
         [
             f'  <div class="pet-card" data-name="{safe_name}" data-photos="{"|".join(photos)}">',
             f'    <button class="pet-card__shot" type="button" aria-label="{safe_name}：查看 {len(photos)} 张照片">',
-            f'      <img class="pet-photo" src="{cover}" alt="{safe_name}" loading="lazy" decoding="async">',
+            f'      <img class="pet-photo" src="{cover_thumb}" alt="{safe_name}" loading="lazy" decoding="async">',
             "    </button>",
             f'    <a class="pet-card__plate" href="{url}">'
             f'<span class="pet-card__name">{safe_name}</span></a>',
@@ -149,7 +160,13 @@ def render_deck(cats_dir: Path = CATS_DIR, pets_dir: Path = PETS_DIR) -> tuple[s
         text = read_page(page)
         photos = collect_photos(page, text, pets_dir)
         photo_total += len(photos)
-        cards.append(card_html(display_name(page, text), detail_url(page), photos))
+        cover_thumb = thumb_url(photos[0])
+        if not (pets_dir / unquote(cover_thumb)).resolve().is_file():
+            raise GalleryError(
+                f"{page.name} 缺少卡牌缩略图：{cover_thumb}\n"
+                "        先运行 python scripts/images/build_thumbs.py 生成后一起提交"
+            )
+        cards.append(card_html(display_name(page, text), detail_url(page), photos, cover_thumb))
     deck = "\n".join([DECK_START, *cards, DECK_END])
     for note in skipped:
         print(f"[pets] 跳过 {note}")

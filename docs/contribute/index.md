@@ -231,13 +231,15 @@ tags:
 
 H1 标题就是卡牌上显示的名字；**页面里放几张照片，弹窗里就能左右滑几张**（顺序一致）；没有照片的页面不会生成卡牌。
 
-**第 3 步**：重新生成卡牌墙。
+**第 3 步**：生成缩略图并重新生成卡牌墙。
 
 ```powershell
-python scripts/pets/build_gallery.py
+python scripts/images/build_thumbs.py     # 卡牌封面用的缩略图（换图后必须重跑）
+python scripts/pets/build_gallery.py      # 重写卡牌区
 ```
 
-脚本会扫描 `docs/pets/cats/*.md`，重写 `docs/pets/index.md` 里两个 `pets:deck` 标记之间的卡牌区。展示顺序由脚本顶部的 `ORDER` 决定，**没列进去的新猫自动排在最后**，所以新增一般不用管顺序。忘了跑脚本没关系：`npm run test:build` 会报「卡牌区不是最新的」。
+卡牌封面用缩略图、点开弹窗才加载原图，所以照片可以放心存高清（省流量的同时不牺牲点开后的清晰度）。
+脚本会扫描 `docs/pets/cats/*.md`，重写 `docs/pets/index.md` 里两个 `pets:deck` 标记之间的卡牌区。展示顺序由脚本顶部的 `ORDER` 决定，**没列进去的新猫自动排在最后**，所以新增一般不用管顺序。忘了跑脚本没关系：`npm run test:build` 会报「卡牌区不是最新的」或「缩略图缺失」。
 
 ## 6. ❓ 常见问题
 
@@ -247,6 +249,8 @@ python scripts/pets/build_gallery.py
 | 弹窗里照片数量不对 | 检查对应猫猫页面里的图片行数与顺序 |
 | 某只猫没有卡牌 | 页面里没有照片，或 front matter 写了 `navigation.exclude: true` |
 | 生成脚本报「图片不存在」 | 按提示核对 `docs/assets/...` 的文件名与大小写 |
+| 生成脚本报「缺少卡牌缩略图」 | 先跑 `python scripts/images/build_thumbs.py`，再跑 `build_gallery.py`，两个改动一起提交 |
+| 卡牌封面还是旧照片 | 换图后重跑 `python scripts/images/build_thumbs.py`（脚本按修改时间判断是否需要重建，必要时加 `--force`） |
 | 搜索不到新内容 | 搜索索引在构建时生成，重新跑 `npm run build`，不要手改 `site/` |
 | CI 提示卡牌区不是最新 | 本地执行 `python scripts/pets/build_gallery.py` 后一起提交 |
 | 本地改了文件页面没变 | `mkdocs serve` 的热重载在部分环境不生效，重启一次即可 |
