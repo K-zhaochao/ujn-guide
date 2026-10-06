@@ -8,14 +8,14 @@
    作者：TypeSETit
    许可：SIL Open Font License 1.1（https://openfontlicense.org/）
 
-2) 霞鹜文楷 LXGW WenKai（标题子集）
-   文件：lxgw-wenkai-headings.woff2（194 KB）
-   用途：正文里的一级/二级标题（h1 / h2）
+2) 霞鹜文楷 LXGW WenKai（全站子集）
+   文件：lxgw-wenkai-site.woff2（440 KB）
+   用途：全站正文与标题（代码块仍用等宽字体）
    来源：https://github.com/lxgw/LxgwWenKai
    作者：LXGW（落霞孤鹜）
    许可：SIL Open Font License 1.1
-   说明：不是完整字体，只包含「站点标题里出现过的字 + ASCII + 常用标点」，
-        由 scripts/site/build_heading_font.py 生成；改了标题文字后要重新生成一次。
+   说明：不是完整字体，只包含「站点所有页面显示出来的文字 + ASCII + 常用标点」共 2109 个字符，
+        由 scripts/site/build_heading_font.py 生成；改了正文文字后要重新生成一次。
         子集之外的字会自动回落到系统字体，不会出现方块。
 
 两个字体都随站点分发（OFL 允许），且为自托管，不向第三方 CDN 发请求。

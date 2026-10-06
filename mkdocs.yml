@@ -128,7 +128,7 @@ extra_css:
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
-  - assets/stylesheets/ujn.css?v=20261007-17
+  - assets/stylesheets/ujn.css?v=20261007-18
 
 extra_javascript:
   - javascripts/mathjax.js?v=20260907-1
@@ -298,6 +298,7 @@ nav:
   - 🕒 最近更新: changelog.md
   - 💬 联系作者: https://qm.qq.com/q/GbM6rEhNWq
   - ⚖️ 免责声明: disclaimer.md
+
 
 
 

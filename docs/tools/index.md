@@ -1,6 +1,5 @@
 ---
 title: 实用工具
-icon: material/toolbox-outline
 ---
 
 # 🧰 实用工具
