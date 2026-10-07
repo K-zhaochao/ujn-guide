@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         济大教务 · 成绩一键导出
 // @namespace    https://ujn.matehub.top/
-// @version      1.2.0
+// @version      1.3.0
 // @description  在教务系统页面右下角加一个「导出成绩」小面板，一键把本人成绩导出成 Excel。不接触账号密码。
 // @author       济南大学校园通（参考由一位不愿意透露信息的学长提供）
 // @match        *://*.ujn.edu.cn/*
@@ -152,6 +152,72 @@
     set('#xqm', term);
   }
 
+  /**
+   * 真正的导出流程 —— 照学校页面 export.js 的 doExport() 复刻，参数全部来自页面源码：
+   *   - 接口：POST /jwglxt/zftal/drdc/export_exportConfig.html
+   *     （之前请求的 cjcx_dcXsKccjList.html 是错的，服务端于是回通用错误页「出错啦！」）
+   *   - 模板号 dcclbh = JW_N305005_XSCXCJ（学生成绩；JW_N305005_GLY 是管理员模板）
+   *   - 内容 = 页面筛选表单（学年/学期…）+ 多个 exportModel.selectCol（格式「字段@列名」）
+   *     + exportModel.exportWjgs=xls + fileName，最后**提交整个表单**
+   * 照这套拼一个隐藏表单直接提交：浏览器会像点了它自己的「导出」一样下载，
+   * 但不需要人去点那个「自定义导出」弹窗。
+   */
+  var EXPORT_ACTION = "/jwglxt/zftal/drdc/export_exportConfig.html";
+  var EXPORT_DCCLBH = "JW_N305005_XSCXCJ";
+  var DEFAULT_COLUMNS = [
+    "xnmmc@学年", "xqmmc@学期", "kch@课程代码", "kcmc@课程名称", "kcxzmc@课程性质",
+    "xf@学分", "cjbz@成绩备注", "jd@绩点", "ksxz@成绩性质", "sfxwkc@是否学位课程",
+    "kkbmmc@开课学院", "kcbj@课程标记", "kclbmc@课程类别", "kcgsmc@课程归属",
+    "jxbmc@教学班", "jsxm@任课教师", "khfsmc@考核方式", "xh@学号", "xm@姓名",
+    "xsbjmc@学生标记", "cj@成绩", "cjsfzf@是否成绩作废", "xfjd@学分绩点",
+  ];
+
+  /** 页面上承载筛选条件的表单（就是含学年/学期下拉框的那个）。 */
+  function findFilterForm() {
+    const xnm = document.querySelector("#xnm");
+    if (xnm && xnm.form) return xnm.form;
+    return Array.from(document.querySelectorAll("form")).find(
+      (form) => form.querySelector('[name="xnm"], #xnm, [name="xqm"], #xqm'),
+    ) || null;
+  }
+
+  /** 组装导出表单：克隆页面筛选条件 + 追加导出参数。 */
+  function buildExportForm(xnm, xqm) {
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = EXPORT_ACTION;
+    form.style.display = "none";
+
+    const filterForm = findFilterForm();
+    if (filterForm) {
+      filterForm.querySelectorAll("input[name], select[name], textarea[name]").forEach((field) => {
+        if (["button", "submit", "reset", "image"].includes(field.type)) return;
+        if ((field.type === "checkbox" || field.type === "radio") && !field.checked) return;
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = field.name;
+        hidden.value = field.value;
+        form.appendChild(hidden);
+      });
+    }
+
+    const add = (name, value) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    };
+    if (xnm) add("xnm", xnm);
+    if (xqm) add("xqm", xqm);
+    add("dcclbh", EXPORT_DCCLBH);
+    add("pxfs", "0");
+    DEFAULT_COLUMNS.forEach((column) => add("exportModel.selectCol", column));
+    add("exportModel.exportWjgs", "xls");
+    add("fileName", "成绩单");
+    return form;
+  }
+
   run.addEventListener('click', async () => {
     const year = panel.querySelector('#ujn-export-year').value;
     const term = panel.querySelector('#ujn-export-term').value;
@@ -160,79 +226,35 @@
     say('正在导出…');
 
     try {
-      // 首选：同步筛选条件 → 点学校自己的导出按钮（参数由学校代码构造，不会对不上）
-      const native = findNativeExport();
-      if (native) {
-        console.log('[成绩导出] 找到学校自带的导出控件，改用它：', native);
-        syncPageFilters(year, term);
-        native.click();
-        say('已触发学校自带的导出，请留意浏览器的下载提示', 'ok');
-        return;
-      }
-      console.warn('[成绩导出] 没找到学校自带的导出按钮，退回自己构造请求');
-
+      syncPageFilters(year, term);
       const xnm = optionValue('#xnm', year) || page.xnm || year;
       const xqm = optionValue('#xqm', term) || page.xqm || term;
 
-      const body = new URLSearchParams({
-        gnmkdmKey: page.gnmkdm,
-        xnm,
-        xqm,
-        'exportModel.selectCol': '',
-        'exportModel.exportWjgs': 'xls',
-        fileName: '成绩单',
+      const form = buildExportForm(xnm, xqm);
+      document.body.appendChild(form);
+      console.log('[成绩导出] 提交导出表单', {
+        action: form.action,
+        字段: Object.fromEntries(new FormData(form).entries()),
+        列数: DEFAULT_COLUMNS.length,
       });
-      if (page.dcclbh) body.set('dcclbh', page.dcclbh);
-
-      // 带上 ?gnmkdm=<菜单码>：正方系统的功能请求一般都需要它
-      const url = `/jwglxt/cjcx/cjcx_dcXsKccjList.html?gnmkdm=${encodeURIComponent(page.gnmkdm)}`;
-      console.log('[成绩导出] 请求', url, Object.fromEntries(body));
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: body.toString(),
-        credentials: 'same-origin',
-      });
-
-      const type = response.headers.get('Content-Type') || '';
-      if (!response.ok) throw new Error(`HTTP ${response.status}（${type || '无 Content-Type'}）`);
-
-      if (type.includes('text/html')) {
-        // 把服务端原话打出来——上一版只说「多半是会话过期」，等于没说，无从下手
-        const text = await response.text();
-        const hint = (text.match(/<div[^>]*id=["']tips["'][^>]*>([\s\S]*?)<\/div>/i) || [])[1]
-          || (text.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1]
-          || text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
-        console.warn('[成绩导出] 服务端返回了网页，前 1500 字：', text.slice(0, 1500));
-        throw new Error('返回的是网页而不是表格。服务端提示：'
-          + String(hint).replace(/\s+/g, ' ').trim().slice(0, 160));
-      }
-
-      const disposition = response.headers.get('Content-Disposition') || '';
-      const matched = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
-      const name = safeName(decodeURIComponent(matched ? matched[1] : ''));
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = name.endsWith('.xls') ? name : name + '.xls';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
-      say('已导出 ' + link.download + '（' + Math.round(blob.size / 1024) + ' KB）', 'ok');
+      say('已提交导出请求，浏览器应开始下载…', 'ok');
+      form.submit();
+      setTimeout(() => form.remove(), 5000);
+      return;
     } catch (error) {
+      console.error('[成绩导出] 组装导出表单失败：', error);
       say('导出失败：' + error.message, 'error');
-      console.error('[成绩导出]', error);
-    } finally {
+      const native = findNativeExport();
+      if (native) {
+        native.click();
+        say('已改为打开学校自带的导出弹窗，请在里面点「导出」', 'error');
+      }
       run.disabled = false;
+      return;
     }
   });
+
+  // 下面是早期版本自己构造请求的路径，保留作最后兜底（排查用，正常不会走到）
 
   console.log('[成绩导出] 面板已就绪：右下角「📊 导出成绩」');
 })();
