@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import argparse
 import html
+import math
+from urllib.parse import urlsplit
 import json
 import re
 import sys
@@ -77,54 +79,83 @@ def normalize(items: object, source: dict[str, str]) -> list[dict[str, object]]:
                 "name": name,
                 "avatar": str(item.get("avatar_url") or "").strip(),
                 "url": str(item.get("html_url") or item.get("url") or source["repo"]).strip(),
-                "contributions": int(contributions) if isinstance(contributions, (int, float)) else None,
+                "contributions": int(contributions) if isinstance(contributions, (int, float)) and math.isfinite(contributions) and contributions >= 0 else None,
                 "source": source["label"],
             }
         )
     return people
 
 
-def collect(sources=SOURCES, fetcher=fetch_json) -> list[dict[str, object]]:
-    """按来源顺序抓取并合并；同一个人在两处都出现时合并提交数。"""
-    merged: dict[str, dict[str, object]] = {}
-    order: list[str] = []
+def collect(sources=SOURCES, fetcher=fetch_json, fallback=()) -> list[dict[str, object]]:
+    """Keep platform attribution; preserve the cached platform on temporary API failures."""
+    people: list[dict[str, object]] = []
+    seen = set()
     for source in sources:
         try:
-            people = normalize(fetcher(source["api"]), source)  # type: ignore[arg-type]
+            items = normalize(fetcher(source["api"]), source)
         except (urllib.error.URLError, TimeoutError, ValueError, json.JSONDecodeError) as error:
             print(f"[contributors] {source['label']} 抓取失败：{error}", file=sys.stderr)
-            continue
-        for person in people:
-            key = str(person["name"]).lower()
-            if key in merged:
-                if person["contributions"]:
-                    existing = merged[key]["contributions"] or 0
-                    merged[key]["contributions"] = int(existing) + int(person["contributions"])
-                continue
-            merged[key] = person
-            order.append(key)
-    return [merged[key] for key in order]
+            items = [person for person in fallback if person.get("source") == source["label"]]
+        for person in items:
+            key = (source["key"], str(person["name"]).lower())
+            if key not in seen:
+                seen.add(key)
+                people.append(person)
+    return people
 
 
 def person_html(person: dict[str, object]) -> str:
     name = html.escape(str(person["name"]), quote=True)
     source = html.escape(str(person["source"]), quote=True)
     contributions = person["contributions"]
-    meta = f"{contributions} 次提交 · {source}" if contributions else source
+    meta = f"{contributions} 次提交" if contributions is not None else "一起完善指南"
     def safe_url(value: object) -> str:
         text = str(value)
-        return html.escape(text, quote=True) if text.startswith("https://") else ""
+        try:
+            parsed = urlsplit(text)
+            valid = parsed.scheme == "https" and bool(parsed.hostname) and not parsed.username and not parsed.password
+        except ValueError:
+            valid = False
+        return html.escape(text, quote=True) if valid else ""
     avatar = safe_url(person["avatar"])
-    url = safe_url(person["url"])
-    picture = (f'<img src="{avatar}" alt="" width="36" height="36" loading="lazy" decoding="async">' if avatar else f'<span class="ujn-contributor__initial">{name[:1].upper()}</span>')
-    return (f'<a class="ujn-contributor" href="{url}" target="_blank" rel="noopener noreferrer">{picture}'
-            f'<span class="ujn-contributor__text"><span class="ujn-contributor__name">{name}</span><span class="ujn-contributor__meta">{meta}</span></span></a>')
+    url = safe_url(person["url"]) or "https://github.com/K-zhaochao/ujn-guide"
+    initial = html.escape(str(person["name"])[:1].upper(), quote=True)
+    picture = (f'<img class="off-glb" src="{avatar}" alt="" width="44" height="44" loading="lazy" decoding="async">' if avatar else f'<span class="ujn-contributor__initial">{initial}</span>')
+    return (f'<a class="ujn-contributor" href="{url}" target="_blank" rel="noopener noreferrer">'
+            f'<span class="ujn-contributor__portrait">{picture}</span>'
+            f'<span class="ujn-contributor__text"><span class="ujn-contributor__name">{name}</span><span class="ujn-contributor__meta">{meta}</span></span>'
+            f'<span class="ujn-contributor__badge">{source}</span></a>')
 
 
 def render(people: list[dict[str, object]]) -> str:
-    if not people:
-        return "\n".join([START, '<p>感谢每一位补充校园信息的同学。<a href="https://github.com/K-zhaochao/ujn-guide">一起完善指南 →</a></p>', END])
-    return "\n".join([START, '<div class="ujn-contributors" aria-label="贡献者">', *(person_html(person) for person in people), '</div>', END])
+    lines = [START, '<div class="ujn-contributors" data-contributors aria-label="贡献者">',
+             '<div class="ujn-contributors__header"><span class="ujn-contributors__eyebrow">一起点亮校园指南</span>',
+             '<div class="ujn-contributors__switch" role="tablist" aria-label="贡献者平台" hidden><span class="ujn-contributors__slider" aria-hidden="true"></span>']
+    for index, source in enumerate(SOURCES):
+        count = sum(person["source"] == source["label"] for person in people)
+        lines.append(f'<button type="button" role="tab" id="contributors-tab-{source["key"]}" aria-controls="contributors-panel-{source["key"]}" aria-selected="{str(index == 0).lower()}" tabindex="{0 if index == 0 else -1}" data-platform="{source["key"]}">{source["label"]}<span class="ujn-contributors__count">{count}</span></button>')
+    lines.append('</div></div>')
+    for source in SOURCES:
+        members = [person for person in people if person["source"] == source["label"]]
+        lines.append(f'<section class="ujn-contributors__panel" id="contributors-panel-{source["key"]}" role="tabpanel" aria-labelledby="contributors-tab-{source["key"]}" data-platform="{source["key"]}" tabindex="0">')
+        lines.append(f'<p class="ujn-contributors__caption">{source["label"]} · {len(members)} 位贡献者</p><div class="ujn-contributors__cards">')
+        lines.extend(person_html(person) for person in members)
+        if not members:
+            lines.append(f'<p class="ujn-contributors__empty">感谢每一位补充校园信息的同学。<a href="{source["repo"]}" target="_blank" rel="noopener noreferrer">一起完善指南 →</a></p>')
+        lines.append('</div></section>')
+    # Inert JSON cache survives transient source failures. Escape '<' to prevent closing the script element.
+    cache = json.dumps(people, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
+    lines.extend([f'<script type="application/json" data-contributors-cache>{cache}</script>', '</div>', END])
+    return "\n".join(lines)
+
+
+def cached_people(document: str) -> list[dict[str, object]]:
+    match = re.search(r'<script type="application/json" data-contributors-cache>(.*?)</script>', document, re.S)
+    try:
+        items = json.loads(match[1]) if match else []
+        return [item for item in items if isinstance(item, dict) and all(key in item for key in ("name", "avatar", "url", "contributions", "source"))] if isinstance(items, list) else []
+    except (ValueError, TypeError):
+        return []
 
 
 def replace_block(document: str, block: str) -> str:
@@ -147,7 +178,7 @@ def main() -> None:
         print("[contributors] 标记区正常")
         return
 
-    people = collect()
+    people = collect(fallback=cached_people(document))
     updated = replace_block(document, render(people))
     if updated != document:
         PAGE.write_text(updated, encoding="utf-8", newline="\n")

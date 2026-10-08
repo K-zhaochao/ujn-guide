@@ -56,7 +56,7 @@ npm run verify:links    # 链接 / 锚点 / 资源体检（也已接进 npm run 
 
 ## 实用工具：教务成绩导出
 
-网页仅提供本站输入账密的导出操作：登录后读取当前学生可查询的学年、学期，选择范围后下载 Excel。需部署独立的内存会话服务，详见 tools/grade-export/README.md。不再提供浏览器脚本、本地命令行或安装器；旧源码在 _archive/grade-export-legacy/ 留存。
+成绩导出采用纯静态网页：在学校官网登录，回到本站选择范围，原生表单向学校提交，文件由学校直接下载；不部署本站 API，不接收账号密码。查询选项可手动填写或从本地保存的查询 HTML 页面读取，详见 tools/grade-export/README.md。真实下载取决于学校的跨站会话和接口策略，尚待真实账号验收。旧插件、CLI 与安装器在 _archive/grade-export-legacy/ 留存。
 
 ## 目录结构
 
@@ -104,4 +104,4 @@ site/                 构建产物（忽略）
 
 宠物投稿后台相关工具、测试和本机材料集中在 `_archive/pet-submission-backend/`（已忽略），可整体移走；静态图鉴保留。
 
-`npm run build` 后执行 `npm run dev:site`，打开 `http://127.0.0.1:8787/tools/grade-export/` 使用网页表单。生产环境的 HTTPS 反向代理见 `tools/grade-export/README.md`；GitHub Pages 只托管静态部分，不运行该服务。
+`npm run build` 构建静态页面，使用 MkDocs 预览或发布到 GitHub Pages；网页不依赖成绩 API。

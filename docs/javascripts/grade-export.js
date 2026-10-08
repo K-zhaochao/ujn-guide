@@ -58,147 +58,97 @@
       destroy: function () { document.removeEventListener('click', outside); close(); }
     };
   }
+  // Native cross-origin form navigation: no fetch, API, session token or school-cookie access.
+  var COLUMNS = [
+  'xnmmc@学年', 'xqmmc@学期', 'kch@课程代码', 'kcmc@课程名称', 'kcxzmc@课程性质',
+  'xf@学分', 'cjbz@成绩备注', 'jd@绩点', 'ksxz@成绩性质', 'sfxwkc@是否学位课程',
+  'kkbmmc@开课学院', 'kcbj@课程标记', 'kclbmc@课程类别', 'kcgsmc@课程归属',
+  'jxbmc@教学班', 'jsxm@任课教师', 'khfsmc@考核方式', 'xh@学号', 'xm@姓名',
+  'xsbjmc@学生标记', 'cj@成绩', 'cjsfzf@是否成绩作废', 'xfjd@学分绩点',
+];
+  function optionsInPage(source, name) {
+    var found = [], seen = new Set();
+    function attr(text, key) { var hit = new RegExp('(?:^|\\s)' + key + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))', 'i').exec(text); return hit ? hit[1] ?? hit[2] ?? hit[3] : ''; }
+    function plain(text) { var node = document.createElement('textarea'); node.innerHTML = text.replace(/<[^>]*>/g, ''); return node.value.trim().slice(0, 160); }
+    var selects = String(source).matchAll(/<select\b([^>]*)>([\s\S]*?)<\/select>/gi);
+    for (var select of selects) {
+      if (attr(select[1], 'name') !== name && attr(select[1], 'id') !== name) continue;
+      for (var item of select[2].matchAll(/<option\b([^>]*)>([\s\S]*?)<\/option>/gi)) {
+        var value = plain(attr(item[1], 'value'));
+        if (!(name === 'xnm' ? /^\d{4}$/ : /^\d{1,3}$/).test(value) || seen.has(value)) continue;
+        if (/(?:^|\s)disabled(?:\s|=|$)/i.test(item[1])) continue;
+        found.push({ value: value, label: plain(item[2]) || value, selected: /(?:^|\s)selected(?:\s|=|$)/i.test(item[1]) }); seen.add(value);
+        if (found.length > 64) throw new Error('页面选项过多，请核对选择的文件。');
+      }
+    }
+    return found;
+  }
   function init() {
-    var form = document.getElementById('grade-export-form');
-    if (form === activeForm) return;
-    if (cleanup) cleanup(); activeForm = form; cleanup = null;
-    if (!form) return;
-    var submit = form.querySelector('[type="submit"]'), cancel = form.querySelector('[data-grade-cancel]');
-    var status = form.querySelector('[data-grade-status]'), password = form.elements.password;
-    var loginPanel = form.querySelector('[data-grade-login]'), exportPanel = form.querySelector('[data-grade-export]');
-    var logout = form.querySelector('[data-grade-logout]');
-    var base = new URL('../../api/grade-export/', window.location.href), configValid = true;
-    try {
-      var configNode = document.getElementById('ujn-grade-config');
-      var apiUrl = configNode && JSON.parse(configNode.textContent).apiUrl;
-      if (apiUrl) {
-        base = new URL(apiUrl);
-        if (base.username || base.password || base.search || base.hash || !base.pathname.endsWith('/api/grade-export/') || (base.protocol !== 'https:' && !(base.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(base.hostname)))) throw new Error();
-      }
-    } catch (_) { configValid = false; }
-    var retry = form.querySelector('[data-grade-retry]'), showPassword = form.querySelector('[data-grade-password-toggle]');
-    if (showPassword) showPassword.addEventListener('click', function () { var showing = password.type === 'password'; password.type = showing ? 'text' : 'password'; showPassword.setAttribute('aria-pressed', String(showing)); showPassword.textContent = showing ? '隐藏密码' : '显示密码'; });
-    function hidePassword() { password.type = 'password'; if (showPassword) { showPassword.setAttribute('aria-pressed', 'false'); showPassword.textContent = '显示密码'; } }
-    var enabled = false, busy = false, token = '', ready = false, controller = null, expiryTimer = null, alive = true;
-    var picks = {};
-    form.querySelectorAll('[data-grade-select]').forEach(function (widget) {
-      var name = widget.dataset.gradeSelect; picks[name] = picker(widget, name === 'year' ? '登录后读取学年' : name === 'term' ? '登录后读取学期' : '选择登录方式');
-    });
-    picks.mode.set([{ value: 'sso', label: '统一身份认证（学校入口）' }, { value: 'direct', label: '教务系统直接登录（正方）' }], 'sso');
+    var tool = document.getElementById('grade-export-tool');
+    if (tool === activeForm) return;
+    if (cleanup) cleanup(); activeForm = tool; cleanup = null;
+    if (!tool) return;
+    var alive = true, revision = 0, confirmed = false;
+    var form = tool.querySelector('form'), login = tool.querySelector('[data-grade-login]');
+    var status = tool.querySelector('[data-grade-status]'), note = tool.querySelector('[data-grade-options-note]');
+    var year = form.elements.xnm, upload = tool.querySelector('[data-grade-import]'), submit = form.querySelector('[type="submit"]');
+    var term = picker(form.querySelector('[data-grade-select="term"]'), '请选择学期');
+    var manual = [{ value: '', label: '请选择学期' }, { value: '3', label: '第一学期' }, { value: '12', label: '第二学期' }, { value: '16', label: '短学期' }];
     function message(text, kind) { if (!alive) return; status.textContent = text; status.dataset.kind = kind || 'info'; }
-    function sync() {
-      submit.disabled = busy || !enabled || (!!token && !ready); submit.textContent = token ? '导出 Excel 成绩单' : '登录并读取可查询学期';
-      cancel.hidden = !busy; if (showPassword) showPassword.disabled = busy || !enabled || !!token; form.setAttribute('aria-busy', String(busy));
-      ['user', 'password'].forEach(function (name) { form.elements[name].disabled = busy || !enabled || !!token; });
-      picks.mode.disabled(busy || !enabled || !!token);
-      picks.year.disabled(busy || !token); picks.term.disabled(busy || !token || !ready); logout.disabled = busy;
-      loginPanel.hidden = !!token; exportPanel.hidden = !token;
-      form.querySelector('[data-grade-step="login"]').toggleAttribute('aria-current', !token);
-      form.querySelector('[data-grade-step="export"]').toggleAttribute('aria-current', !!token);
-      form.querySelector('[data-grade-step="' + (token ? 'export' : 'login') + '"]').setAttribute('aria-current', 'step');
+    function sync() { submit.disabled = !confirmed || !/^\d{4}$/.test(year.value) || !/^\d{1,3}$/.test(form.elements.xqm.value); }
+    function setStep(exporting) {
+      tool.querySelectorAll('[data-grade-step]').forEach(function (node) { if (node.dataset.gradeStep === (exporting ? 'export' : 'login')) node.setAttribute('aria-current', 'step'); else node.removeAttribute('aria-current'); });
     }
-    function releaseToken(value) {
-      if (!value) return;
-      fetch(new URL('logout', base).href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-UJN-Grade-Export': '1' }, body: JSON.stringify({ sessionToken: value }), credentials: 'omit', cache: 'no-store', keepalive: true }).catch(function () {});
+    function manualOptions() {
+      revision++; term.set(manual, ''); note.textContent = '按官网成绩查询页填写；这里不会自动读取账号的学年和学期。'; sync();
     }
-    function resetSession() {
-      var previous = token; token = ''; ready = false; clearTimeout(expiryTimer); password.value = ''; hidePassword();
-      picks.year.set([], ''); picks.term.set([], ''); releaseToken(previous); sync();
-    }
-    function validPeriods(data) {
-      return data && ['years', 'terms'].every(function (key) { return Array.isArray(data[key]) && data[key].length && data[key].every(function (option) { return typeof option.value === 'string' && typeof option.label === 'string'; }); })
-        && data.years.some(function (option) { return option.value === data.year; }) && data.terms.some(function (option) { return option.value === data.term; });
-    }
-    function applyPeriods(data) {
-      if (!validPeriods(data)) throw new Error('学校未返回完整的可查询学年、学期，请重新登录。');
-      picks.year.set(data.years, data.year); picks.term.set(data.terms, data.term); ready = true;
-    }
-    async function request(action, payload) {
-      var current = new AbortController(); controller = current;
-      var timer = setTimeout(function () { current.abort(); }, 80000);
-      try {
-        var body = JSON.stringify(payload); if ('password' in payload) payload.password = '';
-        var response = await fetch(new URL(action, base).href, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-UJN-Grade-Export': '1' }, body: body, signal: current.signal, credentials: 'omit', cache: 'no-store' }); body = '';
-        if (current.signal.aborted || !alive) throw new DOMException('Cancelled', 'AbortError');
-        if (!response.ok) {
-          var errorData = await response.json().catch(function () { return {}; });
-          if (response.status === 401 || errorData.sessionExpired) resetSession();
-          throw new Error(errorData.message || '操作失败（HTTP ' + response.status + '）');
-        }
-        var result;
-        if (action === 'export') {
-          var type = (response.headers.get('content-type') || '').toLowerCase();
-          if (!/application\/(vnd\.ms-excel|octet-stream)/.test(type)) throw new Error('服务返回的不是 Excel 文件，请检查部署配置。');
-          result = { headers: response.headers, blob: await response.blob() };
-        } else result = await response.json();
-        if (current.signal.aborted || !alive) {
-          if (action === 'login') releaseToken(result.sessionToken);
-          throw new DOMException('Cancelled', 'AbortError');
-        }
-        return result;
-      } finally {
-        clearTimeout(timer); payload.password = ''; if (controller === current) controller = null;
-      }
-    }
-    async function loadTerms() {
-      if (!token || busy) return; ready = false; picks.term.set([], ''); busy = true; sync(); message('正在读取所选学年的可查询学期…');
-      try { applyPeriods(await request('periods', { sessionToken: token, year: form.elements.year.value })); message('请选择学期，然后导出成绩。'); }
-      catch (error) { if (error.name === 'AbortError') resetSession(); message(error.name === 'AbortError' ? '查询已取消或超时，请重新登录。' : error.message, 'error'); }
-      finally { busy = false; if (alive) sync(); }
-    }
-    form.elements.year.addEventListener('change', loadTerms);
-    logout.addEventListener('click', function () { resetSession(); message('已退出，请填写账号密码重新登录。'); });
-    cancel.addEventListener('click', function () { if (controller) controller.abort(); });
-    form.addEventListener('submit', async function (event) {
-      event.preventDefault(); if (!enabled || busy || !form.reportValidity() || (token && !ready)) return;
-      var loggingIn = !token, account = form.elements.user.value.trim();
-      var payload = loggingIn ? { user: account, password: password.value, mode: form.elements.mode.value } : { sessionToken: token, year: form.elements.year.value, term: form.elements.term.value };
-      password.value = ''; hidePassword(); busy = true; sync(); message(loggingIn ? '正在登录并读取账号可查询的学年、学期…' : '正在生成成绩单，请稍候…');
-      try {
-        var response = await request(loggingIn ? 'login' : 'export', payload);
-        if (loggingIn) {
-          var data = response;
-          if (!alive) { releaseToken(data.sessionToken); return; }
-          if (typeof data.sessionToken !== 'string' || !/^[\w-]{43}$/.test(data.sessionToken)) throw new Error('登录会话返回异常，请重试。');
-          token = data.sessionToken; applyPeriods(data);
-          form.querySelector('[data-grade-account]').textContent = '已登录 · ' + account;
-          expiryTimer = setTimeout(function () { if (controller) controller.abort(); resetSession(); message('登录会话已到期，请重新登录。', 'error'); }, Math.min(600, Math.max(1, data.expiresIn || 600)) * 1000);
-          message('已读取账号可查询的学年、学期。选择范围后导出。', 'success');
-        } else {
-          var blob = response.blob; if (!alive) return;
-          if (!blob.size) throw new Error('学校返回了空文件，请换一个学年学期。');
-          var name = '济大成绩单.xls', match = /filename\*=UTF-8''([^;]+)/i.exec(response.headers.get('content-disposition') || '');
-          if (match) { try { name = decodeURIComponent(match[1]); } catch (_) {} }
-          name = name.replace(/[\\/:*?"<>|\x00-\x1f]/g, '_');
-          var url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = name;
-          document.body.appendChild(link); link.click(); link.remove(); setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-          message('已开始下载：' + name, 'success');
-        }
-      } catch (error) {
-        if (loggingIn || error.name === 'AbortError') resetSession();
-        message(error.name === 'AbortError' ? '操作已取消或超时，请重新登录。' : error.message, 'error');
-      } finally { payload.password = ''; password.value = ''; busy = false; if (alive) sync(); }
+    term.set(manual, '');
+    tool.querySelector('[data-grade-continue]').addEventListener('click', function () {
+      confirmed = true; form.hidden = false; login.hidden = true; setStep(true); sync(); year.focus();
+      message('选择与官网一致的学年、学期，然后提交导出。');
     });
-    var probe = null, probeTimer = null;
-    function connect() {
-      if (probe) probe?.abort(); clearTimeout(probeTimer);
-      var currentProbe = new AbortController(); probe = currentProbe;
-      probeTimer = setTimeout(function () { currentProbe.abort(); }, 5000);
-      enabled = false; sync(); message('正在连接成绩导出…'); if (retry) retry.hidden = true;
-      (configValid ? fetch(new URL('status', base).href, { credentials: 'omit', cache: 'no-store', signal: currentProbe.signal }) : Promise.reject(new Error()))
-        .then(function (response) { if (!response.ok) throw new Error(); return response.json(); })
-        .then(function (data) { if (!alive || probe !== currentProbe) return; if (data.enabled !== true) throw new Error(); enabled = true; sync(); message('填写账号密码，登录后选择学年和学期。'); })
-        .catch(function () { if (!alive || probe !== currentProbe) return; enabled = false; sync(); message('成绩导出暂未开放，请稍后再试。', 'error'); if (retry) retry.hidden = false; })
-        .finally(function () { if (probe === currentProbe) clearTimeout(probeTimer); });
-    }
-    if (retry) retry.addEventListener('click', connect); connect();
-    cleanup = function () {
-      alive = false; password.value = ''; if (controller) controller.abort(); probe?.abort(); clearTimeout(probeTimer); clearTimeout(expiryTimer);
-      releaseToken(token); token = ''; Object.values(picks).forEach(function (pick) { pick.destroy(); }); window.removeEventListener('pagehide', cleanupPage);
-    };
-    function cleanupPage() { if (cleanup) cleanup(); activeForm = null; cleanup = null; }
-    window.addEventListener('pagehide', cleanupPage);
+    tool.querySelector('[data-grade-reset]').addEventListener('click', function () {
+      confirmed = false; revision++; form.reset(); term.set(manual, ''); form.querySelector('[data-grade-fields]').replaceChildren();
+      note.textContent = '按官网成绩查询页填写；这里不会自动读取账号的学年和学期。'; form.hidden = true; login.hidden = false; setStep(false); sync();
+      message('请在官网切换账号，再回到本页继续。'); tool.querySelector('[data-grade-official]').focus();
+    });
+    year.addEventListener('input', manualOptions); form.elements.xqm.addEventListener('change', sync);
+    upload.addEventListener('change', async function () {
+      var file = upload.files && upload.files[0], current = ++revision;
+      if (!file) return;
+      // Clear previous account/range before parsing so an invalid file never leaves stale choices enabled.
+      year.value = ''; term.set(manual, ''); sync();
+      note.textContent = '按官网成绩查询页填写；这里不会自动读取账号的学年和学期。';
+      try {
+        if (file.size > 2 * 1024 * 1024) throw new Error('请选择小于 2 MB 的成绩查询 HTML 页面。');
+        if (!/\.html?$/i.test(file.name)) throw new Error('请选择 HTML 格式的成绩查询页面。');
+        var text = await file.text(); if (!alive || current !== revision) return;
+        var years = optionsInPage(text, 'xnm'), terms = optionsInPage(text, 'xqm'); text = '';
+        if (!years.length || !terms.length) throw new Error('该文件没有学年、学期下拉框，请按官网手动填写。');
+        var selectedYear = years.find(function (item) { return item.selected; });
+        if (!selectedYear && years.length === 1) selectedYear = years[0];
+        if (!selectedYear) throw new Error('页面未标明选中的学年，请先在官网选择学年并重新保存，或手动填写。');
+        year.value = selectedYear.value;
+        var selectedTerm = terms.find(function (item) { return item.selected; });
+        term.set([{ value: '', label: '请选择学期' }].concat(terms), selectedTerm ? selectedTerm.value : '');
+        note.textContent = '已读取该文件中 ' + selectedYear.label + ' 的学期选项；修改学年后请重新核对官网。'; sync();
+        message('选项已从文件读取，尚未向学校提交导出。');
+      } catch (error) { if (alive && current === revision) message(error.message || '页面读取失败，请手动填写。', 'error'); }
+      finally { if (alive && current === revision) upload.value = ''; }
+    });
+    form.addEventListener('submit', function (event) {
+      if (!confirmed || !/^\d{4}$/.test(year.value) || !/^\d{1,3}$/.test(form.elements.xqm.value)) { event.preventDefault(); message('请先在官网登录，并选择学年和学期。', 'error'); return; }
+      var host = form.querySelector('[data-grade-fields]'); host.replaceChildren();
+      function field(name, value) { var input = document.createElement('input'); input.type = 'hidden'; input.name = name; input.value = value; host.appendChild(input); }
+      field('dcclbh', 'JW_N305005_XSCXCJ'); field('pxfs', '0');
+      COLUMNS.forEach(function (column) { field('exportModel.selectCol', column); });
+      field('exportModel.exportWjgs', 'xls'); field('fileName', year.value + ' 学年成绩单');
+      // Leave the trusted native form submission untouched. A new top-level school page handles the response.
+      message('请求将交给学校处理。请查看新打开的学校页面和下载列表；本站不判断下载是否成功。');
+    });
+    sync(); cleanup = function () { alive = false; revision++; term.destroy(); };
   }
   if (typeof document$ !== 'undefined') document$.subscribe(init);
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  else if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();

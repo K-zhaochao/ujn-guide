@@ -11,9 +11,21 @@ hide:
 感谢一起补充、纠错和维护校园指南的同学。
 
 <!-- contributors:start -->
-<div class="ujn-contributors" aria-label="贡献者">
-<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="36" height="36" loading="lazy" decoding="async"><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">141 次提交 · GitHub</span></span></a>
-<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">141 次提交 · Gitee</span></span></a>
+<div class="ujn-contributors" data-contributors aria-label="贡献者">
+<div class="ujn-contributors__header"><span class="ujn-contributors__eyebrow">一起点亮校园指南</span>
+<div class="ujn-contributors__switch" role="tablist" aria-label="贡献者平台" hidden><span class="ujn-contributors__slider" aria-hidden="true"></span>
+<button type="button" role="tab" id="contributors-tab-github" aria-controls="contributors-panel-github" aria-selected="true" tabindex="0" data-platform="github">GitHub<span class="ujn-contributors__count">1</span></button>
+<button type="button" role="tab" id="contributors-tab-gitee" aria-controls="contributors-panel-gitee" aria-selected="false" tabindex="-1" data-platform="gitee">Gitee<span class="ujn-contributors__count">1</span></button>
+</div></div>
+<section class="ujn-contributors__panel" id="contributors-panel-github" role="tabpanel" aria-labelledby="contributors-tab-github" data-platform="github" tabindex="0">
+<p class="ujn-contributors__caption">GitHub · 1 位贡献者</p><div class="ujn-contributors__cards">
+<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><img class="off-glb" src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">142 次提交</span></span><span class="ujn-contributor__badge">GitHub</span></a>
+</div></section>
+<section class="ujn-contributors__panel" id="contributors-panel-gitee" role="tabpanel" aria-labelledby="contributors-tab-gitee" data-platform="gitee" tabindex="0">
+<p class="ujn-contributors__caption">Gitee · 1 位贡献者</p><div class="ujn-contributors__cards">
+<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial">D</span></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">141 次提交</span></span><span class="ujn-contributor__badge">Gitee</span></a>
+</div></section>
+<script type="application/json" data-contributors-cache>[{"name": "K-zhaochao", "avatar": "https://avatars.githubusercontent.com/u/179425934?v=4", "url": "https://github.com/K-zhaochao", "contributions": 142, "source": "GitHub"}, {"name": "Draven", "avatar": "", "url": "https://gitee.com/Draven323/ujn-guide", "contributions": 141, "source": "Gitee"}]</script>
 </div>
 <!-- contributors:end -->
 
@@ -41,19 +53,23 @@ hide:
 <details class="ujn-maintain" markdown="1">
 <summary>想直接补充校园内容？查看参与维护的方法</summary>
 
-## 3. ✏️ 在线修改内容
+<span id="3"></span>
+
+## ✏️ 在线修改内容
 
 GitHub 和 Gitee 的网页版都能直接编辑文件，适合改错别字、更新电话、换图片这类小改动：
 
 1. 打开仓库并进到对应文件，例如 `docs/site-guide/main-campus/canteen-1.md`；
 2. 点右上角的铅笔图标（GitHub）或「编辑」（Gitee）；
 3. 改完在页面下方填写提交说明：有仓库写权限就直接提交到 `main`（或你自己的分支），没有写权限就选择「新建分支并发起 PR / Pull Request」；
-4. 推送或合并进 `main` 之后，站点会自动重新构建发布，**你不需要做任何部署操作**。
+4. 改动合并进 GitHub 的 `main` 后，站点会自动构建发布；Gitee 的改动由维护者同步到 GitHub 后发布。
 
 !!! warning "两条底线"
     不要提交密钥、`.env`、证书；不要直接改 `site/` 目录（它是构建产物，下次构建会被覆盖）。
 
-## 4. 🧑💻 在本地改（开发者 / 想大改内容）
+<span id="4"></span>
+
+## 🧑💻 在本地改（开发者 / 想大改内容）
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -74,9 +90,11 @@ python -m mkdocs serve --dev-addr 127.0.0.1:8000   # 打开 http://127.0.0.1:800
   [GitHub](https://github.com/K-zhaochao/ujn-guide/pulls) 或
   [Gitee](https://gitee.com/Draven323/ujn-guide/pulls) 发起 Pull Request。
 
-改动进入 `main` 后由仓库里的自动流程构建发布，**贡献者不需要服务器访问权限，也不需要了解站点怎么部署**。目录结构、构建脚本和验证命令的说明在仓库根目录的 `BUILDING.md`。
+改动进入 GitHub 的 `main` 后由仓库里的自动流程构建发布，**贡献者不需要服务器访问权限，也不需要了解站点怎么部署**。目录结构、构建脚本和验证命令的说明在仓库根目录的 `BUILDING.md`。
 
-## 5. 🐾 新增一只猫（卡牌墙专用）
+<span id="5"></span>
+
+## 🐾 新增一只猫（卡牌墙专用）
 
 猫猫卡牌墙是**构建时生成**的，你只维护「猫猫页面 + 照片」两样东西：
 
@@ -114,7 +132,9 @@ python scripts/pets/build_gallery.py      # 重写卡牌区
 卡牌封面用缩略图、点开弹窗才加载原图，所以照片可以放心存高清（省流量的同时不牺牲点开后的清晰度）。
 脚本会扫描 `docs/pets/cats/*.md`，重写 `docs/pets/index.md` 里两个 `pets:deck` 标记之间的卡牌区。展示顺序由脚本顶部的 `ORDER` 决定，**没列进去的新猫自动排在最后**，所以新增一般不用管顺序。忘了跑脚本没关系：`npm run test:build` 会报「卡牌区不是最新的」或「缩略图缺失」。
 
-## 6. ❓ 常见问题
+<span id="6"></span>
+
+## ❓ 常见问题
 
 | 现象 | 处理 |
 | --- | --- |
@@ -128,7 +148,9 @@ python scripts/pets/build_gallery.py      # 重写卡牌区
 | CI 提示卡牌区不是最新 | 本地执行 `python scripts/pets/build_gallery.py` 后一起提交 |
 | 本地改了文件页面没变 | `mkdocs serve` 的热重载在部分环境不生效，重启一次即可 |
 
-## 7. ⚠️ 不要做的事
+<span id="7"></span>
+
+## ⚠️ 不要做的事
 
 - 不要提交密钥、`.env`、证书或服务器相关材料（提交前用 `git status` 自查）；
 - 不要直接修改 `site/`；

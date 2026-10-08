@@ -251,11 +251,10 @@ $env:SITE_URL='https://k-zhaochao.github.io/ujn-guide/'
 npm run build
 ```
 
-反馈页第 2 节的 issue 列表由浏览器直接读 GitHub 公开接口，**要求仓库公开**（匿名读公开仓库不需要
+反馈页同学留言区的 issue 列表由浏览器直接读 GitHub 公开接口，**要求仓库公开**（匿名读公开仓库不需要
 token；私有仓库必须带 token，而 token 不能放在静态页面里）。GitHub Pages 不设 CSP，无需额外配置；
 若改回自建 Nginx 并启用 CSP，需要在 `connect-src` 里放行 `https://api.github.com`，否则列表会显示
-「暂时读不到」。想要「页面内评论区」而不是列表，可换成 giscus（需公开仓库 + 安装 giscus App +
-开启 Discussions）。
+「暂时读不到」。本站已提供 Issues 列表与按需展开回复；若以后选择独立的讨论系统，可接入 giscus（需公开仓库、安装 giscus App 并开启 Discussions）。
 
 `npm run test:frontend` 使用 Vitest + jsdom 运行前端脚本测试：猫猫图鉴的分页与相册弹窗、
 反馈页的 GitHub issue 列表（用假 fetch）、综测计算器、MathJax 的按需加载与即时导航排版、
@@ -265,11 +264,11 @@ AI 助手与 Cloudflare AI Worker（源码在 `workers/ai-worker.js`）。它不
 
 宠物投稿后台的发布工具、本地代理、测试与运维材料已归档到 `_archive/pet-submission-backend/`，不参与当前构建。静态宠物图鉴不变。
 
-网页成绩导出是独立的短时内存会话 Node 服务，不依赖旧宠物后台或数据库。运行 `npm run build` 后执行 `npm run dev:site`，打开 http://127.0.0.1:8787/tools/grade-export/ 。`mkdocs serve` 只提供静态预览，其表单会显示未连接服务。
+成绩导出页面为纯静态实现：学校官网登录 → 本站选择范围 → 浏览器原生 POST 到学校导出接口。没有本站登录 API、学校 Cookie 读取或 GRADE_EXPORT_API_URL 配置。MkDocs 可以直接预览界面。
 
-统一认证使用 `/sso/driotlogin` 的 CAS 流；正方直接登录使用文档所述的 RSA 流。网页先登录，再从当前账号的教务查询页面读取学年和学期；切换学年时重新查询学期。旧脚本、CLI、安装器和二进制发布工作流已归档，构建不再同步这些下载资源。
+手动学年/学期必须与官网一致；可导入保存的查询 HTML 来提取已有选项，切换账号/学年清空旧状态。真实下载仍取决于学校 Cookie 的跨站 POST 策略及接口校验，详见 tools/grade-export/README.md。旧独立服务模块留存但不参与网页操作，旧插件、CLI、安装器和二进制发布工作流继续归档。
 
-部署入口：`tools/grade-export/README.md`。GitHub Pages 只托管静态页面，不运行该服务；网页导出在同源服务部署后启用。
+GitHub Pages 发布正常静态构建即可，不部署成绩 API。
 
 ## 统一验证
 
@@ -288,6 +287,70 @@ AI 助手与 Cloudflare AI Worker（源码在 `workers/ai-worker.js`）。它不
 
 Pages checkout 使用 `fetch-depth: 0`，更新生成器读取完整非合并提交，不限 30 条；前端每页 10 条，无 JavaScript 时保留全部记录。维护说明与测试证据放在仓库文档或本地 reports，不写进同学使用的页面。
 
-反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者采用横向紧凑卡片与主题前景色。
+反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者按 GitHub/Gitee 分组，滑动指示器切换平台；来源各自计数、不混加两端提交。构建时获取、访客零请求；单个平台暂时失败时保留缓存。无 JavaScript 时显示两组名单。
 
-Pages 成绩导出需在仓库变量中配置 `GRADE_EXPORT_API_URL`，并在独立 HTTPS API 服务设置准确 `GRADE_ALLOWED_ORIGINS`。部署步骤见 `tools/grade-export/README.md`。
+Pages 成绩导出无需 API 配置；详见 tools/grade-export/README.md。
+
+## Gitee 更新同步到 GitHub Pages
+
+目标链路：Gitee main 合并贡献 → GitHub main 同步 → pages.yml 构建并部署。
+
+先统一两端历史。目前 Gitee main 还在 c4e4cb3，GitHub 已有后续提交。先把最新 GitHub main 正常推送到 Gitee 一次（git push gitee main，不加 force）；之后以 Gitee 为内容入口，GitHub 为部署镜像。若已有分叉，人工合并冲突后再启用同步，不覆盖任意一端的独有提交。
+
+### 方法一：Gitee 推送镜像
+
+若账号的仓库管理提供「仓库镜像管理 / 推送镜像」，选 **Gitee → GitHub 的推送镜像**，目标仓库 https://github.com/K-zhaochao/ujn-guide.git，配置 GitHub 身份与访问令牌。不要选择反方向的拉取镜像。功能开放及收费情况以当前账号界面为准。
+
+令牌仅授予目标仓库所需的 Contents 写入；同步 .github/workflows/ 的提交还需 Workflows 写入权限。GitHub main 的分支保护也必须允许该身份。令牌只填在镜像配置，不写进仓库、网页、URL 或说明截图。
+
+GitHub 仓库 Settings → Pages → Build and deployment → Source 选 GitHub Actions。推送镜像到 GitHub main 的提交会触发现有 Pages workflow。别人创建 PR 后仍需合并进 Gitee main，单纯 fork 或创建 PR 不更新主站。
+
+### 方法二：GitHub Actions 定时拉取
+
+以下是待启用模板，**本轮未安装定时同步任务**。先统一两端 main，再将模板保存为 .github/workflows/gitee-sync.yml 并提交 GitHub。一般内容更新可使用仓库 GITHUB_TOKEN；分支保护或工作流文件写入要求另行适配限定权限的 GitHub App/令牌。
+
+```yaml
+name: Sync Gitee to GitHub
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: gitee-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Fast-forward main from Gitee
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags https://gitee.com/Draven323/ujn-guide.git main:refs/remotes/gitee/main
+          if git merge-base --is-ancestor refs/remotes/gitee/main HEAD; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git merge --ff-only refs/remotes/gitee/main
+          git push origin HEAD:main
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+      - name: Explicitly start verification and Pages deployment
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run verify.yml --ref main
+          gh workflow run pages.yml --ref main
+```
+
+模板每半小时检查一次，定时触发可能排队延迟；两端分叉时 --ff-only 停止并留下错误，不强推、不丢提交。GITHUB_TOKEN 的 push 默认不触发另一个 push workflow，因此模板显式调用 workflow_dispatch；忽略这一步会出现“代码同步了但页面未部署”。公开仓库的定时任务长期无活动可能被停用，需要在 Actions 中恢复。
+
+参考：[GitHub 工作流触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)、[Gitee 官方镜像说明](https://blog.gitee.com/2021/07/15/repo-mirror/)、[GitHub 访问令牌](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)。

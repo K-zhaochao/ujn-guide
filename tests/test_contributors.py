@@ -39,15 +39,16 @@ class NormalizeTests(unittest.TestCase):
 
 
 class CollectTests(unittest.TestCase):
-    def test_merges_same_person_across_sources(self) -> None:
+    def test_preserves_same_person_in_each_platform(self) -> None:
         def fetcher(url: str) -> object:
             if url == "gh":
                 return [{"login": "Draven", "contributions": 5, "avatar_url": "a", "html_url": "u"}]
             return [{"login": "draven", "contributions": 7, "avatar_url": "b", "html_url": "u2"}]
 
         people = contributors.collect((GITHUB, GITEE), fetcher)
-        self.assertEqual(len(people), 1, "同一个人（忽略大小写）应当合并成一条")
-        self.assertEqual(people[0]["contributions"], 12)
+        self.assertEqual(len(people), 2)
+        self.assertEqual([person["contributions"] for person in people], [5, 7])
+        self.assertEqual([person["source"] for person in people], ["GitHub", "Gitee"])
 
     def test_a_failing_source_does_not_break_the_other(self) -> None:
         def fetcher(url: str) -> object:
@@ -69,7 +70,7 @@ class RenderTests(unittest.TestCase):
         self.assertIn('class="ujn-contributor" href="https://gh/d"', block)
         self.assertIn('src="https://a/1.png"', block)
         self.assertIn(">Draven<", block)
-        self.assertIn("12 次提交 · GitHub", block)
+        self.assertIn("12 次提交", block)
 
     def test_falls_back_to_initial_when_no_avatar(self) -> None:
         block = contributors.render([{"name": "cat", "avatar": "", "url": "u", "contributions": None, "source": "Gitee"}])
@@ -80,15 +81,15 @@ class RenderTests(unittest.TestCase):
         block = contributors.render([])
         self.assertIn("感谢每一位", block)
         self.assertIn("github.com/K-zhaochao/ujn-guide", block)
-        self.assertNotIn('role="tablist"', block)
+        self.assertIn('role="tablist"', block)
 
 
 class EscapeTests(unittest.TestCase):
     def test_remote_names_and_links_are_not_html_injection(self):
         block = contributors.render([{'name': '<script>x</script>', 'avatar': 'javascript:x', 'url': 'javascript:x', 'contributions': 1, 'source': 'GitHub'}])
         self.assertNotIn('<script>', block)
-        self.assertNotIn('javascript:', block)
-        self.assertNotIn('role="tablist"', block)
+        self.assertNotRegex(block, r'(?:href|src)="javascript:')
+        self.assertIn('role="tablist"', block)
         self.assertIn('ujn-contributor__text', block)
 
 
@@ -133,3 +134,45 @@ class FetchTests(unittest.TestCase):
         payload = b'[{"login": "cat"}]'
         with mock.patch('urllib.request.urlopen', return_value=FakeResponse(payload)):
             self.assertEqual(contributors.fetch_json('https://api.github.com/x'), [{"login": "cat"}])
+
+
+class PlatformTests(unittest.TestCase):
+    def test_both_panels_are_visible_without_javascript(self):
+        block = contributors.render([])
+        self.assertIn('id="contributors-panel-github"', block)
+        self.assertIn('id="contributors-panel-gitee"', block)
+        self.assertNotRegex(block, r'role="tabpanel"[^>]*hidden')
+
+    def test_cache_is_inert_and_round_trips(self):
+        people = [{'name': '</script><script>x</script>', 'avatar': '', 'url': '', 'contributions': 0, 'source': 'Gitee'}]
+        block = contributors.render(people)
+        self.assertNotIn('</script><script>', block)
+        self.assertEqual(contributors.cached_people(block), people)
+
+    def test_failed_platform_preserves_cached_members(self):
+        cached = [{'name': 'cached', 'avatar': '', 'url': '', 'contributions': 10, 'source': 'Gitee'}]
+        def fetcher(url):
+            if url == 'gt': raise ValueError('temporary')
+            return [{'login': 'new', 'contributions': 20}]
+        people = contributors.collect((GITHUB, GITEE), fetcher, cached)
+        self.assertEqual([p['name'] for p in people], ['new', 'cached'])
+
+    def test_page_headings_have_no_leftover_numbering(self):
+        self.assertNotRegex(contributors.PAGE.read_text(encoding='utf8'), r'(?m)^## [3-7]\.')
+        for anchor in range(3, 8):
+            self.assertIn(f'id="{anchor}"', contributors.PAGE.read_text(encoding='utf8'))
+
+
+class LightboxCompatibilityTests(unittest.TestCase):
+    def test_avatar_stays_inside_profile_card_after_actual_plugin_hook(self):
+        from mkdocs_glightbox.plugin import LightboxPlugin
+        from selectolax.lexbor import LexborHTMLParser
+        from types import SimpleNamespace
+        plugin = LightboxPlugin()
+        plugin.load_config({})
+        block = contributors.render([{'name': 'student', 'avatar': 'https://avatars.githubusercontent.com/u/1', 'url': 'https://github.com/student', 'contributions': 10, 'source': 'GitHub'}])
+        rendered = plugin.on_page_content(block, SimpleNamespace(meta={}), {})
+        tree = LexborHTMLParser(rendered)
+        self.assertEqual(len(tree.css('a.ujn-contributor img')), 1)
+        self.assertFalse(tree.css('a.glightbox'))
+        self.assertIn('student', tree.css_first('a.ujn-contributor').text())

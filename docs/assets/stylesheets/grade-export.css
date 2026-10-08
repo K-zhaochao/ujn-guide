@@ -27,7 +27,9 @@
 .grade-export__note { margin: 1.1rem 0 0; padding-top: .8rem; border-top: 1px solid var(--md-default-fg-color--lightest); }
 @media (max-width: 600px) { .grade-export__grid { grid-template-columns: 1fr; } .grade-export { padding: .85rem; } .grade-export__steps { gap: 1rem; } .grade-export__actions .md-button { flex: 1 1 auto; text-align: center; } }
 
-.grade-export__password-toggle { align-self:flex-end; color:var(--md-typeset-a-color); font-size:.65rem; padding:.15rem .2rem; cursor:pointer; }
-.grade-export__password-toggle:disabled { opacity:.5; cursor:default; }
-.grade-export__retry { margin:.6rem 0; }
 .grade-export [hidden] { display:none!important; }
+
+.grade-export__lead { font-weight:700; font-size:.95rem; }
+.grade-export__import { margin:1rem 0; }
+.grade-export__import p { font-size:.7rem; }
+.grade-export input[type="file"] { font-size:.65rem; overflow:hidden; }

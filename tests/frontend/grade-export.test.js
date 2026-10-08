@@ -1,171 +1,121 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest';
+import { exportFields } from '../../tools/grade-export/jwgl-endpoint.mjs';
 
-const source = readFileSync(resolve('docs/javascripts/grade-export.js'), 'utf8');
-const page = readFileSync(resolve('docs/tools/grade-export.md'), 'utf8');
-const html = /<form id="grade-export-form"[\s\S]*?<\/form>/.exec(page)[0];
-const handlers = []; globalThis.document$ = { subscribe: fn => handlers.push(fn) };
-new Function(source)();
+const source = readFileSync('docs/javascripts/grade-export.js', 'utf8');
+const page = readFileSync('docs/tools/grade-export.md', 'utf8');
+const html = page.slice(page.indexOf('<div id="grade-export-tool"'), page.indexOf('<noscript>'));
+const handlers = []; globalThis.document$ = { subscribe: fn => handlers.push(fn) }; new Function(source)();
 const flush = () => new Promise(done => setTimeout(done, 0));
-const json = data => ({ ok: true, json: async () => data });
-const statusResponse = () => json({ enabled: true });
-const sessionToken = 'T'.repeat(43);
-const metadata = () => ({ sessionToken, expiresIn: 600, years: [{ value: '2025', label: '2025-2026 学年' }, { value: '2024', label: '2024-2025 学年' }], terms: [{ value: '3', label: '第一学期' }, { value: '12', label: '第二学期' }], year: '2025', term: '3' });
 const form = () => document.getElementById('grade-export-form');
-const submit = () => form().dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-const widget = name => form().querySelector('[data-grade-select="' + name + '"]');
-const trigger = name => widget(name).querySelector('[role="combobox"]');
-const option = (name, label) => Array.from(widget(name).querySelectorAll('[role="option"]')).find(n => n.textContent === label);
-function boot() { document.body.innerHTML = html; handlers.forEach(fn => fn()); }
-function fill() { form().elements.user.value = '20230001'; form().elements.password.value = 'fixture-secret'; }
-async function loggedIn() { boot(); await flush(); fill(); submit(); await flush(); }
-function key(name, key) { trigger(name).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })); }
-function fileResponse() { return { ok: true, headers: { get: key => key === 'content-type' ? 'application/vnd.ms-excel' : "attachment; filename*=UTF-8''" + encodeURIComponent('2025 成绩单.xls') }, blob: async () => new Blob(['xls']) }; }
-beforeEach(() => {
-  window.history.replaceState({}, '', '/tools/grade-export/');
-  globalThis.fetch = vi.fn().mockImplementation((url) => Promise.resolve(url.endsWith('/status') ? statusResponse() : url.endsWith('/login') ? json(metadata()) : url.endsWith('/logout') ? json({ loggedOut: true }) : fileResponse()));
-  URL.createObjectURL = vi.fn(() => 'blob:fixture'); URL.revokeObjectURL = vi.fn();
-  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-});
-afterEach(() => { document.body.innerHTML = ''; handlers.forEach(fn => fn()); vi.restoreAllMocks(); vi.useRealTimers(); });
+const tool = () => document.getElementById('grade-export-tool');
+const status = () => tool().querySelector('[data-grade-status]').textContent;
+const trigger = () => form().querySelector('[role="combobox"]');
+const input = () => form().elements.xnm;
+const boot = () => { document.body.innerHTML = html; handlers.forEach(fn => fn()); };
+const confirm = () => tool().querySelector('[data-grade-continue]').click();
+const setYear = value => { input().value = value; input().dispatchEvent(new Event('input', { bubbles: true })); };
+const selectTerm = value => { trigger().click(); [...form().querySelectorAll('[role="option"]')].find(n => n.textContent === value).click(); };
+const submit = () => { const event = new Event('submit', { bubbles: true, cancelable: true }); form().dispatchEvent(event); return event; };
+const schoolPage = (year = "2024") => `<select name="xnm"><option value="2025">2025—2026</option><option value="${year}" selected>${year} 学年</option></select><select id="xqm"><option value="">请选择</option><option value="3" selected>第一学期</option><option value="12">第二学期</option><option value="16" disabled>短学期</option></select>`;
+async function upload(text, attrs = {}) {
+ const node = tool().querySelector('[data-grade-import]');
+ Object.defineProperty(node, 'files', { configurable: true, value: [{ name: '成绩.html', size: 1000, text: async () => text, ...attrs }] });
+ node.dispatchEvent(new Event('change', { bubbles: true })); await flush();
+}
+beforeEach(() => { globalThis.fetch = vi.fn(); boot(); });
+afterEach(() => { document.body.innerHTML = ''; handlers.forEach(fn => fn()); vi.restoreAllMocks(); });
 
-describe('two-step grade export page', () => {
-  it('offers only the on-site flow with no plugins, CLI, installers or manual year values', () => {
-    expect(page).not.toMatch(/Tampermonkey|Violentmonkey|install\.|jwgl-export\.mjs|不经本站服务|本地命令行/);
-    boot(); expect(form().elements.year.type).toBe('hidden'); expect(form().querySelector('select')).toBeNull();
-    expect(form().querySelector('[data-grade-export]').hidden).toBe(true);
-  });
-  it('checks the service and enables only the credential stage', async () => {
-    boot(); expect(form().elements.password.disabled).toBe(true); await flush();
-    expect(form().elements.password.disabled).toBe(false); expect(trigger('year').disabled).toBe(true);
-    expect(fetch.mock.calls[0][0]).toMatch(/\/api\/grade-export\/status$/);
-  });
-  it('unavailable service keeps login disabled without offering discontinued tools', async () => {
-    fetch.mockRejectedValue(new Error()); boot(); await flush();
-    expect(form().elements.password.disabled).toBe(true); expect(form().textContent).toContain('成绩导出暂未开放');
-    expect(form().textContent).not.toContain('本地工具');
-  });
-  it('logs in once, immediately clears password, and displays school-only options without downloading yet', async () => {
-    const storage = vi.spyOn(Storage.prototype, 'setItem'); boot(); await flush(); fill(); submit(); submit();
-    expect(form().elements.password.value).toBe(''); expect(form().getAttribute('aria-busy')).toBe('true'); await flush();
-    expect(fetch).toHaveBeenCalledTimes(2);
-    const opts = fetch.mock.calls[1][1]; expect(JSON.parse(opts.body)).toEqual({ user: '20230001', password: 'fixture-secret', mode: 'sso' });
-    expect(fetch.mock.calls[1][0]).toMatch(/\/login$/); expect(opts.credentials).toBe('omit'); expect(opts.headers['X-UJN-Grade-Export']).toBe('1');
-    expect(storage).not.toHaveBeenCalled(); expect(form().outerHTML).not.toContain(sessionToken); expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
-    expect(form().querySelector('[data-grade-login]').hidden).toBe(true); expect(form().querySelector('[data-grade-export]').hidden).toBe(false);
-    expect(form().elements.user.disabled).toBe(true); expect(trigger('year').disabled).toBe(false);
-    expect(widget('year').textContent).toContain('2024-2025 学年'); expect(widget('year').textContent).not.toContain('2026-2027');
-  });
-  it('changes year and fetches that account year-specific terms before allowing export', async () => {
-    await loggedIn();
-    fetch.mockImplementationOnce(() => Promise.resolve(json({ ...metadata(), year: '2024', terms: [{ value: '16', label: '暑期学期' }], term: '16' })));
-    trigger('year').click(); option('year', '2024-2025 学年').click();
-    expect(trigger('term').disabled).toBe(true); expect(form().querySelector('[type="submit"]').disabled).toBe(true); await flush();
-    const [url, opts] = fetch.mock.calls[2]; expect(url).toMatch(/\/periods$/); expect(JSON.parse(opts.body)).toEqual({ sessionToken, year: '2024' });
-    expect(form().elements.term.value).toBe('16'); expect(widget('term').textContent).toContain('暑期学期');
-    expect(widget('term').textContent).not.toContain('第一学期'); expect(form().querySelector('[type="submit"]').disabled).toBe(false);
-  });
-  it('keyboard arrows/Enter choose terms, Escape and outside click close the themed listbox', async () => {
-    await loggedIn(); key('term', 'ArrowDown'); expect(trigger('term').getAttribute('aria-expanded')).toBe('true');
-    key('term', 'End'); key('term', 'Enter'); expect(form().elements.term.value).toBe('12');
-    expect(option('term', '第二学期').getAttribute('aria-selected')).toBe('true'); expect(trigger('term').getAttribute('aria-expanded')).toBe('false');
-    trigger('term').click(); key('term', 'Escape'); expect(widget('term').querySelector('[role="listbox"]').hidden).toBe(true);
-    trigger('term').click(); document.body.click(); expect(trigger('term').getAttribute('aria-expanded')).toBe('false');
-  });
-  it('pointer focus moving into an option does not close the menu before its click is delivered', async () => {
-    await loggedIn(); trigger('term').focus(); trigger('term').click();
-    const next = option('term', '第二学期'); next.focus();
-    expect(widget('term').querySelector('[role="listbox"]').hidden).toBe(false);
-    next.click(); expect(form().elements.term.value).toBe('12');
-  });
-  it('exports with only the short-lived token and raw school year/term values, no password', async () => {
-    await loggedIn(); key('term', 'ArrowDown'); key('term', 'End'); key('term', 'Enter'); submit(); submit(); await flush();
-    expect(fetch).toHaveBeenCalledTimes(3);
-    expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ sessionToken, year: '2025', term: '12' });
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce(); expect(form().textContent).toContain('已开始下载'); expect(form().getAttribute('aria-busy')).toBe('false');
-  });
-  it('logout invalidates server session and returns to login without retaining password', async () => {
-    await loggedIn(); form().querySelector('[data-grade-logout]').click(); await flush();
-    expect(fetch.mock.calls[2][0]).toMatch(/\/logout$/); expect(JSON.parse(fetch.mock.calls[2][1].body)).toEqual({ sessionToken });
-    expect(form().querySelector('[data-grade-login]').hidden).toBe(false); expect(form().elements.password.disabled).toBe(false); expect(form().elements.password.value).toBe('');
-    expect(widget('year').querySelectorAll('[role="option"]').length).toBe(0);
-  });
-  it('school login error is rendered as text and allows retry', async () => {
-    fetch.mockImplementationOnce(() => Promise.resolve(statusResponse())).mockImplementationOnce(() => Promise.resolve({ ok: false, status: 422, json: async () => ({ message: '<img src=x onerror=alert(1)> 登录失败' }) }));
-    boot(); await flush(); fill(); submit(); await flush();
-    expect(form().textContent).toContain('登录失败'); expect(form().querySelector('img')).toBeNull(); expect(form().elements.password.value).toBe(''); expect(form().querySelector('[type="submit"]').disabled).toBe(false);
-  });
-  it('school option labels are text-only, never executable HTML', async () => {
-    const data = metadata(); data.terms[0].label = '<img src=x onerror=alert(1)>学期';
-    fetch.mockImplementationOnce(() => Promise.resolve(statusResponse())).mockImplementationOnce(() => Promise.resolve(json(data)));
-    await loggedIn(); expect(widget('term').textContent).toContain('<img'); expect(widget('term').querySelector('img')).toBeNull();
-  });
-  it('invalid account metadata cannot unlock export and releases any newly returned token', async () => {
-    fetch.mockImplementationOnce(() => Promise.resolve(statusResponse())).mockImplementationOnce(() => Promise.resolve(json({ sessionToken, years: [], terms: [] })));
-    await loggedIn(); expect(form().textContent).toContain('完整的可查询'); expect(form().querySelector('[data-grade-export]').hidden).toBe(true);
-    expect(fetch.mock.calls[2][0]).toMatch(/\/logout$/);
-  });
-  it('failed year refresh disables export instead of retaining stale term options', async () => {
-    await loggedIn(); fetch.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 502, json: async () => ({ message: '学校暂时不可达' }) }));
-    trigger('year').click(); option('year', '2024-2025 学年').click(); await flush();
-    expect(form().querySelector('[type="submit"]').disabled).toBe(true); expect(widget('term').querySelectorAll('[role="option"]').length).toBe(0);
-    expect(form().textContent).toContain('学校暂时不可达');
-    fetch.mockImplementationOnce(() => Promise.resolve(json({ ...metadata(), year: '2024', terms: [{ value: '16', label: '暑期学期' }], term: '16' })));
-    trigger('year').click(); option('year', '2024-2025 学年').click(); await flush();
-    expect(form().querySelector('[type="submit"]').disabled).toBe(false); expect(form().elements.term.value).toBe('16');
-  });
-  it('server-expired session resets selection and requires fresh login', async () => {
-    await loggedIn(); fetch.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 401, json: async () => ({ message: '登录会话已过期' }) }));
-    submit(); await flush(); expect(form().querySelector('[data-grade-login]').hidden).toBe(false); expect(form().elements.password.disabled).toBe(false); expect(form().textContent).toContain('已过期');
-  });
-  it('rejects an HTML export response rather than downloading it', async () => {
-    await loggedIn(); fetch.mockImplementationOnce(() => Promise.resolve({ ok: true, headers: { get: () => 'text/html' } }));
-    submit(); await flush(); expect(form().textContent).toContain('不是 Excel 文件'); expect(URL.createObjectURL).not.toHaveBeenCalled();
-  });
-  it('cancel aborts pending login and resets credential stage', async () => {
-    fetch.mockImplementationOnce(() => Promise.resolve(statusResponse())).mockImplementationOnce((_, opts) => new Promise((resolve, reject) => opts.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))));
-    boot(); await flush(); fill(); submit(); form().querySelector('[data-grade-cancel]').click(); await flush();
-    expect(fetch.mock.calls[1][1].signal.aborted).toBe(true); expect(form().textContent).toContain('已取消'); expect(form().getAttribute('aria-busy')).toBe('false'); expect(form().elements.password.value).toBe('');
-  });
-  it('cancel remains available while reading the export body and clears server session', async () => {
-    await loggedIn(); fetch.mockImplementationOnce((_, opts) => Promise.resolve({ ...fileResponse(), blob: () => new Promise((resolve, reject) => opts.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))) }));
-    submit(); await flush(); form().querySelector('[data-grade-cancel]').click(); await flush();
-    expect(fetch.mock.calls[2][1].signal.aborted).toBe(true); expect(form().querySelector('[data-grade-login]').hidden).toBe(false); expect(fetch.mock.calls[3][0]).toMatch(/\/logout$/);
-  });
-  it('navigation clears typed password/session and reinitialization does not duplicate handlers', async () => {
-    await loggedIn(); handlers.forEach(fn => fn()); expect(fetch).toHaveBeenCalledTimes(2); const previous = form();
-    document.body.innerHTML = '<h1>Other page</h1>'; handlers.forEach(fn => fn()); await flush();
-    expect(previous.elements.password.value).toBe(''); expect(fetch.mock.calls[2][0]).toMatch(/\/logout$/);
-    boot(); await flush(); expect(fetch.mock.calls[3][0]).toMatch(/\/status$/);
-  });
-  it('API paths retain a static-site prefix', async () => {
-    window.history.replaceState({}, '', '/ujn-guide/tools/grade-export/'); boot(); await flush(); expect(fetch.mock.calls[0][0]).toMatch(/\/ujn-guide\/api\/grade-export\/status$/);
-  });
-  it('frontend expires memory token and returns to login without browser persistence', async () => {
-    vi.useFakeTimers(); const data = { ...metadata(), expiresIn: 1 };
-    fetch.mockImplementationOnce(() => Promise.resolve(statusResponse())).mockImplementationOnce(() => Promise.resolve(json(data)));
-    boot(); await vi.advanceTimersByTimeAsync(0); fill(); submit(); await vi.advanceTimersByTimeAsync(0);
-    expect(form().querySelector('[data-grade-export]').hidden).toBe(false);
-    await vi.advanceTimersByTimeAsync(1001); expect(form().querySelector('[data-grade-login]').hidden).toBe(false); expect(form().textContent).toContain('已到期');
-    expect(fetch.mock.calls[2][0]).toMatch(/\/logout$/);
-  });
-});
-
-
-describe('grade export usability and Pages configuration', () => {
-  it('show password toggles accessibly and returns to masked state on login', async () => {
-    boot(); await flush(); fill(); const toggle = form().querySelector('[data-grade-password-toggle]'); toggle.click(); expect(form().elements.password.type).toBe('text'); expect(toggle.getAttribute('aria-pressed')).toBe('true'); submit(); expect(form().elements.password.type).toBe('password'); expect(form().elements.password.value).toBe(''); await flush();
-  });
-  it('reconnects after a transient service failure', async () => {
-    fetch.mockRejectedValueOnce(new Error()); boot(); await flush(); const retry = form().querySelector('[data-grade-retry]'); expect(retry.hidden).toBe(false); retry.click(); await flush(); expect(form().elements.password.disabled).toBe(false); expect(retry.hidden).toBe(true);
-  });
-  it('uses explicitly configured HTTPS API for a Pages frontend', async () => {
-    const config = document.createElement('script'); config.id = 'ujn-grade-config'; config.type = 'application/json'; config.textContent = JSON.stringify({ apiUrl: 'https://grades.example/api/grade-export/' }); document.head.appendChild(config);
-    try { boot(); await flush(); fill(); submit(); await flush(); expect(fetch.mock.calls[0][0]).toBe('https://grades.example/api/grade-export/status'); expect(fetch.mock.calls[1][0]).toBe('https://grades.example/api/grade-export/login'); } finally { config.remove(); }
-  });
-  it('rejects insecure or credential-bearing API configuration before transmitting anything', async () => {
-    const config = document.createElement('script'); config.id = 'ujn-grade-config'; config.type = 'application/json'; config.textContent = JSON.stringify({ apiUrl: 'http://grades.example/api/grade-export/' }); document.head.appendChild(config);
-    try { boot(); await flush(); expect(fetch).not.toHaveBeenCalled(); expect(form().elements.password.disabled).toBe(true); } finally { config.remove(); }
-  });
+describe('static official-login/native-export flow', () => {
+ it('has no password form, service probe, API configuration or plugin/installer', () => {
+  expect(page).not.toMatch(/name="password"|name="user"|暂未开放|Tampermonkey|安装器/);
+  expect(source).not.toMatch(/fetch\s*\(|api\/grade-export|sessionToken|document\.cookie|localStorage|sessionStorage/);
+  expect(fetch).not.toHaveBeenCalled();
+ });
+ it('opens only the fixed official login URL in a separate protected tab', () => {
+  const link = tool().querySelector('[data-grade-official]');
+  expect(link.href).toBe('http://jwgl.ujn.edu.cn/sso/driotlogin'); expect(link.target).toBe('_blank'); expect(link.rel).toContain('noopener');
+ });
+ it('asks the user to confirm login instead of pretending to detect a school session', () => {
+  expect(form().hidden).toBe(true); confirm(); expect(form().hidden).toBe(false);
+  expect(tool().querySelector('[data-grade-login]').hidden).toBe(true); expect(document.activeElement).toBe(input());
+  expect(status()).not.toContain('登录成功'); expect(fetch).not.toHaveBeenCalled();
+ });
+ it('does not invent an account year and requires explicit year and term choices', () => {
+  confirm(); expect(input().value).toBe(''); expect(form().elements.xqm.value).toBe('');
+  expect(form().querySelector('[type="submit"]').disabled).toBe(true);
+  setYear('2025'); selectTerm('第二学期'); expect(form().querySelector('[type="submit"]').disabled).toBe(false);
+ });
+ it('blocks an incomplete or invalid submission', () => {
+  expect(submit().defaultPrevented).toBe(true); confirm(); setYear('oops'); expect(submit().defaultPrevented).toBe(true);
+  setYear('2025'); expect(submit().defaultPrevented).toBe(true);
+ });
+ it('uses a native top-level POST to the exact student export endpoint', () => {
+  confirm(); setYear('2025'); selectTerm('第一学期'); const event = submit();
+  expect(event.defaultPrevented).toBe(false); expect(form().method).toBe('post'); expect(form().target).toBe('_blank');
+  expect(form().getAttribute('rel')).toContain('noopener');
+  expect(form().action).toBe('https://jwgl.ujn.edu.cn/jwglxt/zftal/drdc/export_exportConfig.html?gnmkdm=N305005&layout=default');
+  expect(fetch).not.toHaveBeenCalled();
+ });
+ it('matches all 23 school export columns, repeated names and template fields', () => {
+  confirm(); setYear('2025'); selectTerm('第一学期'); submit();
+  const actual = new URLSearchParams(new window.FormData(form()));
+  const expected = new URLSearchParams(exportFields({ xnm: '2025', xqm: '3', fileName: '2025 学年成绩单' }));
+  expect(actual.toString()).toBe(expected.toString()); expect(actual.getAll('exportModel.selectCol')).toHaveLength(23);
+  expect(actual.get('dcclbh')).toBe('JW_N305005_XSCXCJ');
+ });
+ it('does not duplicate hidden fields on repeated submissions', () => {
+  confirm(); setYear('2025'); selectTerm('第一学期'); submit(); submit();
+  expect(new window.FormData(form()).getAll('exportModel.selectCol')).toHaveLength(23);
+ });
+ it('does not falsely report file download success', () => {
+  confirm(); setYear('2025'); selectTerm('第一学期'); submit();
+  expect(status()).toContain('不判断下载是否成功'); expect(status()).not.toContain('导出成功');
+ });
+ it('supports keyboard selection and escape on the themed term dropdown', () => {
+  confirm(); setYear('2025'); const key = value => trigger().dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true }));
+  key('ArrowDown'); key('End'); key('Enter'); expect(form().elements.xqm.value).toBe('16');
+  key('ArrowDown'); key('Escape'); expect(trigger().getAttribute('aria-expanded')).toBe('false');
+ });
+ it('reads selected year and actual term values from a local saved school page', async () => {
+  confirm(); await upload(schoolPage()); expect(input().value).toBe('2024'); expect(form().elements.xqm.value).toBe('3');
+  expect([...form().querySelectorAll('[role="option"]')].map(n => n.textContent)).toEqual(['请选择学期', '第一学期', '第二学期']);
+  expect(tool().querySelector('[data-grade-options-note]').textContent).toContain('2024 学年'); expect(fetch).not.toHaveBeenCalled();
+ });
+ it('clears imported term choices when the year is manually changed', async () => {
+  confirm(); await upload(schoolPage()); setYear('2023'); expect(form().elements.xqm.value).toBe('');
+  expect(tool().querySelector('[data-grade-options-note]').textContent).toContain('不会自动读取');
+ });
+ it('rejects missing controls without leaving old account options selected', async () => {
+  confirm(); await upload(schoolPage()); await upload('<html>登录页</html>');
+  expect(input().value).toBe(''); expect(form().elements.xqm.value).toBe(''); expect(status()).toContain('没有学年');
+ });
+ it('requires a selected year when the saved page contains multiple years', async () => {
+  confirm(); await upload(schoolPage().replace(' selected>2024', '>2024')); expect(input().value).toBe(''); expect(status()).toContain('未标明选中的学年');
+ });
+ it('rejects oversized and non-html files before reading them', async () => {
+  confirm(); const text = vi.fn(); await upload('', { size: 3 * 1024 * 1024, text }); expect(text).not.toHaveBeenCalled();
+  expect(status()).toContain('2 MB'); await upload('', { name: '成绩.exe', text }); expect(text).not.toHaveBeenCalled(); expect(status()).toContain('HTML');
+ });
+ it('never injects saved document scripts or external resources into the page', async () => {
+  confirm(); await upload('<img src="https://evil.test/"><script>window.pwned=1</script>' + schoolPage().replace('第一学期', '&lt;img src=x onerror=alert(1)&gt;'));
+  expect(tool().querySelector('img')).toBeNull(); expect(tool().querySelector('script')).toBeNull();
+  expect(form().elements.xqm.value).toBe('3'); expect(fetch).not.toHaveBeenCalled();
+ });
+ it('ignores a stale import after year editing', async () => {
+  confirm(); let resolveText; const promise = new Promise(done => resolveText = done);
+  await upload('', { text: () => promise }); setYear('2022'); resolveText(schoolPage()); await flush(); expect(input().value).toBe('2022');
+ });
+ it('ignores a stale import after navigation or resetting the account', async () => {
+  confirm(); let resolveText; await upload('', { text: () => new Promise(done => resolveText = done) });
+  tool().querySelector('[data-grade-reset]').click(); resolveText(schoolPage()); await flush(); expect(form().hidden).toBe(true); expect(input().value).toBe('');
+ });
+ it('fully clears range, file and generated fields when switching accounts', async () => {
+  confirm(); await upload(schoolPage()); submit(); tool().querySelector('[data-grade-reset]').click();
+  expect(form().hidden).toBe(true); expect(input().value).toBe(''); expect(form().elements.xqm.value).toBe('');
+  expect(form().querySelector('[data-grade-fields]').childElementCount).toBe(0); expect(fetch).not.toHaveBeenCalled();
+ });
+ it('preserves current step on repeated callbacks and initializes replacement pages', () => {
+  confirm(); handlers.forEach(fn => fn()); expect(form().hidden).toBe(false); boot(); expect(form().hidden).toBe(true); confirm(); expect(form().hidden).toBe(false);
+ });
 });

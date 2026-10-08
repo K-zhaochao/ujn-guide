@@ -12,6 +12,7 @@ hide:
 <!-- changelog:start -->
 <section id="ujn-changelog" data-page-size="10" aria-label="更新记录">
 <ol class="ujn-changelog__list">
+<li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>✨ 纯静态官网成绩导出与贡献者平台滑块</p><span class="ujn-change__scope">教务成绩导出</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>优化校园通：完整更新分页、同学留言与网页成绩导出</p><span class="ujn-change__scope">教务成绩导出 · 实用工具</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>成绩导出脚本 v1.3：照学校源码复刻真实导出流程（export_exportConfig.html + dcclbh=JW_N305005_XSCXCJ + 23 列 + 提交筛选表单），并删掉已废弃的自建请求路径</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>成绩导出脚本 v1.2：优先点学校自带的导出按钮（自己拼参数会被判非法，返回通用错误页）；找不到才退回自建请求</p></div></li>

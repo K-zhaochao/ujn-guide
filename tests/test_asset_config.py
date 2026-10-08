@@ -28,13 +28,15 @@ class AssetConfigTests(unittest.TestCase):
         self.assertIn('SITE_URL=https://$owner.github.io/$repo/', source)
         self.assertIn('SITE_URL=https://$owner.github.io/', source)
 
-    def test_pages_preserves_complete_history_and_api_configuration(self):
+    def test_pages_preserves_complete_history_without_grade_api(self):
         source = (ROOT / '.github/workflows/pages.yml').read_text(encoding='utf-8')
         self.assertIn('fetch-depth: 0', source)
-        self.assertIn('vars.GRADE_EXPORT_API_URL', source)
+        self.assertNotIn('vars.GRADE_EXPORT_API_URL', source)
         template = (ROOT / 'overrides/main.html').read_text(encoding='utf-8')
-        self.assertIn('id="ujn-grade-config"', template)
-        self.assertIn('tojson', template)
+        self.assertNotIn('id="ujn-grade-config"', template)
+        script = (ROOT / 'docs/javascripts/grade-export.js').read_text(encoding='utf8')
+        self.assertNotRegex(script, r'fetch\s*\(')
+        self.assertNotIn('/api/grade-export/', script)
 
     def test_reader_pages_do_not_contain_developer_verification_notes(self):
         for path in ['docs/tools/grade-export.md', 'docs/changelog.md', 'docs/contribute/index.md']:
