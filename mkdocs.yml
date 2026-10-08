@@ -125,15 +125,14 @@ extra:
     link: #flea-market
 
 extra_css:
-  - assets/stylesheets/community.css?v=20261008-6
+  - assets/stylesheets/community.css?v=20261009-1
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
   - assets/stylesheets/ujn.css?v=20261008-1
-  - assets/stylesheets/ujn-contributors.css?v=20261008-6
+  - assets/stylesheets/ujn-contributors.css?v=20261009-1
 
 extra_javascript:
-  - javascripts/contributors.js?v=20261008-1
   - javascripts/changelog.js?v=20261008-6
   - javascripts/mathjax.js?v=20260907-1
   - javascripts/github-issues.js?v=20261008-1

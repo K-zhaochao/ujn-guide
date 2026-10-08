@@ -120,7 +120,9 @@ def person_html(person: dict[str, object]) -> str:
     avatar = safe_url(person["avatar"])
     url = safe_url(person["url"]) or "https://github.com/K-zhaochao/ujn-guide"
     initial = html.escape(str(person["name"])[:1].upper(), quote=True)
-    picture = (f'<img class="off-glb" src="{avatar}" alt="" width="44" height="44" loading="lazy" decoding="async">' if avatar else f'<span class="ujn-contributor__initial">{initial}</span>')
+    picture = f'<span class="ujn-contributor__initial" aria-hidden="true">{initial}</span>'
+    if avatar:
+        picture += f'<img class="off-glb" src="{avatar}" alt="" width="40" height="40" loading="eager" decoding="async">'
     return (f'<a class="ujn-contributor" href="{url}" target="_blank" rel="noopener noreferrer">'
             f'<span class="ujn-contributor__portrait">{picture}</span>'
             f'<span class="ujn-contributor__text"><span class="ujn-contributor__name">{name}</span><span class="ujn-contributor__meta">{meta}</span></span>'
@@ -128,15 +130,18 @@ def person_html(person: dict[str, object]) -> str:
 
 
 def render(people: list[dict[str, object]]) -> str:
-    lines = [START, '<div class="ujn-contributors" data-contributors aria-label="贡献者">',
-             '<div class="ujn-contributors__header"><span class="ujn-contributors__eyebrow">一起点亮校园指南</span>',
-             '<div class="ujn-contributors__switch" role="tablist" aria-label="贡献者平台" hidden><span class="ujn-contributors__slider" aria-hidden="true"></span>']
+    lines = [START, '<div class="ujn-contributors" data-contributors role="group" aria-label="贡献者">']
     for index, source in enumerate(SOURCES):
-        lines.append(f'<button type="button" role="tab" id="contributors-tab-{source["key"]}" aria-controls="contributors-panel-{source["key"]}" aria-selected="{str(index == 0).lower()}" tabindex="{0 if index == 0 else -1}" data-platform="{source["key"]}">{source["label"]}</button>')
+        checked = ' checked' if index == 0 else ''
+        lines.append(f'<input class="ujn-contributors__radio" type="radio" name="contributor-platform" id="contributors-platform-{source["key"]}" value="{source["key"]}" aria-controls="contributors-panel-{source["key"]}"{checked}>')
+    lines.extend(['<div class="ujn-contributors__header"><span class="ujn-contributors__eyebrow">一起点亮校园指南</span>',
+                  '<div class="ujn-contributors__switch"><span class="ujn-contributors__slider" aria-hidden="true"></span>'])
+    for source in SOURCES:
+        lines.append(f'<label id="contributors-label-{source["key"]}" for="contributors-platform-{source["key"]}">{source["label"]}</label>')
     lines.append('</div></div>')
     for source in SOURCES:
         members = [person for person in people if person["source"] == source["label"]]
-        lines.append(f'<section class="ujn-contributors__panel" id="contributors-panel-{source["key"]}" role="tabpanel" aria-labelledby="contributors-tab-{source["key"]}" data-platform="{source["key"]}" tabindex="0">')
+        lines.append(f'<section class="ujn-contributors__panel" id="contributors-panel-{source["key"]}" role="region" aria-labelledby="contributors-label-{source["key"]}" data-platform="{source["key"]}">')
         lines.append(f'<p class="ujn-contributors__caption">{source["label"]}</p><div class="ujn-contributors__cards">')
         lines.extend(person_html(person) for person in members)
         if not members:

@@ -74,14 +74,14 @@ class RenderTests(unittest.TestCase):
 
     def test_falls_back_to_initial_when_no_avatar(self) -> None:
         block = contributors.render([{"name": "cat", "avatar": "", "url": "u", "contributions": None, "source": "Gitee"}])
-        self.assertIn('class="ujn-contributor__initial">C<', block)
+        self.assertIn('class="ujn-contributor__initial" aria-hidden="true">C<', block)
         self.assertIn(">Gitee<", block)
 
     def test_empty_list_renders_placeholder_with_links(self) -> None:
         block = contributors.render([])
         self.assertIn("感谢每一位", block)
         self.assertIn("github.com/K-zhaochao/ujn-guide", block)
-        self.assertIn('role="tablist"', block)
+        self.assertIn('name="contributor-platform"', block)
 
 
 class EscapeTests(unittest.TestCase):
@@ -89,7 +89,7 @@ class EscapeTests(unittest.TestCase):
         block = contributors.render([{'name': '<script>x</script>', 'avatar': 'javascript:x', 'url': 'javascript:x', 'contributions': 1, 'source': 'GitHub'}])
         self.assertNotIn('<script>', block)
         self.assertNotRegex(block, r'(?:href|src)="javascript:')
-        self.assertIn('role="tablist"', block)
+        self.assertIn('name="contributor-platform"', block)
         self.assertIn('ujn-contributor__text', block)
 
 
@@ -141,15 +141,17 @@ class PlatformTests(unittest.TestCase):
         block = contributors.render([{'name': 'student', 'avatar': '', 'url': '', 'contributions': 10, 'source': 'GitHub'}])
         self.assertNotIn('ujn-contributors__count', block)
         self.assertNotIn('位贡献者</p>', block)
-        self.assertIn('>GitHub</button>', block)
-        self.assertIn('>Gitee</button>', block)
+        self.assertIn('>GitHub</label>', block)
+        self.assertIn('>Gitee</label>', block)
         self.assertIn('10 次提交', block)
 
-    def test_both_panels_are_visible_without_javascript(self):
+    def test_switch_uses_native_radios_with_default_checked_platform(self):
         block = contributors.render([])
         self.assertIn('id="contributors-panel-github"', block)
         self.assertIn('id="contributors-panel-gitee"', block)
-        self.assertNotRegex(block, r'role="tabpanel"[^>]*hidden')
+        self.assertIn('value="github" aria-controls="contributors-panel-github" checked', block)
+        self.assertNotIn('value="gitee" aria-controls="contributors-panel-gitee" checked', block)
+        self.assertNotIn(' hidden', block)
 
     def test_cache_is_inert_and_round_trips(self):
         people = [{'name': '</script><script>x</script>', 'avatar': '', 'url': '', 'contributions': 0, 'source': 'Gitee'}]

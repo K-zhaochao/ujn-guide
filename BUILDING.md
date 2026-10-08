@@ -282,7 +282,7 @@ AI 助手与 Cloudflare AI Worker（源码在 `workers/ai-worker.js`）。它不
 
 Pages checkout 使用 `fetch-depth: 0`，更新生成器读取完整非合并提交，不限 30 条；前端每页 10 条，无 JavaScript 时保留全部记录。维护说明与测试证据放在仓库文档或本地 reports，不写进同学使用的页面。
 
-反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者按 GitHub/Gitee 分组，滑动指示器切换平台；切换栏仅显示平台名称，卡片保留个人提交次数。构建时获取、访客零请求；单个平台暂时失败时保留缓存。无 JavaScript 时显示两组名单。
+反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者按 GitHub/Gitee 分组，原生单选按钮与 CSS 驱动滑动指示器，无需等待 JavaScript 初始化；切换栏仅显示平台名称，卡片保留个人提交次数。构建时获取、访客零请求；单个平台暂时失败时保留缓存。首屏只显示默认平台，无 JavaScript 时仍可切换两组名单。头像加载前显示姓名首字母占位。贡献指南直接展开，图片转换按钮直达 WebPForge 的在线转换区。
 
 
 ## Gitee 更新同步到 GitHub Pages

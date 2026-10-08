@@ -11,21 +11,23 @@ hide:
 感谢一起补充、纠错和维护校园指南的同学。
 
 <!-- contributors:start -->
-<div class="ujn-contributors" data-contributors aria-label="贡献者">
+<div class="ujn-contributors" data-contributors role="group" aria-label="贡献者">
+<input class="ujn-contributors__radio" type="radio" name="contributor-platform" id="contributors-platform-github" value="github" aria-controls="contributors-panel-github" checked>
+<input class="ujn-contributors__radio" type="radio" name="contributor-platform" id="contributors-platform-gitee" value="gitee" aria-controls="contributors-panel-gitee">
 <div class="ujn-contributors__header"><span class="ujn-contributors__eyebrow">一起点亮校园指南</span>
-<div class="ujn-contributors__switch" role="tablist" aria-label="贡献者平台" hidden><span class="ujn-contributors__slider" aria-hidden="true"></span>
-<button type="button" role="tab" id="contributors-tab-github" aria-controls="contributors-panel-github" aria-selected="true" tabindex="0" data-platform="github">GitHub</button>
-<button type="button" role="tab" id="contributors-tab-gitee" aria-controls="contributors-panel-gitee" aria-selected="false" tabindex="-1" data-platform="gitee">Gitee</button>
+<div class="ujn-contributors__switch"><span class="ujn-contributors__slider" aria-hidden="true"></span>
+<label id="contributors-label-github" for="contributors-platform-github">GitHub</label>
+<label id="contributors-label-gitee" for="contributors-platform-gitee">Gitee</label>
 </div></div>
-<section class="ujn-contributors__panel" id="contributors-panel-github" role="tabpanel" aria-labelledby="contributors-tab-github" data-platform="github" tabindex="0">
+<section class="ujn-contributors__panel" id="contributors-panel-github" role="region" aria-labelledby="contributors-label-github" data-platform="github">
 <p class="ujn-contributors__caption">GitHub</p><div class="ujn-contributors__cards">
-<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><img class="off-glb" src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">143 次提交</span></span><span class="ujn-contributor__badge">GitHub</span></a>
+<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial" aria-hidden="true">K</span><img class="off-glb" src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="40" height="40" loading="eager" decoding="async"></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">144 次提交</span></span><span class="ujn-contributor__badge">GitHub</span></a>
 </div></section>
-<section class="ujn-contributors__panel" id="contributors-panel-gitee" role="tabpanel" aria-labelledby="contributors-tab-gitee" data-platform="gitee" tabindex="0">
+<section class="ujn-contributors__panel" id="contributors-panel-gitee" role="region" aria-labelledby="contributors-label-gitee" data-platform="gitee">
 <p class="ujn-contributors__caption">Gitee</p><div class="ujn-contributors__cards">
-<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial">D</span></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">141 次提交</span></span><span class="ujn-contributor__badge">Gitee</span></a>
+<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial" aria-hidden="true">D</span></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">144 次提交</span></span><span class="ujn-contributor__badge">Gitee</span></a>
 </div></section>
-<script type="application/json" data-contributors-cache>[{"name": "K-zhaochao", "avatar": "https://avatars.githubusercontent.com/u/179425934?v=4", "url": "https://github.com/K-zhaochao", "contributions": 143, "source": "GitHub"}, {"name": "Draven", "avatar": "", "url": "https://gitee.com/Draven323/ujn-guide", "contributions": 141, "source": "Gitee"}]</script>
+<script type="application/json" data-contributors-cache>[{"name": "K-zhaochao", "avatar": "https://avatars.githubusercontent.com/u/179425934?v=4", "url": "https://github.com/K-zhaochao", "contributions": 144, "source": "GitHub"}, {"name": "Draven", "avatar": "", "url": "https://gitee.com/Draven323/ujn-guide", "contributions": 144, "source": "Gitee"}]</script>
 </div>
 <!-- contributors:end -->
 
@@ -50,8 +52,19 @@ hide:
   <p class="gh-issues__hint"><a href="https://github.com/K-zhaochao/ujn-guide/issues" target="_blank" rel="noopener noreferrer">查看全部留言 ↗</a></p>
 </div>
 
-<details class="ujn-maintain" markdown="1">
-<summary>想直接补充校园内容？查看参与维护的方法</summary>
+---
+
+准备补充校园内容？下面是在线修改、本地维护和新增猫猫页面的方法。
+
+<div class="ujn-image-guide" role="note" aria-label="图片格式建议">
+  <div class="ujn-image-guide__copy">
+    <p class="ujn-image-guide__title">📷 上传图片前，先让它轻一点</p>
+    <p>建议把照片转换为 WebP，减少文件体积、加快页面加载。选择图片、调整画质、下载结果，再上传到仓库；转换后记得对比清晰度与大小。</p>
+    <p class="ujn-image-guide__hint">网页可直接转换静态图片；多张图片可使用工具的桌面版批量处理。</p>
+  </div>
+  <a class="md-button md-button--primary ujn-image-guide__button" href="https://webp.royi.net/#playground" target="_blank" rel="noopener noreferrer" aria-label="转换图片为 WebP（新窗口）">转换图片为 WebP ↗</a>
+</div>
+
 
 <span id="3"></span>
 
@@ -62,7 +75,7 @@ GitHub 和 Gitee 的网页版都能直接编辑文件，适合改错别字、更
 1. 打开仓库并进到对应文件，例如 `docs/site-guide/main-campus/canteen-1.md`；
 2. 点右上角的铅笔图标（GitHub）或「编辑」（Gitee）；
 3. 改完在页面下方填写提交说明：有仓库写权限就直接提交到 `main`（或你自己的分支），没有写权限就选择「新建分支并发起 PR / Pull Request」；
-4. 改动合并进 GitHub 的 `main` 后，站点会自动构建发布；Gitee 的改动由维护者同步到 GitHub 后发布。
+4. 改动合并进 GitHub 的 `main` 后，站点会自动构建发布；Gitee 的改动会通过已配置的镜像自动同步到 GitHub 后发布。
 
 !!! warning "两条底线"
     不要提交密钥、`.env`、证书；不要直接改 `site/` 目录（它是构建产物，下次构建会被覆盖）。
@@ -85,7 +98,7 @@ python -m mkdocs serve --dev-addr 127.0.0.1:8000   # 打开 http://127.0.0.1:800
 ```
 
 - 新增页面：在 `docs/` 下建 Markdown，再到 `mkdocs.yml` 的 `nav:` 里登记；
-- 图片放 `docs/assets/`，用相对路径引用；
+- 图片建议先用上方按钮转为 WebP，再放进 `docs/assets/`，用相对路径引用；
 - 改完提交并推送：有仓库写权限就直接推到 `main`，没有写权限就到
   [GitHub](https://github.com/K-zhaochao/ujn-guide/pulls) 或
   [Gitee](https://gitee.com/Draven323/ujn-guide/pulls) 发起 Pull Request。
@@ -156,5 +169,3 @@ python scripts/pets/build_gallery.py      # 重写卡牌区
 - 不要直接修改 `site/`；
 - 不要删除第三方资源的许可与致谢（例如 `docs/assets/zongce-calculator/` 里的 LICENSE 与原作者说明）；
 - 宠物投稿相关的后端服务在独立的私有仓库，本仓库只包含静态主站，不需要也不应该在这里新增后端接口。
-
-</details>

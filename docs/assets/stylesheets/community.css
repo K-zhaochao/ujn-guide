@@ -38,7 +38,14 @@
 .gh-reply { padding:.6rem 0; border-bottom:1px solid var(--md-default-fg-color--lightest); }
 .gh-reply__body { margin:.35rem 0 0!important; }
 .gh-replies__status { font-size:.65rem; }
-.ujn-maintain { margin-top:2rem!important; }
+/* Image preparation card, shared by all contribution methods. */
+.ujn-image-guide { display:flex; flex-wrap:wrap; align-items:center; gap:1rem; margin:1.2rem 0 1.8rem; padding:1rem; border:1px solid var(--md-default-fg-color--lightest); border-radius:.7rem; background:var(--md-code-bg-color); }
+.ujn-image-guide__copy { flex:1 1 16rem; min-width:0; }
+.md-typeset .ujn-image-guide p { margin:.3rem 0; font-size:.72rem; overflow-wrap:anywhere; }
+.md-typeset .ujn-image-guide__title { font-size:.85rem; font-weight:700; color:var(--md-default-fg-color); }
+.md-typeset .ujn-image-guide__hint { font-size:.62rem; color:var(--md-default-fg-color--light); }
+.md-typeset .ujn-image-guide__button { flex:0 1 auto; font-size:.7rem; text-align:center; }
+@media(max-width:600px) { .ujn-image-guide { padding:.8rem; } .md-typeset .ujn-image-guide__button { width:100%; } }
 #gh-issues button:focus-visible,.ujn-pagination :focus-visible { outline:2px solid var(--md-typeset-a-color); outline-offset:2px; }
 @media(max-width:600px) { .md-typeset .ujn-change { grid-template-columns:1fr; gap:.2rem; } .gh-composer,.md-typeset .gh-issue { padding:.75rem; } }
 

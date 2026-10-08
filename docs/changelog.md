@@ -12,6 +12,7 @@ hide:
 <!-- changelog:start -->
 <section id="ujn-changelog" data-page-size="10" aria-label="更新记录">
 <ol class="ujn-changelog__list">
+<li class="ujn-change" data-change-item><time datetime="2026-10-09">2026-10-09</time><div><p>🛠️ 贡献者首屏稳定切换、展开贡献指南并添加 WebP 图片工具</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-09">2026-10-09</time><div><p>🎨 更新页码输入校验、精简贡献者切换并下线成绩导出</p><span class="ujn-change__scope">grade-export · 实用工具</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>✨ 纯静态官网成绩导出与贡献者平台滑块</p><span class="ujn-change__scope">grade-export</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>优化校园通：完整更新分页、同学留言与网页成绩导出</p><span class="ujn-change__scope">grade-export · 实用工具</span></div></li>
