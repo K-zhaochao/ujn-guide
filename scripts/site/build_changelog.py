@@ -1,27 +1,9 @@
-"""从 git 提交历史生成「最近更新」页（docs/changelog.md）。
-
-给读者看的：这份校园指南最近有哪些内容与功能上的变化。做法与卡牌墙一致——写进标记区，可重复运行。
-
-用法::
-
-    python scripts/site/build_changelog.py            # 重新生成
-    python scripts/site/build_changelog.py --check    # 只校验标记区是否存在
-
-筛选规则
-- 只看改动过 docs/ 下 .md 的提交；
-- **过滤纯维护性提交**（重构/测试/构建/部署/性能/文档/验证/无障碍等前缀，以及 Merge），
-  读者不需要知道我们把 <style> 搬到了哪个文件；**回退会列出**，因为「某个功能下线了」
-  正是读者该知道的事；
-- 其余提交按日期倒序展示，最多 MAX_ENTRIES 条；页面名取自 mkdocs.yml 的导航标题
-  （所以「涉及 电话大全、社团与组织」比一串文件路径好读）。
-
-提交信息直接显示在这一页上，所以写提交信息时请当成人话写
-（「新增舜耕校区食堂攻略」比「update docs」有用得多）。
-"""
+"""从完整 Git 历史生成全部更新记录；浏览器每页显示 10 条，无 JS 时保留全部记录。"""
 
 from __future__ import annotations
 
 import argparse
+import html
 import re
 import subprocess
 import sys
@@ -34,7 +16,7 @@ PAGE = PROJECT_ROOT / "docs" / "changelog.md"
 CONFIG = PROJECT_ROOT / "mkdocs.yml"
 START = "<!-- changelog:start -->"
 END = "<!-- changelog:end -->"
-MAX_ENTRIES = 30
+PAGE_SIZE = 10
 MAX_LINKS = 3
 MAX_SUBJECT = 80
 
@@ -82,11 +64,8 @@ def parse_log(raw: str) -> list[dict[str, object]]:
 
 
 def is_reader_relevant(entry: dict[str, object]) -> bool:
-    subject = str(entry["subject"])
-    if subject.startswith("Merge "):
-        return False
-    lowered = subject.lower()
-    return not any(lowered.startswith(prefix) for prefix in INTERNAL_PREFIXES)
+    return not str(entry["subject"]).startswith("Merge ")
+
 
 
 class _Loader(yaml.SafeLoader):
@@ -146,31 +125,32 @@ def reader_subject(subject: str) -> str:
 
 def render(entries: list[dict[str, object]], titles: dict[str, str] | None = None) -> str:
     titles = titles or {}
-    selected = [entry for entry in entries if is_reader_relevant(entry)][:MAX_ENTRIES]
+    selected = [entry for entry in entries if is_reader_relevant(entry)]
+    body = [START, f'<section id="ujn-changelog" data-page-size="{PAGE_SIZE}" aria-label="更新记录">', '<ol class="ujn-changelog__list">']
+    for entry in selected:
+        subject = reader_subject(str(entry["subject"]).lstrip("\ufeff"))
+        subject = re.sub(r"^(?:feat|fix|style|refactor|chore|docs|test|ci|build|perf)(?:\([^)]*\))?:\s*", "", subject, flags=re.I)
+        labels = []
+        for path in entry["pages"]:
+            link = page_link(str(path))
+            label = titles.get(str(path)[len("docs/"):], Path(link).stem) if link else None
+            if label and label not in labels and label not in ("🕒 最近更新", "💡 反馈与贡献"):
+                labels.append(label)
+            if len(labels) >= MAX_LINKS:
+                break
+        scope = ' · '.join(labels)
+        date = html.escape(str(entry['date']), quote=True)
+        body.append(f'<li class="ujn-change" data-change-item><time datetime="{date}">{date}</time><div><p>{html.escape(subject)}</p>' + (f'<span class="ujn-change__scope">{html.escape(scope)}</span>' if scope else '') + '</div></li>')
+    body.extend(['</ol>', '<nav class="ujn-pagination" data-change-pagination aria-label="更新记录分页" hidden></nav>'])
     if not selected:
-        body = ["_暂时还没有内容更新记录。_"]
-    else:
-        body = []
-        for entry in selected:
-            subject = reader_subject(str(entry["subject"]))
-            if len(subject) > MAX_SUBJECT:
-                subject = subject[:MAX_SUBJECT].rstrip() + "…"
-            labels = []
-            for path in entry["pages"]:
-                link = page_link(str(path))
-                if not link or link in labels:
-                    continue
-                labels.append(titles.get(str(path)[len("docs/"):], Path(link).stem))
-                if len(labels) >= MAX_LINKS:
-                    break
-            suffix = f"（{ '、'.join(labels) }）" if labels else ""
-            body.append(f"- **{entry['date']}** {subject}{suffix}")
-    return "\n".join([START, *body, END])
+        body.append('<p>暂时还没有更新记录。</p>')
+    body.extend(['</section>', END])
+    return "\n".join(body)
 
 
 def read_log(project_root: Path = PROJECT_ROOT) -> list[dict[str, object]]:
     result = subprocess.run(
-        ["git", "log", f"--pretty=format:{RECORD}%ad{FIELD}%s", "--date=short", "--name-only", "--", "docs"],
+        ["git", "log", f"--pretty=format:{RECORD}%ad{FIELD}%s", "--date=short", "--name-only", "--no-merges"],
         cwd=project_root,
         capture_output=True,
         text=True,
@@ -210,7 +190,7 @@ def main() -> None:
 
     block = render(entries, nav_titles())
     updated = replace_block(document, block)
-    shown = sum(1 for line in block.splitlines() if line.startswith("- "))
+    shown = sum(1 for line in block.splitlines() if 'data-change-item' in line)
     if updated != document:
         PAGE.write_text(updated, encoding="utf-8", newline="\n")
         print(f"[changelog] 已更新 {PAGE.relative_to(PROJECT_ROOT)}：{shown} 条读者可见的更新")

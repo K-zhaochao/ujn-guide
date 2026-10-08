@@ -7,7 +7,7 @@ python -m pip install -r requirements.txt
 npm ci
 npm run test:build
 npm run test:frontend
-npm run test:release
+npm run test:grades
 npm run build
 ```
 
@@ -261,27 +261,33 @@ token；私有仓库必须带 token，而 token 不能放在静态页面里）�
 反馈页的 GitHub issue 列表（用假 fetch）、综测计算器、MathJax 的按需加载与即时导航排版、
 AI 助手与 Cloudflare AI Worker（源码在 `workers/ai-worker.js`）。它不访问真实 API。
 
-`npm run test:release` 验证同源 API 发布契约、release manifest、文件篡改拒绝与 health 对账。Linux 上的原子切换与回滚由 `scripts/release/` 提供；真实服务器配置和运维材料仅保存在本机 `deploy/` 目录。
+## 网页成绩导出与后台归档
 
-`scripts/release/` 是配合私有后端仓库的不可变发布流程：先创建并校验不可变 release，再通过
-`deploy-release.sh` 原子切换 `current`、重启服务并核对 health 的 release 摘要。纯静态内容
-（本仓库当前的部署方式）不需要它，`npm run build` 后把 `site/` 交给静态托管即可。
-`deploy/deploy.ps1` 仅是历史手工压缩脚本，不能用于生产发布。
+宠物投稿后台的发布工具、本地代理、测试与运维材料已归档到 `_archive/pet-submission-backend/`，不参与当前构建。静态宠物图鉴不变。
+
+网页成绩导出是独立的短时内存会话 Node 服务，不依赖旧宠物后台或数据库。运行 `npm run build` 后执行 `npm run dev:site`，打开 http://127.0.0.1:8787/tools/grade-export/ 。`mkdocs serve` 只提供静态预览，其表单会显示未连接服务。
+
+统一认证使用 `/sso/driotlogin` 的 CAS 流；正方直接登录使用文档所述的 RSA 流。网页先登录，再从当前账号的教务查询页面读取学年和学期；切换学年时重新查询学期。旧脚本、CLI、安装器和二进制发布工作流已归档，构建不再同步这些下载资源。
+
+部署入口：`tools/grade-export/README.md`。GitHub Pages 只托管静态页面，不运行该服务；网页导出在同源服务部署后启用。
 
 ## 统一验证
 
-提交前使用根目录入口执行与 CI 相同的构建、单元测试和依赖审计。默认 `all` 会同时调用独立后端仓库的验证脚本；只检验主站时使用 `site`，不需要后端工作区。
-
 ```powershell
 .\verify.ps1 -Target site
-.\verify.ps1 -Target all
 ```
 
 ```bash
 ./verify.sh --target site
-./verify.sh --target all
 ```
 
-`-SkipInstall` 仅用于已经完成依赖安装后的本地复测；`-SkipAudit` 仅用于定位构建或测试问题，不能作为提交或发布证据。检查结果写入被 Git 忽略的 `reports/site/`，其中包含单元测试、严格构建、`npm audit` 和 `pip-audit` 输出。仓库的 `.github/workflows/verify.yml` 在 Ubuntu 与 Windows 上执行同一入口，并额外扫描完整 Git 历史中的泄露凭据。
+默认验证目标为主站，不再调用移除的私有后端。入口执行构建单元测试、成绩导出测试、前端测试、严格构建与依赖审计。`-SkipInstall` 用于依赖已安装后的本地复测；`-SkipAudit` 仅用于排障。测试报告写入被 Git 忽略的 `reports/site/`。
 
-后端位于独立的 `server/` 仓库，Node.js 同样固定为 22.16.0；其测试、覆盖率和迁移命令见 `server/README.md`。
+
+## 更新记录与反馈展示
+
+Pages checkout 使用 `fetch-depth: 0`，更新生成器读取完整非合并提交，不限 30 条；前端每页 10 条，无 JavaScript 时保留全部记录。维护说明与测试证据放在仓库文档或本地 reports，不写进同学使用的页面。
+
+反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者采用横向紧凑卡片与主题前景色。
+
+Pages 成绩导出需在仓库变量中配置 `GRADE_EXPORT_API_URL`，并在独立 HTTPS API 服务设置准确 `GRADE_ALLOWED_ORIGINS`。部署步骤见 `tools/grade-export/README.md`。

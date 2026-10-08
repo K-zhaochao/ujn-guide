@@ -230,63 +230,6 @@ body,
   color: var(--ujn-accent);
 }
 
-/* ===== 贡献者名单（scripts/site/build_contributors.py 生成） =====
-   构建时抓取 GitHub / Gitee 的 contributors 写进标记区，访客零请求；
-   仓库还没有提交时脚本会写一段占位文案，所以这里也要照顾空状态。 */
-.ujn-contributors {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .6rem;
-  margin: .8rem 0 1.2rem;
-}
-
-.ujn-contributor {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .2rem;
-  width: 6.2rem;
-  padding: .55rem .4rem .5rem;
-  border: 1px solid var(--ujn-hairline);
-  border-radius: var(--ujn-radius-md);
-  background: color-mix(in srgb, var(--ujn-accent) 4%, transparent);
-  text-decoration: none;
-  transition: border-color .15s ease, transform .15s ease;
-}
-
-.ujn-contributor:hover {
-  border-color: var(--ujn-accent);
-  transform: translateY(-1px);
-}
-
-.ujn-contributor img,
-.ujn-contributor__initial {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--ujn-radius-circle);
-  object-fit: cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--ujn-accent);
-  color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-}
-
-.ujn-contributor__name {
-  font-size: .68rem;
-  font-weight: 600;
-  color: var(--md-default-fg-color);
-  text-align: center;
-  word-break: break-all;
-}
-
-.ujn-contributor__meta {
-  font-size: .6rem;
-  color: var(--ujn-muted);
-}
-
 /* ===== 只给读屏看的文本（视觉上不可见，但会被朗读） =====
    用于 aria-live 播报：视觉上的「3 / 7」对读屏太模糊，配一句完整的话更清楚。 */
 .ujn-visually-hidden {

@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
+import re
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -51,6 +52,9 @@ def verify_site(site_dir: Path = SITE_DIR) -> int:
         if not candidate.is_file() or candidate.stat().st_size == 0:
             raise SiteBuildVerificationError(f"缺少或为空的构建产物：site/{relative_path.as_posix()}")
 
+    home = (site_dir / "index.html").read_text(encoding="utf-8")
+    if not re.match(r"\s*<!doctype\s+html\s*>", home, re.IGNORECASE) or "\ufeff" in home:
+        raise SiteBuildVerificationError("首页 HTML 缺少 DOCTYPE 或含有 BOM 正文字符，会产生顶部空白与兼容模式")
     pets_page = (site_dir / "pets" / "index.html").read_text(encoding="utf-8")
     if "宠物收集录" not in pets_page:
         raise SiteBuildVerificationError("已知页面 pets/index.html 未包含预期标题")

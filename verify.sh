@@ -2,12 +2,12 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-target="all"
+target="site"
 skip_install=false
 skip_audit=false
 
 usage() {
-  printf '%s\n' "Usage: ./verify.sh [--target site|server|all] [--skip-install] [--skip-audit]"
+  printf '%s\n' "Usage: ./verify.sh [--target site] [--skip-install] [--skip-audit]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$target" in
-  site|server|all) ;;
+  site) ;;
   *) usage >&2; exit 2 ;;
 esac
 
@@ -59,15 +59,8 @@ verify_site() {
   fi
 
   run_and_log "run site build unit tests" "$report_root/unit-tests.log" npm run test:build
-  run_and_log "run local site proxy unit tests" "$report_root/local-proxy-tests.log" npm run test:dev
+  run_and_log "run grade export unit tests" "$report_root/grade-tests.log" npm run test:grades
   run_and_log "run frontend unit tests" "$report_root/frontend-unit-tests.log" npm run test:frontend
-  # server/ 是私有后端（在 .gitignore 里），公开仓库不含它；
-  # release 工具测试依赖 server/upload-policy.js，缺了必然 MODULE_NOT_FOUND。
-  if [ -f "$(dirname "$0")/server/upload-policy.js" ]; then
-    run_and_log "run release tool unit tests" "$report_root/release-tool-tests.log" npm run test:release
-  else
-    echo "[verify] skip release tool unit tests (server/ not present)"
-  fi
   run_and_log "run strict site build" "$report_root/build.log" npm run build
 
   if [[ "$skip_audit" == false ]]; then
@@ -82,21 +75,4 @@ verify_site() {
   fi
 }
 
-verify_server() {
-  local server_script="$project_root/server/verify.sh"
-  if [[ ! -f "$server_script" ]]; then
-    printf '%s\n' "The independent server repository is required for --target server or --target all." >&2
-    exit 1
-  fi
-
-  local args=()
-  [[ "$skip_install" == true ]] && args+=(--skip-install)
-  [[ "$skip_audit" == true ]] && args+=(--skip-audit)
-  bash "$server_script" "${args[@]}"
-}
-
-# 用 if 而不是 `[[ … ]] && cmd`：后者在条件为假时会让**这一行**返回 1，
-# 而它是脚本最后一行 —— 于是「所有检查全部通过、脚本却退出 1」。
-# CI 上就是这么骗了我们好几轮：日志里每项都绿，最后来一句 exit code 1。
-if [[ "$target" == site || "$target" == all ]]; then verify_site; fi
-if [[ "$target" == server || "$target" == all ]]; then verify_server; fi
+verify_site

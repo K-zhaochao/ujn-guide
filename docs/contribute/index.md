@@ -8,187 +8,40 @@ hide:
 
 ## 🙌 贡献者
 
-这份指南由下面这些同学一起维护（GitHub 与 Gitee 两个仓库的提交合并统计）：
+感谢一起补充、纠错和维护校园指南的同学。
 
 <!-- contributors:start -->
-<div class="ujn-contributors-tabs" data-ujn-tabs>
-  <div class="ujn-contributors-tabs__bar" role="tablist" aria-label="贡献者来源">
-    <button class="ujn-contributors-tabs__tab" type="button" role="tab" id="ujn-contributor-tab-github" aria-controls="ujn-contributor-panel-github" aria-selected="true" tabindex="0" data-ujn-tab="github">GitHub <span class="ujn-contributors-tabs__count">1</span></button>
-    <button class="ujn-contributors-tabs__tab" type="button" role="tab" id="ujn-contributor-tab-gitee" aria-controls="ujn-contributor-panel-gitee" aria-selected="false" tabindex="-1" data-ujn-tab="gitee">Gitee <span class="ujn-contributors-tabs__count">1</span></button>
-  </div>
-  <div class="ujn-contributors-panel" id="ujn-contributor-panel-github" role="tabpanel" aria-labelledby="ujn-contributor-tab-github" data-ujn-panel="github">
-    <p class="ujn-contributors-panel__title">GitHub</p>
-    <div class="ujn-contributors">
-  <a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="44" height="44" loading="lazy" decoding="async"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">140 次提交 · GitHub</span></a>
-    </div>
-  </div>
-  <div class="ujn-contributors-panel" id="ujn-contributor-panel-gitee" role="tabpanel" aria-labelledby="ujn-contributor-tab-gitee" data-ujn-panel="gitee">
-    <p class="ujn-contributors-panel__title">Gitee</p>
-    <div class="ujn-contributors">
-  <a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">140 次提交 · Gitee</span></a>
-    </div>
-  </div>
+<div class="ujn-contributors" aria-label="贡献者">
+<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><img src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="36" height="36" loading="lazy" decoding="async"><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">141 次提交 · GitHub</span></span></a>
+<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__initial">D</span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">141 次提交 · Gitee</span></span></a>
 </div>
 <!-- contributors:end -->
 
----
+## 💬 同学留言
 
-这个页面写给两种人：
-
-- **只想提个意见、报个错误、问个问题**——不用懂技术，看第 1 节就够了；
-- **想直接改内容、加东西**——看第 3 节（网页直接改）或第 4 节（本地改）。
-
-!!! tip "会开发的：改好推上去就行，不用管部署"
-    改动进入 `main`（你自己推送，或维护者合并你的 Pull Request）后，仓库里的自动流程会重新构建并发布站点。
-    贡献者不需要服务器权限，也不需要了解站点部署在哪里、怎么发布——这部分由维护者负责。
-
-!!! note "🕒 想知道最近改了什么"
-    见 **[最近更新](../changelog.md)**：那一页由 git 提交历史自动生成，会列出内容层面的改动
-    （纯维护性的重构、测试之类不会出现）。你提的建议被采纳后，也会出现在那里。
-
----
-
-## 1. 🙋 提意见 / 报问题（不懂技术也能做）
-
-**推荐用 Gitee 提 Issue**：注册登录 Gitee 就能提交，速度和访问都更稳。
-
-[:fontawesome-solid-comment-dots: 在 Gitee 提 Issue](https://gitee.com/Draven323/ujn-guide/issues/new){ .md-button .md-button--primary }
-[:fontawesome-brands-github: 在 GitHub 提 Issue](https://github.com/K-zhaochao/ujn-guide/issues/new){ .md-button }
-
-也可以用 QQ 群直接说（导航栏「关于 → 联系作者」）。写的时候带上这几点，问题会好处理很多：
-
-| 要写清楚 | 例子 |
-| --- | --- |
-| 哪个页面 | 复制浏览器地址栏，例如 `https://ujn.matehub.top/pets/` |
-| 发生了什么 | 「点击第 3 页的『小白』，弹窗里的照片顺序和第 2 页对不上」 |
-| 你期望是什么 | 「应该按猫猫页面里的顺序来」 |
-| 截图 | 手机截图或电脑截图都行，比文字描述省事 |
-
-!!! tip "提之前先看一眼下面有没有人已经提过"
-    重复的 issue 会让维护者漏掉真正新的问题。下面的列表实时来自 GitHub，可以直接点进去补充信息。
-
-## 2. 🐛 已有的问题与建议
+发现信息有误，或想让本站增加什么？写下来，也可以展开已有留言看看大家的回复。
 
 <div id="gh-issues" data-repo="K-zhaochao/ujn-guide" data-state="open">
-  <div class="gh-issues__tabs" role="tablist">
-    <button class="ujn-pill gh-issues__tab is-active" type="button" role="tab" aria-selected="true" data-state="open">开放中</button>
-    <button class="ujn-pill gh-issues__tab" type="button" role="tab" aria-selected="false" data-state="closed">已关闭</button>
+  <form class="gh-composer" action="https://github.com/K-zhaochao/ujn-guide/issues/new" method="get" target="_blank" rel="noopener noreferrer">
+    <label for="gh-message-title">标题<input id="gh-message-title" name="title" required maxlength="100" placeholder="一句话说明问题或建议"></label>
+    <label for="gh-message-body">留言<textarea id="gh-message-body" name="body" required maxlength="1200" rows="3" placeholder="相关页面、具体情况和建议…请勿填写密码等个人信息"></textarea></label>
+    <div class="gh-composer__actions"><button class="md-button md-button--primary" type="submit">去 GitHub 发布留言</button><a href="https://gitee.com/Draven323/ujn-guide/issues/new" target="_blank" rel="noopener noreferrer">也可在 Gitee 反馈</a></div>
+    <p class="gh-composer__hint">在 GitHub 登录并确认发布后，留言会同步到这里。</p>
+  </form>
+  <div class="gh-issues__tabs" role="tablist" aria-label="留言状态">
+    <button class="gh-issues__tab is-active" type="button" role="tab" aria-selected="true" data-state="open">讨论中</button>
+    <button class="gh-issues__tab" type="button" role="tab" aria-selected="false" data-state="closed">已处理</button>
   </div>
-  <p class="gh-issues__status">正在加载 GitHub 上的 issue…</p>
+  <p class="gh-issues__status" role="status" aria-live="polite">正在加载留言…</p>
   <ol class="gh-issues__list"></ol>
-  <p class="gh-issues__hint">
-    列表通过 GitHub 公开接口读取（不需要登录，匿名限流约每小时 60 次）。
-    如果显示读不到，请直接打开
-    <a href="https://github.com/K-zhaochao/ujn-guide/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>
-    或
-    <a href="https://gitee.com/Draven323/ujn-guide/issues" target="_blank" rel="noopener noreferrer">Gitee Issues</a>。
-  </p>
+  <nav class="ujn-pagination gh-issues__pagination" aria-label="留言分页" hidden></nav>
+  <p class="gh-issues__hint"><a href="https://github.com/K-zhaochao/ujn-guide/issues" target="_blank" rel="noopener noreferrer">查看全部留言 ↗</a></p>
 </div>
 
-<style>
-/* ===== 反馈页：issue 列表（样式跟随主题，浅色/深色自动适配） ===== */
-#gh-issues {
-  --gh-accent: var(--md-primary-fg-color);
-  --gh-hairline: var(--md-default-fg-color--lightest);
-  --gh-muted: var(--md-default-fg-color--light);
-  margin: 1.1rem 0 .6rem;
-}
+<details class="ujn-maintain" markdown="1">
+<summary>想直接补充校园内容？查看参与维护的方法</summary>
 
-#gh-issues .gh-issues__tabs {
-  display: inline-flex;
-  gap: .25rem;
-  padding: .18rem;
-  border: 1px solid var(--gh-hairline);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--gh-accent) 6%, transparent);
-}
-
-/* 页签的形状、字号字重与选中态配色来自共用的 .ujn-pill（见 ujn.css），这里只留内边距 */
-#gh-issues .gh-issues__tab {
-  padding: .32rem .8rem;
-}
-
-#gh-issues .gh-issues__tab:hover {
-  color: var(--gh-accent);
-}
-
-#gh-issues .gh-issues__status,
-#gh-issues .gh-issues__hint {
-  color: var(--gh-muted);
-  font-size: .66rem;
-  line-height: 1.6;
-}
-
-#gh-issues .gh-issues__hint {
-  margin-top: .5rem;
-}
-
-#gh-issues .gh-issues__list {
-  margin: .7rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-#gh-issues .gh-issue {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: .35rem;
-  padding: .55rem .7rem;
-  margin-bottom: .4rem;
-  border: 1px solid var(--gh-hairline);
-  border-radius: .55rem;
-  background: var(--md-default-bg-color);
-  transition: border-color .15s ease, box-shadow .15s ease;
-}
-
-#gh-issues .gh-issue:hover {
-  border-color: var(--gh-accent);
-  box-shadow: 0 .2rem .6rem rgba(0, 0, 0, .12);
-}
-
-#gh-issues .gh-issue__title {
-  color: var(--md-default-fg-color);
-  font-size: .72rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-#gh-issues .gh-issue__title:hover {
-  color: var(--gh-accent);
-  text-decoration: underline;
-}
-
-#gh-issues .gh-issue__number {
-  margin-right: .3rem;
-  color: var(--gh-muted);
-  font-weight: 700;
-}
-
-#gh-issues .gh-issue__labels {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: .25rem;
-}
-
-#gh-issues .gh-issue__label {
-  padding: .1rem .4rem;
-  border: 1px solid color-mix(in srgb, var(--gh-accent) 40%, transparent);
-  border-radius: 999px;
-  color: var(--gh-accent);
-  font-size: .58rem;
-  font-weight: 600;
-}
-
-#gh-issues .gh-issue__meta {
-  margin-left: auto;
-  color: var(--gh-muted);
-  font-size: .6rem;
-  white-space: nowrap;
-}
-</style>
-
-## 3. ✏️ 改一句话 / 换一张图（不用装环境）
+## 3. ✏️ 在线修改内容
 
 GitHub 和 Gitee 的网页版都能直接编辑文件，适合改错别字、更新电话、换图片这类小改动：
 
@@ -281,3 +134,5 @@ python scripts/pets/build_gallery.py      # 重写卡牌区
 - 不要直接修改 `site/`；
 - 不要删除第三方资源的许可与致谢（例如 `docs/assets/zongce-calculator/` 里的 LICENSE 与原作者说明）；
 - 宠物投稿相关的后端服务在独立的私有仓库，本仓库只包含静态主站，不需要也不应该在这里新增后端接口。
+
+</details>

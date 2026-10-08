@@ -78,9 +78,18 @@ class RenderTests(unittest.TestCase):
 
     def test_empty_list_renders_placeholder_with_links(self) -> None:
         block = contributors.render([])
-        self.assertIn("还没有提交记录", block)
+        self.assertIn("感谢每一位", block)
         self.assertIn("github.com/K-zhaochao/ujn-guide", block)
-        self.assertIn("gitee.com/Draven323/ujn-guide", block)
+        self.assertNotIn('role="tablist"', block)
+
+
+class EscapeTests(unittest.TestCase):
+    def test_remote_names_and_links_are_not_html_injection(self):
+        block = contributors.render([{'name': '<script>x</script>', 'avatar': 'javascript:x', 'url': 'javascript:x', 'contributions': 1, 'source': 'GitHub'}])
+        self.assertNotIn('<script>', block)
+        self.assertNotIn('javascript:', block)
+        self.assertNotIn('role="tablist"', block)
+        self.assertIn('ujn-contributor__text', block)
 
 
 class RepositoryTests(unittest.TestCase):

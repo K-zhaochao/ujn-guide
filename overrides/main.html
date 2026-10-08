@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block announce %}
 {# 公告栏：可关闭。关闭状态记在 localStorage，并与文案绑定——
@@ -58,6 +58,7 @@ docs/javascripts/mathjax.js 负责先写好配置，只有当前页面真的出�
 {% endblock %}
 
 {% block scripts %}
+<script type="application/json" id="ujn-grade-config">{{ {"apiUrl": config.extra.grade_export_api_url} | tojson }}</script>
 {{ super() }}
 {# 站点交互脚本已移到 docs/javascripts/ujn-ui.js（模板只提供下面这段配置数据）。 #}
 <script type="application/json" id="ujn-flea-config">{{ config.extra.flea_market | tojson }}</script>

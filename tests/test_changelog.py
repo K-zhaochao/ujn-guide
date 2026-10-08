@@ -44,12 +44,12 @@ class FilterTests(unittest.TestCase):
     def entry(self, subject: str) -> dict[str, object]:
         return {"date": "2026-10-07", "subject": subject, "pages": ["docs/a.md"]}
 
-    def test_maintenance_commits_are_hidden(self) -> None:
+    def test_maintenance_commits_are_kept_in_complete_history(self) -> None:
         for subject in [
             "重构：拆开主题覆盖层", "测试：补 5 个用例", "chore: bump deps", "文档：更新 BUILDING.md",
             "feat(pets): 主站搜索支持投稿 ID 精确查找", "fix(pets,admin): 下拉滚动条同步",
         ]:
-            self.assertFalse(changelog.is_reader_relevant(self.entry(subject)), subject)
+            self.assertTrue(changelog.is_reader_relevant(self.entry(subject)), subject)
 
     def test_content_commits_are_shown(self) -> None:
         for subject in ["内容：新增舜耕校区食堂攻略", "修复：通知面板不再误关", "回退：下线宠物投稿系统", "添加校历"]:
@@ -81,20 +81,22 @@ class RenderTests(unittest.TestCase):
     def test_links_use_nav_titles_and_fall_back_to_file_stem(self) -> None:
         entries = [{"date": "2026-10-07", "subject": "内容：新增攻略", "pages": ["docs/phone-book/colleges.md", "docs/unknown/thing.md"]}]
         block = changelog.render(entries, {"phone-book/colleges.md": "📞 电话大全"})
-        self.assertIn("**2026-10-07** 📝 新增攻略（📞 电话大全、thing）", block)
+        self.assertIn('datetime="2026-10-07"', block)
+        self.assertIn('📝 新增攻略', block)
+        self.assertIn('📞 电话大全 · thing', block)
         self.assertTrue(block.startswith(changelog.START))
         self.assertTrue(block.endswith(changelog.END))
 
-    def test_keeps_at_most_max_entries_and_truncates_long_subjects(self) -> None:
-        entries = [{"date": "2026-10-07", "subject": "长" * 200, "pages": []} for _ in range(changelog.MAX_ENTRIES + 5)]
+    def test_keeps_entire_history_for_pagination_and_escapes_html(self) -> None:
+        entries = [{"date": "2026-10-07", "subject": '<script>alert(1)</script>' + "长" * 200, "pages": []} for _ in range(135)]
         block = changelog.render(entries, {})
-        items = [line for line in block.splitlines() if line.startswith("- ")]
-        self.assertEqual(len(items), changelog.MAX_ENTRIES)
-        self.assertLessEqual(len(items[0]), changelog.MAX_SUBJECT + 20)
-        self.assertIn("…", items[0])
+        self.assertEqual(block.count('data-change-item'), 135)
+        self.assertNotIn('<script>', block)
+        self.assertIn('&lt;script&gt;', block)
+        self.assertIn('data-page-size="10"', block)
 
     def test_empty_history_renders_placeholder(self) -> None:
-        self.assertIn("暂时还没有内容更新记录", changelog.render([], {}))
+        self.assertIn("暂时还没有更新记录", changelog.render([], {}))
 
     def test_page_link_handles_directory_urls(self) -> None:
         self.assertEqual(changelog.page_link("docs/pets/index.md"), "pets.md")
@@ -109,10 +111,10 @@ class RepositoryPageTests(unittest.TestCase):
         self.assertIn(changelog.START, document)
         self.assertIn(changelog.END, document)
         block = document.split(changelog.START, 1)[1].split(changelog.END, 1)[0]
-        items = [line for line in block.splitlines() if line.startswith("- ")]
+        items = [line for line in block.splitlines() if 'data-change-item' in line]
         self.assertTrue(items, "更新记录不该是空的，跑一下 python scripts/site/build_changelog.py")
         for line in items:
-            self.assertRegex(line, r"^- \*\*\d{4}-\d{2}-\d{2}\*\* \S")
+            self.assertRegex(line, r'datetime="\d{4}-\d{2}-\d{2}"')
 
     def test_nav_titles_are_readable(self) -> None:
         titles = changelog.nav_titles()

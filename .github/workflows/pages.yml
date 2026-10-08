@@ -19,10 +19,14 @@ concurrency:
 jobs:
   build:
     name: Build static site
+    env:
+      GRADE_EXPORT_API_URL: ${{ vars.GRADE_EXPORT_API_URL }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -46,7 +50,13 @@ jobs:
         # 项目站点部署在 https://<owner>.github.io/<repo>/ 子路径下，
         # 用 SITE_URL 覆盖 mkdocs.yml 的 site_url（Pagefind 的结果链接也会跟着带上子路径）
         run: |
-          echo "SITE_URL=https://$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')/" >> "$GITHUB_ENV"
+          owner="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          repo="${GITHUB_REPOSITORY#*/}"
+          if [ "$(echo "$repo" | tr '[:upper:]' '[:lower:]')" = "$owner.github.io" ]; then
+            echo "SITE_URL=https://$owner.github.io/" >> "$GITHUB_ENV"
+          else
+            echo "SITE_URL=https://$owner.github.io/$repo/" >> "$GITHUB_ENV"
+          fi
 
       - name: Build site
         run: npm run build

@@ -86,7 +86,7 @@ describe('站内 GitHub Issues 列表', () => {
     expect(row.querySelector('.gh-issue__meta').textContent).toContain('💬 2');
     expect(status().hidden).toBe(true);
     expect(globalThis.fetch.mock.calls[0][0])
-      .toBe('https://api.github.com/repos/K-zhaochao/ujn-guide/issues?state=open&per_page=20&sort=updated');
+      .toBe('https://api.github.com/repos/K-zhaochao/ujn-guide/issues?state=open&per_page=10&page=1&sort=updated');
   });
 
   it('没有 issue 时给出友好提示', async () => {
@@ -105,8 +105,8 @@ describe('站内 GitHub Issues 列表', () => {
     await flush();
 
     expect(rows()).toHaveLength(0);
-    expect(status().textContent).toContain('HTTP 403');
-    expect(status().textContent).toContain('去仓库里查看');
+    expect(status().textContent).toContain('暂时没有响应');
+    expect(status().textContent).toContain('打开全部留言');
   });
 
   it('切换到「已关闭」会按新状态重新请求', async () => {
@@ -153,5 +153,39 @@ describe('页面与脚本的契约', () => {
 
   it('脚本已登记在 mkdocs.yml 的 extra_javascript 中', () => {
     expect(mkdocsSource).toContain('javascripts/github-issues.js');
+  });
+});
+
+
+describe('comment-style discussion enhancements', () => {
+  it('renders body as plain text, preventing injected markup', async () => {
+    mockFetch(() => Promise.resolve({ ok: true, json: async () => [issue(3, '<img onerror=alert(1)>', { body: '<script>alert(2)</script>', user: { login: '<b>user</b>', avatar_url: 'javascript:alert(3)' } })] }));
+    boot(); await flush(); expect(rows()[0].querySelector('.gh-issue__body').textContent).toContain('<script>'); expect(rows()[0].querySelector('script')).toBeNull(); expect(rows()[0].querySelector('img')).toBeNull();
+  });
+  it('opens replies on demand, caches a loaded thread and displays reply authors', async () => {
+    mockFetch(url => Promise.resolve({ ok: true, json: async () => url.includes('/comments?') ? [{ user: { login: 'maintainer' }, body_text: '已修正，谢谢反馈', created_at: new Date().toISOString() }] : [issue(4, '反馈', { body_text: '食堂信息有误' })] }));
+    boot(); await flush(); expect(fetch).toHaveBeenCalledTimes(1); const expand = rows()[0].querySelector('.gh-issue__expand'); expand.click(); await flush();
+    expect(rows()[0].querySelector('.gh-replies').hidden).toBe(false); expect(rows()[0].textContent).toContain('已修正，谢谢反馈'); expect(rows()[0].textContent).toContain('@maintainer');
+    expand.click(); expand.click(); await flush(); expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it('paginates issues using GitHub next-page link, and returns to a cached page', async () => {
+    const html = CONTAINER.replace('</div>', '</div>').replace('</ol>', '</ol><nav class="gh-issues__pagination" hidden></nav>');
+    mockFetch(url => Promise.resolve({ ok: true, headers: { get: () => url.includes('page=1') ? '<https://api.github.com/page2>; rel="next"' : '' }, json: async () => [issue(url.includes('page=2') ? 22 : 11, '分页留言')] }));
+    boot(html); await flush(); document.querySelector('.gh-issues__pagination button:last-child').click(); await flush(); expect(rows()[0].textContent).toContain('#22');
+    document.querySelector('.gh-issues__pagination button:first-child').click(); await flush(); expect(rows()[0].textContent).toContain('#11'); expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it('does not let a late old tab response replace the current selection', async () => {
+    let resolveOld; mockFetch(url => url.includes('state=open') ? new Promise(resolve => { resolveOld = resolve; }) : Promise.resolve({ ok: true, json: async () => [issue(9, '已处理')] }));
+    boot(); document.querySelector('[data-state="closed"]').click(); await flush(); resolveOld({ ok: true, json: async () => [issue(8, '旧请求')] }); await flush(); expect(rows()[0].textContent).toContain('已处理');
+  });
+  it('composer carries draft to GitHub for final confirmation without a write API or token', async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    mockFetch(() => Promise.resolve({ ok: true, json: async () => [] }));
+    boot(CONTAINER.replace('<p class="gh-issues__status">', '<form class="gh-composer"><input name="title" required><textarea name="body" required></textarea><button type="submit">发布</button></form><p class="gh-issues__status">'));
+    document.querySelector('[name=title]').value = '建议增加校历'; document.querySelector('[name=body]').value = '可在首页显示开学日期。'; document.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await flush();
+    const url = new URL(open.mock.calls[0][0]); expect(url.pathname).toBe('/K-zhaochao/ujn-guide/issues/new'); expect(url.searchParams.get('body')).toContain('开学日期'); expect(fetch).toHaveBeenCalledTimes(1); open.mockRestore();
+  });
+  it('instant-navigation initialization does not duplicate handlers or requests', async () => {
+    mockFetch(() => Promise.resolve({ ok: true, json: async () => [] })); boot(); await flush(); handlers.forEach(handler => handler()); await flush(); expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,7 +1,7 @@
 # 济南大学校园通 · ujn-guide
 
 给济大学子的一站式校园指南：地点、绿皮书、电话、宠物图鉴、规章制度、实用工具。
-站点是纯静态的（MkDocs Material + Pagefind 搜索），构建与验收全自动化。
+主体是静态站（MkDocs Material + Pagefind 搜索），网页成绩导出使用独立的短时内存会话 Node 服务；宠物投稿后台已归档。构建与验收自动化。
 
 - 线上站点：<https://ujn.matehub.top/>
 - GitHub：<https://github.com/K-zhaochao/ujn-guide>
@@ -39,7 +39,7 @@ python -m mkdocs serve --dev-addr 127.0.0.1:8000   # 本地预览
 ```bash
 npm run test:frontend   # vitest：前端行为
 npm run test:build      # python -m unittest：生成器与构建
-npm run test:release    # 发布工具（需要私有 server/，公开仓库会自动跳过）
+npm run test:grades     # 教务登录、账号查询选项、内存会话与导出服务
 npm run verify:ui       # 无头浏览器：截图 + computed style 指纹
 npm run verify:responsive  # 13 页 × 4 宽度扫横向溢出
 npm run verify:hit      # 命中检测：用真实鼠标坐标抓「被透明层挡住、点不到」
@@ -56,31 +56,13 @@ npm run verify:links    # 链接 / 锚点 / 资源体检（也已接进 npm run 
 
 ## 实用工具：教务成绩导出
 
-三种用法，按省事程度排列（详见站点「实用工具 → 教务成绩导出」）：
-
-1. **Tampermonkey 脚本**（推荐，**不需要账号密码**）：在教务系统页面内运行，复用你已登录的会话；
-2. **单文件可执行程序**（约 100 MB，内置 Node 运行时，双击即用）：见
-   [Releases](https://github.com/K-zhaochao/ujn-guide/releases/latest)；
-3. **本地安装器 / 命令行**：`tools/grade-export/` 下，也支持 `--user/--year/--term/--output` 参数。
-
-> 这些工具都在**你自己的电脑上**运行，账号密码只在本机内存里用一次，不写入磁盘、不发给任何第三方。
-> 本站是静态站点，没有后端，也没有任何地方会收到你的凭据。
-
-构建单文件版：
-
-```bash
-node scripts/tools/build-exe.mjs   # 产物在 dist/（已忽略，不进仓库）
-```
-
-打 `v*` tag 时，`.github/workflows/build-binaries.yml` 会自动为 Windows / macOS / Linux 构建并作为
-Release 附件上传。
+网页仅提供本站输入账密的导出操作：登录后读取当前学生可查询的学年、学期，选择范围后下载 Excel。需部署独立的内存会话服务，详见 tools/grade-export/README.md。不再提供浏览器脚本、本地命令行或安装器；旧源码在 _archive/grade-export-legacy/ 留存。
 
 ## 目录结构
 
 ```
 docs/                 站点内容（Markdown + 资源）
   assets/stylesheets/ 设计令牌与组件样式
-  assets/tools/       成绩导出的脚本与安装器（供下载）
   javascripts/        站点交互脚本
 hooks/                MkDocs 构建钩子（Pagefind）
 overrides/            Material 主题模板覆盖
@@ -117,3 +99,9 @@ site/                 构建产物（忽略）
 >
 > 需要商用授权（例如把内容用于付费服务）请通过站点「关于 → 联系作者」联系维护者。
 
+
+## 宠物后台归档与网页成绩导出
+
+宠物投稿后台相关工具、测试和本机材料集中在 `_archive/pet-submission-backend/`（已忽略），可整体移走；静态图鉴保留。
+
+`npm run build` 后执行 `npm run dev:site`，打开 `http://127.0.0.1:8787/tools/grade-export/` 使用网页表单。生产环境的 HTTPS 反向代理见 `tools/grade-export/README.md`；GitHub Pages 只托管静态部分，不运行该服务。

@@ -34,7 +34,7 @@ hide: [navigation]
 - :material-toolbox-outline: **🧰 实用工具**
 
     ---
-    综测计算器、教务成绩导出…… 能省事的小工具都收在这里，全部在你的浏览器里本地运行，不收集你的数据。
+    综测计算器、教务成绩导出…… 综测在浏览器本地计算；成绩导出在本站登录，读取可查询学期后下载。
 
     [:octicons-arrow-right-24: 打开工具箱](tools/index.md){ .md-button }
 

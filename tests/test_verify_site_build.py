@@ -14,7 +14,7 @@ class VerifySiteBuildTests(unittest.TestCase):
         site_dir = root / "site"
         (site_dir / "pets").mkdir(parents=True)
         (site_dir / "pagefind").mkdir()
-        (site_dir / "index.html").write_text("<title>济南大学校园通</title>", encoding="utf-8")
+        (site_dir / "index.html").write_text("<!doctype html><html><head><title>济南大学校园通</title></head><body></body></html>", encoding="utf-8")
         (site_dir / "pets" / "index.html").write_text("<h1>宠物收集录</h1>", encoding="utf-8")
         (site_dir / "pagefind" / "pagefind.js").write_text("export default {}", encoding="utf-8")
         (site_dir / "pagefind" / "fragment.pf_fragment").write_bytes(b"index")
@@ -34,6 +34,14 @@ class VerifySiteBuildTests(unittest.TestCase):
     def test_valid_site_requires_pagefind_and_known_page(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             self.assertEqual(verify_site(self.create_valid_site(Path(directory))), 2)
+
+    def test_missing_doctype_or_body_bom_fails(self) -> None:
+        for content in ('<html><body>正文</body></html>', '<!doctype html><html><body>\ufeff正文</body></html>'):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as directory:
+                site = self.create_valid_site(Path(directory))
+                (site / 'index.html').write_text(content, encoding='utf-8')
+                with self.assertRaisesRegex(SiteBuildVerificationError, 'DOCTYPE|BOM'):
+                    verify_site(site)
 
     def test_missing_pagefind_entry_fails(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
