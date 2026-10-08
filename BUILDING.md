@@ -7,7 +7,6 @@ python -m pip install -r requirements.txt
 npm ci
 npm run test:build
 npm run test:frontend
-npm run test:grades
 npm run build
 ```
 
@@ -260,15 +259,11 @@ token；私有仓库必须带 token，而 token 不能放在静态页面里）�
 反馈页的 GitHub issue 列表（用假 fetch）、综测计算器、MathJax 的按需加载与即时导航排版、
 AI 助手与 Cloudflare AI Worker（源码在 `workers/ai-worker.js`）。它不访问真实 API。
 
-## 网页成绩导出与后台归档
+## 宠物后台归档
 
 宠物投稿后台的发布工具、本地代理、测试与运维材料已归档到 `_archive/pet-submission-backend/`，不参与当前构建。静态宠物图鉴不变。
 
-成绩导出页面为纯静态实现：学校官网登录 → 本站选择范围 → 浏览器原生 POST 到学校导出接口。没有本站登录 API、学校 Cookie 读取或 GRADE_EXPORT_API_URL 配置。MkDocs 可以直接预览界面。
-
-手动学年/学期必须与官网一致；可导入保存的查询 HTML 来提取已有选项，切换账号/学年清空旧状态。真实下载仍取决于学校 Cookie 的跨站 POST 策略及接口校验，详见 tools/grade-export/README.md。旧独立服务模块留存但不参与网页操作，旧插件、CLI、安装器和二进制发布工作流继续归档。
-
-GitHub Pages 发布正常静态构建即可，不部署成绩 API。
+本站使用 MkDocs 静态构建；`npm run dev:site` 启动本地预览，生产站点由 GitHub Pages 发布。
 
 ## 统一验证
 
@@ -280,22 +275,21 @@ GitHub Pages 发布正常静态构建即可，不部署成绩 API。
 ./verify.sh --target site
 ```
 
-默认验证目标为主站，不再调用移除的私有后端。入口执行构建单元测试、成绩导出测试、前端测试、严格构建与依赖审计。`-SkipInstall` 用于依赖已安装后的本地复测；`-SkipAudit` 仅用于排障。测试报告写入被 Git 忽略的 `reports/site/`。
+默认验证目标为主站，不再调用移除的私有后端。入口执行构建单元测试、前端测试、严格构建与依赖审计。`-SkipInstall` 用于依赖已安装后的本地复测；`-SkipAudit` 仅用于排障。测试报告写入被 Git 忽略的 `reports/site/`。
 
 
 ## 更新记录与反馈展示
 
 Pages checkout 使用 `fetch-depth: 0`，更新生成器读取完整非合并提交，不限 30 条；前端每页 10 条，无 JavaScript 时保留全部记录。维护说明与测试证据放在仓库文档或本地 reports，不写进同学使用的页面。
 
-反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者按 GitHub/Gitee 分组，滑动指示器切换平台；来源各自计数、不混加两端提交。构建时获取、访客零请求；单个平台暂时失败时保留缓存。无 JavaScript 时显示两组名单。
+反馈页使用公开 Issues 和按需加载回复，全部外部正文按纯文本渲染。留言草稿跳转 GitHub，由同学登录确认发布；站点不存放 GitHub token。贡献者按 GitHub/Gitee 分组，滑动指示器切换平台；切换栏仅显示平台名称，卡片保留个人提交次数。构建时获取、访客零请求；单个平台暂时失败时保留缓存。无 JavaScript 时显示两组名单。
 
-Pages 成绩导出无需 API 配置；详见 tools/grade-export/README.md。
 
 ## Gitee 更新同步到 GitHub Pages
 
 目标链路：Gitee main 合并贡献 → GitHub main 同步 → pages.yml 构建并部署。
 
-先统一两端历史。目前 Gitee main 还在 c4e4cb3，GitHub 已有后续提交。先把最新 GitHub main 正常推送到 Gitee 一次（git push gitee main，不加 force）；之后以 Gitee 为内容入口，GitHub 为部署镜像。若已有分叉，人工合并冲突后再启用同步，不覆盖任意一端的独有提交。
+已启用 Gitee → GitHub 推送镜像，以 Gitee 为内容入口、GitHub 为部署镜像。本地提交后执行 `git push gitee main`；需要立即同步时，在 Gitee「仓库镜像管理」点击对应镜像的「更新」，再核对两端 main 提交与 GitHub Pages 部署状态。若历史分叉，先合并冲突，不覆盖任意一端的独有提交。
 
 ### 方法一：Gitee 推送镜像
 

@@ -132,13 +132,12 @@ def render(people: list[dict[str, object]]) -> str:
              '<div class="ujn-contributors__header"><span class="ujn-contributors__eyebrow">一起点亮校园指南</span>',
              '<div class="ujn-contributors__switch" role="tablist" aria-label="贡献者平台" hidden><span class="ujn-contributors__slider" aria-hidden="true"></span>']
     for index, source in enumerate(SOURCES):
-        count = sum(person["source"] == source["label"] for person in people)
-        lines.append(f'<button type="button" role="tab" id="contributors-tab-{source["key"]}" aria-controls="contributors-panel-{source["key"]}" aria-selected="{str(index == 0).lower()}" tabindex="{0 if index == 0 else -1}" data-platform="{source["key"]}">{source["label"]}<span class="ujn-contributors__count">{count}</span></button>')
+        lines.append(f'<button type="button" role="tab" id="contributors-tab-{source["key"]}" aria-controls="contributors-panel-{source["key"]}" aria-selected="{str(index == 0).lower()}" tabindex="{0 if index == 0 else -1}" data-platform="{source["key"]}">{source["label"]}</button>')
     lines.append('</div></div>')
     for source in SOURCES:
         members = [person for person in people if person["source"] == source["label"]]
         lines.append(f'<section class="ujn-contributors__panel" id="contributors-panel-{source["key"]}" role="tabpanel" aria-labelledby="contributors-tab-{source["key"]}" data-platform="{source["key"]}" tabindex="0">')
-        lines.append(f'<p class="ujn-contributors__caption">{source["label"]} · {len(members)} 位贡献者</p><div class="ujn-contributors__cards">')
+        lines.append(f'<p class="ujn-contributors__caption">{source["label"]}</p><div class="ujn-contributors__cards">')
         lines.extend(person_html(person) for person in members)
         if not members:
             lines.append(f'<p class="ujn-contributors__empty">感谢每一位补充校园信息的同学。<a href="{source["repo"]}" target="_blank" rel="noopener noreferrer">一起完善指南 →</a></p>')

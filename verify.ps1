@@ -68,7 +68,6 @@ function Invoke-SiteVerification {
         }
 
         Invoke-NpmCommand "run site build unit tests" (Join-Path $reportRoot "unit-tests.log") @("run", "test:build")
-        Invoke-NpmCommand "run grade export unit tests" (Join-Path $reportRoot "grade-tests.log") @("run", "test:grades")
         Invoke-NpmCommand "run frontend unit tests" (Join-Path $reportRoot "frontend-unit-tests.log") @("run", "test:frontend")
         Invoke-NpmCommand "run strict site build" (Join-Path $reportRoot "build.log") @("run", "build")
 

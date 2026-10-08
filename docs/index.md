@@ -34,7 +34,7 @@ hide: [navigation]
 - :material-toolbox-outline: **🧰 实用工具**
 
     ---
-    综测计算器、教务成绩导出…… 综测在浏览器本地计算；成绩导出在本站登录，读取可查询学期后下载。
+    综测计算器，填入绩点与综合素质成绩即可计算。支持表格导入，数据只在浏览器本地处理。
 
     [:octicons-arrow-right-24: 打开工具箱](tools/index.md){ .md-button }
 

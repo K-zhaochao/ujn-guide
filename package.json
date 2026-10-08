@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "python scripts/build_site.py",
-    "dev:site": "node tools/grade-export/server.mjs",
+    "dev:site": "python -m mkdocs serve --dev-addr 127.0.0.1:8787",
     "test:build": "python -m unittest discover -s tests -p test_*.py",
     "test:frontend": "vitest run",
     "verify:site": "python scripts/verify_site_build.py",
@@ -17,9 +17,7 @@
     "verify:ui:compare": "python scripts/verify/compare_fingerprint.py",
     "verify:responsive": "node scripts/verify/responsive-sweep.mjs",
     "verify:links": "python scripts/site/check_links.py",
-    "verify:hit": "node scripts/verify/hit-test.mjs",
-    "start:grades": "node tools/grade-export/server.mjs",
-    "test:grades": "node --test tests/grade-export/*.test.mjs && node tools/grade-export/test-endpoint.mjs"
+    "verify:hit": "node scripts/verify/hit-test.mjs"
   },
   "devDependencies": {
     "jsdom": "26.1.0",

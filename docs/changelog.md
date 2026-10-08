@@ -12,13 +12,14 @@ hide:
 <!-- changelog:start -->
 <section id="ujn-changelog" data-page-size="10" aria-label="更新记录">
 <ol class="ujn-changelog__list">
-<li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>✨ 纯静态官网成绩导出与贡献者平台滑块</p><span class="ujn-change__scope">教务成绩导出</span></div></li>
-<li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>优化校园通：完整更新分页、同学留言与网页成绩导出</p><span class="ujn-change__scope">教务成绩导出 · 实用工具</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-09">2026-10-09</time><div><p>🎨 更新页码输入校验、精简贡献者切换并下线成绩导出</p><span class="ujn-change__scope">grade-export · 实用工具</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>✨ 纯静态官网成绩导出与贡献者平台滑块</p><span class="ujn-change__scope">grade-export</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-08">2026-10-08</time><div><p>优化校园通：完整更新分页、同学留言与网页成绩导出</p><span class="ujn-change__scope">grade-export · 实用工具</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>成绩导出脚本 v1.3：照学校源码复刻真实导出流程（export_exportConfig.html + dcclbh=JW_N305005_XSCXCJ + 23 列 + 提交筛选表单），并删掉已废弃的自建请求路径</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>成绩导出脚本 v1.2：优先点学校自带的导出按钮（自己拼参数会被判非法，返回通用错误页）；找不到才退回自建请求</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>成绩导出脚本 v1.1：带 ?gnmkdm= 菜单码、参数改从页面读取、失败时打印服务端原话（旧版在真实系统上导出返回 HTML）</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>贡献者：按 GitHub/Gitee 分类 + 滑动切换（无 JS 时两个面板都显示）；对比度改为跟随主题前景色；LICENSE 采用 AGPL-3.0</p></div></li>
-<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具与文档：单文件可执行程序（Node SEA）构建脚本 + 三系统 Release workflow；README；成绩导出页按系统给下载入口</p><span class="ujn-change__scope">教务成绩导出</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具与文档：单文件可执行程序（Node SEA）构建脚本 + 三系统 Release workflow；README；成绩导出页按系统给下载入口</p><span class="ujn-change__scope">grade-export</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>修复 CI：verify.sh 末尾的 [[ ]] &amp;&amp; cmd 在条件为假时让脚本返回 1（所有检查全绿却 exit 1 的真凶）</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>修复 CI 审计判据：改用脚本解析 pip-audit 报告（顶层没有 vulnerabilities 字段，之前 grep 永不匹配导致无漏洞也判红）+ 4 项单测</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>修复 CI：Python 审计以报告内容为准（pip-audit 在 Linux 上报无漏洞却返回 1，被 set -e 直接判死）</p></div></li>
@@ -30,15 +31,15 @@ hide:
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>修复 CI：Pagefind 钩子误用 shell=True 配列表（Linux 上等于只跑 npx）；宠物卡牌相对路径不再依赖盘符</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>修复 CI：scripts/site/ 被 .gitignore 吞掉（3 个测试报 FileNotFoundError）；Windows 运行器强制 UTF-8</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>🛠️ Windows 双击入口不再&quot;闪一下就没了&quot;</p></div></li>
-<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具：成绩导出的安装器（Windows / macOS / Linux）与页面入口</p><span class="ujn-change__scope">教务成绩导出</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具：成绩导出的安装器（Windows / macOS / Linux）与页面入口</p><span class="ujn-change__scope">grade-export</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具：教务成绩导出的本地版 CLI（按说明第 1~3 节实现）+ 本地假教务系统自测</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>修正：删掉误写进读者页面的「为什么不能输密码」解释；宠物页每页数量对齐列数</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>文档：验收脚本 README 与 BUILDING.md 补上命中检测（npm run verify:hit）</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具：固化「真实鼠标命中检测」；宠物页找猫筛选补 jsdom 用例</p></div></li>
-<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具与字体：教务成绩导出改成 Tampermonkey 脚本；全站换成霞鹜文楷</p><span class="ujn-change__scope">教务成绩导出 · 实用工具</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>工具与字体：教务成绩导出改成 Tampermonkey 脚本；全站换成霞鹜文楷</p><span class="ujn-change__scope">grade-export · 实用工具</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>🎨 修好手机端页头图标不齐（Material 的不对称下边距）</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>🎨 标题改用霞鹜文楷（子集化 194 KB），并按计划把字体方案落地</p></div></li>
-<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>✨ 新增「实用工具」落地页与教务成绩导出工具；主页原「综测计算器」卡片改为「实用工具」</p><span class="ujn-change__scope">教务成绩导出 · 实用工具</span></div></li>
+<li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>✨ 新增「实用工具」落地页与教务成绩导出工具；主页原「综测计算器」卡片改为「实用工具」</p><span class="ujn-change__scope">grade-export · 实用工具</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>🎨 修好页头对齐与「免责声明」点不了；宠物页加找猫筛选；落地字体方案</p><span class="ujn-change__scope">🐾 宠物收集录</span></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>🎨 页头按钮真正对齐并补上仓库入口；更新页/反馈页去掉左侧栏</p></div></li>
 <li class="ujn-change" data-change-item><time datetime="2026-10-07">2026-10-07</time><div><p>文档：构建时刷新「最近更新」页（收录</p></div></li>

@@ -125,18 +125,16 @@ extra:
     link: #flea-market
 
 extra_css:
-  - assets/stylesheets/community.css?v=20261008-1
-  - assets/stylesheets/grade-export.css?v=20261008-5
+  - assets/stylesheets/community.css?v=20261008-6
   - assets/zongce-calculator/calculator.css?v=20260907-1
   # 站点自定义样式（原先内联在 overrides/main.html 的 <style> 里）。
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
   - assets/stylesheets/ujn.css?v=20261008-1
-  - assets/stylesheets/ujn-contributors.css?v=20261008-2
+  - assets/stylesheets/ujn-contributors.css?v=20261008-6
 
 extra_javascript:
   - javascripts/contributors.js?v=20261008-1
-  - javascripts/changelog.js?v=20261008-1
-  - javascripts/grade-export.js?v=20261008-5
+  - javascripts/changelog.js?v=20261008-6
   - javascripts/mathjax.js?v=20260907-1
   - javascripts/github-issues.js?v=20261008-1
   # 窄屏的「本页目录」：桌面端目录栏在 1220px 以下会被 Material 隐藏，这个脚本补上
@@ -209,7 +207,6 @@ nav:
     - 实用工具:
       - 实用工具: tools/index.md
       - 综测计算器: green-book/scholarship/zongce-calculator.md
-      - 教务成绩导出: tools/grade-export.md
     - 学业管理:
       - 成绩规则: green-book/academic/score-rules.md
       - 推免保送须知: green-book/academic/postgraduate-recommendation.md

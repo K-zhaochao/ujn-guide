@@ -34,12 +34,16 @@ class AssetConfigTests(unittest.TestCase):
         self.assertNotIn('vars.GRADE_EXPORT_API_URL', source)
         template = (ROOT / 'overrides/main.html').read_text(encoding='utf-8')
         self.assertNotIn('id="ujn-grade-config"', template)
-        script = (ROOT / 'docs/javascripts/grade-export.js').read_text(encoding='utf8')
-        self.assertNotRegex(script, r'fetch\s*\(')
-        self.assertNotIn('/api/grade-export/', script)
+        config = (ROOT / 'mkdocs.yml').read_text(encoding='utf8')
+        self.assertNotIn('grade-export', config)
+        for path in ['docs/tools/grade-export.md', 'docs/javascripts/grade-export.js', 'docs/assets/stylesheets/grade-export.css', 'tools/grade-export', 'tests/grade-export', 'tests/frontend/grade-export.test.js']:
+            self.assertFalse((ROOT / path).exists(), path)
+        package = (ROOT / 'package.json').read_text(encoding='utf8')
+        self.assertNotIn('test:grades', package)
+        self.assertNotIn('start:grades', package)
 
     def test_reader_pages_do_not_contain_developer_verification_notes(self):
-        for path in ['docs/tools/grade-export.md', 'docs/changelog.md', 'docs/contribute/index.md']:
+        for path in ['docs/tools/index.md', 'docs/changelog.md', 'docs/contribute/index.md']:
             source = (ROOT / path).read_text(encoding='utf-8')
             for phrase in ['公开登录页及加密脚本已核对', '模拟测试不代表学校真实账户验证', '这一页是怎么来的', '纯维护性的改动']:
                 self.assertNotIn(phrase, source)

@@ -1,8 +1,12 @@
 /* Shared theme-aware updates and discussion components. */
 .ujn-pagination { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; margin:1rem 0; font-size:.68rem; }
-.ujn-pagination button,.ujn-pagination select,.gh-issues__tab,.gh-issue__expand,.gh-replies__more { padding:.35rem .7rem; min-height:2rem; border:1px solid var(--md-default-fg-color--lightest); border-radius:.4rem; background:var(--md-default-bg-color); color:var(--md-default-fg-color); font:inherit; cursor:pointer; }
+.ujn-pagination button,.ujn-pagination input,.gh-issues__tab,.gh-issue__expand,.gh-replies__more { padding:.35rem .7rem; min-height:2rem; border:1px solid var(--md-default-fg-color--lightest); border-radius:.4rem; background:var(--md-default-bg-color); color:var(--md-default-fg-color); font:inherit; cursor:pointer; }
 .ujn-pagination button:disabled { opacity:.45; cursor:default; }
-.ujn-pagination option { background:var(--md-default-bg-color); color:var(--md-default-fg-color); }
+.ujn-pagination__jump { display:flex; align-items:center; gap:.3rem; white-space:nowrap; }
+.ujn-pagination input { width:3rem; text-align:center; cursor:text; font-variant-numeric:tabular-nums; }
+.ujn-pagination input[aria-invalid="true"] { border-color:var(--md-typeset-a-color); }
+.ujn-pagination__error { flex-basis:100%; color:var(--md-typeset-a-color); }
+.ujn-pagination [hidden] { display:none!important; }
 .ujn-pagination [role=status] { color:var(--md-default-fg-color); margin-left:.3rem; }
 .ujn-pagination [aria-current=page],.gh-issues__tab.is-active { background:var(--md-primary-fg-color); color:white; border-color:var(--md-primary-fg-color); }
 .ujn-pagination[hidden],.ujn-change[hidden],.gh-replies[hidden] { display:none!important; }

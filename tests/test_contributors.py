@@ -137,6 +137,14 @@ class FetchTests(unittest.TestCase):
 
 
 class PlatformTests(unittest.TestCase):
+    def test_platform_switch_has_labels_without_counts(self):
+        block = contributors.render([{'name': 'student', 'avatar': '', 'url': '', 'contributions': 10, 'source': 'GitHub'}])
+        self.assertNotIn('ujn-contributors__count', block)
+        self.assertNotIn('位贡献者</p>', block)
+        self.assertIn('>GitHub</button>', block)
+        self.assertIn('>Gitee</button>', block)
+        self.assertIn('10 次提交', block)
+
     def test_both_panels_are_visible_without_javascript(self):
         block = contributors.render([])
         self.assertIn('id="contributors-panel-github"', block)

@@ -1,7 +1,7 @@
 # 济南大学校园通 · ujn-guide
 
 给济大学子的一站式校园指南：地点、绿皮书、电话、宠物图鉴、规章制度、实用工具。
-主体是静态站（MkDocs Material + Pagefind 搜索），网页成绩导出使用独立的短时内存会话 Node 服务；宠物投稿后台已归档。构建与验收自动化。
+主体是静态站（MkDocs Material + Pagefind 搜索）；宠物投稿后台已归档。构建与验收自动化。
 
 - 线上站点：<https://ujn.matehub.top/>
 - GitHub：<https://github.com/K-zhaochao/ujn-guide>
@@ -17,7 +17,7 @@
 | 🎓 校园生活 | 社团与组织、老乡群、校历 |
 | 🐾 宠物收集录 | 校园猫咪图集：按名字找猫、相册弹窗、每页数量对齐列数 |
 | 📜 规章制度 | 学籍、考试、宿舍、安全等制度原文与解读 |
-| 🧰 实用工具 | 综测计算器、教务成绩导出 |
+| 🧰 实用工具 | 综测计算器 |
 | 💡 反馈与贡献 | 提意见 / 报错 / 直接改内容，附贡献者名单 |
 | 🕒 最近更新 | 由 git 历史自动生成的读者可见更新 |
 | ℹ️ 关于 | 联系作者、免责声明 |
@@ -39,7 +39,6 @@ python -m mkdocs serve --dev-addr 127.0.0.1:8000   # 本地预览
 ```bash
 npm run test:frontend   # vitest：前端行为
 npm run test:build      # python -m unittest：生成器与构建
-npm run test:grades     # 教务登录、账号查询选项、内存会话与导出服务
 npm run verify:ui       # 无头浏览器：截图 + computed style 指纹
 npm run verify:responsive  # 13 页 × 4 宽度扫横向溢出
 npm run verify:hit      # 命中检测：用真实鼠标坐标抓「被透明层挡住、点不到」
@@ -54,10 +53,6 @@ npm run verify:links    # 链接 / 锚点 / 资源体检（也已接进 npm run 
   由 `scripts/build_site.py` 在构建前刷新——这样构建不依赖网络与 Pillow；
 - 字体是自托管的子集（`docs/assets/fonts/`，见其中的 `NOTICE.txt`）。
 
-## 实用工具：教务成绩导出
-
-成绩导出采用纯静态网页：在学校官网登录，回到本站选择范围，原生表单向学校提交，文件由学校直接下载；不部署本站 API，不接收账号密码。查询选项可手动填写或从本地保存的查询 HTML 页面读取，详见 tools/grade-export/README.md。真实下载取决于学校的跨站会话和接口策略，尚待真实账号验收。旧插件、CLI 与安装器在 _archive/grade-export-legacy/ 留存。
-
 ## 目录结构
 
 ```
@@ -67,8 +62,7 @@ docs/                 站点内容（Markdown + 资源）
 hooks/                MkDocs 构建钩子（Pagefind）
 overrides/            Material 主题模板覆盖
 scripts/              构建、生成器、验收、发布工具
-tests/                Python / vitest / node --test 三套测试
-tools/grade-export/   成绩导出程序的源码
+tests/                Python / Vitest 测试
 site/                 构建产物（忽略）
 ```
 
@@ -90,7 +84,7 @@ site/                 构建产物（忽略）
 
 | 范围 | 许可 | 你可以做什么 |
 | --- | --- | --- |
-| **代码**（`scripts/`、`hooks/`、`overrides/`、`docs/javascripts/`、`docs/assets/stylesheets/`、`tools/`、`tests/`、构建配置） | **[AGPL-3.0](LICENSE)** | 可自由使用与修改；但**分发修改版、或把它作为网络服务提供，都必须以同样的许可公开全部源码** |
+| **代码**（`scripts/`、`hooks/`、`overrides/`、`docs/javascripts/`、`docs/assets/stylesheets/`、`tests/`、构建配置） | **[AGPL-3.0](LICENSE)** | 可自由使用与修改；但**分发修改版、或把它作为网络服务提供，都必须以同样的许可公开全部源码** |
 | **站点内容**（`docs/` 下的文字与原创图片） | **CC BY-NC-ND 4.0** | 可转载（署名 + 链接 + 非商业 + 不修改）；**不得商用、不得改动后发布** |
 | **第三方素材** | 各自原许可 | 见 `docs/assets/fonts/NOTICE.txt`、`docs/assets/zongce-calculator/LICENSE.txt` 等 |
 
@@ -100,8 +94,8 @@ site/                 构建产物（忽略）
 > 需要商用授权（例如把内容用于付费服务）请通过站点「关于 → 联系作者」联系维护者。
 
 
-## 宠物后台归档与网页成绩导出
+## 宠物后台归档与静态部署
 
 宠物投稿后台相关工具、测试和本机材料集中在 `_archive/pet-submission-backend/`（已忽略），可整体移走；静态图鉴保留。
 
-`npm run build` 构建静态页面，使用 MkDocs 预览或发布到 GitHub Pages；网页不依赖成绩 API。
+`npm run build` 构建静态页面，使用 MkDocs 预览或发布到 GitHub Pages。
