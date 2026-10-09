@@ -6,7 +6,24 @@
   --ujn-border: var(--md-default-fg-color--lightest);
   --ujn-ink: var(--md-default-fg-color);
 }
-.md-main { background: var(--ujn-surface); }
+/* Shared chrome: pages may differ inside, never in header/tabs/footer boundaries. */
+.md-main { background: var(--ujn-surface); background: radial-gradient(ellipse at 78% 24%, color-mix(in srgb, #8d86e9 10%, transparent), transparent 62%), radial-gradient(ellipse at 65% 55%, color-mix(in srgb, #49b8b3 7%, transparent), transparent 58%), var(--ujn-surface); }
+.md-main__inner { margin-top: 1rem; }
+.md-content__inner { margin-top: 0; }
+.md-content__inner:has(.ujn-page:not(.ujn-page--home)) { padding: clamp(.85rem, 1.6vw, 1.35rem); border: 1px solid var(--ujn-border); border-radius: .85rem; background: var(--ujn-surface); box-shadow: 0 3px 16px #00000003; }
+@media (min-width: 76.25em) {
+  .md-grid { max-width: min(80rem, 94%); }
+  /* Keep useful section navigation, not a reserved column for a top-level leaf. */
+  .md-sidebar--primary:not(:has(.md-nav__item--active.md-nav__item--nested)) { display: none; }
+  /* A lone heading anchor isn't a useful table of contents; preserve multi-level TOCs. */
+  .md-sidebar--secondary:not(:has(.md-nav__list .md-nav__list)):not(:has(.md-nav__item ~ .md-nav__item)) { display: none; }
+}
+@media (max-width: 76.234375em) {
+  .md-main__inner { margin-top: .6rem; }
+}
+@media (max-width: 600px) {
+  .md-content__inner:has(.ujn-page:not(.ujn-page--home)) { padding: .5rem 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+}
 .md-content { min-width: 0; }
 .ujn-page { min-width: 0; font-size: .82rem; line-height: 1.85; overflow-wrap: break-word; }
 .ujn-page h1, .ujn-page h2, .ujn-page h3, .ujn-context, .ujn-page .md-button,
@@ -41,10 +58,40 @@
   .ujn-page .grid.cards > ul > li:hover { border-color: var(--md-typeset-a-color); box-shadow: 0 6px 20px #0000000a; }
 }
 
+/* Native viewport scrollbar: keep real scrolling/dragging, style without a JS overlay.
+   Root tokens follow body theme explicitly because html cannot inherit body variables. */
+:root {
+  --ujn-scroll-track: #f6f7fb;
+  --ujn-scroll-thumb: #a0a9c8;
+  --ujn-scroll-hover: #7582b7;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ujn-scroll-thumb) var(--ujn-scroll-track);
+}
+html:has(body[data-md-color-scheme="slate"]) {
+  --ujn-scroll-track: #1e2129;
+  --ujn-scroll-thumb: #606b89;
+  --ujn-scroll-hover: #8b9ac1;
+}
+@supports selector(::-webkit-scrollbar) {
+  html { scrollbar-width: auto; scrollbar-color: auto; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { width: 10px; height: 10px; background: var(--ujn-scroll-track); }
+  html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb { min-height: 48px; border: 2px solid var(--ujn-scroll-track); border-radius: 999px; background: var(--ujn-scroll-thumb); }
+  html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { background: var(--ujn-scroll-hover); }
+  html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background: var(--ujn-scroll-track); }
+  html::-webkit-scrollbar-button, body::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  html::-webkit-scrollbar-corner, body::-webkit-scrollbar-corner { background: var(--ujn-scroll-track); }
+}
+@media (forced-colors: active) {
+  html { scrollbar-color: auto; scrollbar-width: auto; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar, html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background: Canvas; }
+  html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb,
+  html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { background: CanvasText; border-color: Canvas; }
+}
+
 /* Introduction-only home: an editorial cover, not a second navigation menu. */
-.ujn-page--home { max-width: 60rem; margin-inline: auto; padding-block: .8rem 1.4rem; position: relative; isolation: isolate; }
-.ujn-home-hero { position: relative; display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; min-height: 23rem; gap: 1rem; padding: 1.5rem .5rem 2rem; }
-.ujn-home-hero::before { content: ""; position: absolute; z-index: -1; inset: -2rem 0 -1rem; pointer-events: none; background: radial-gradient(ellipse at 78% 36%, color-mix(in srgb, #8d86e9 13%, transparent), transparent 60%), radial-gradient(ellipse at 63% 72%, color-mix(in srgb, #49b8b3 9%, transparent), transparent 52%); }
+.ujn-page--home { max-width: none; margin-inline: auto; padding-block: .8rem 1.4rem; position: relative; isolation: isolate; }
+.ujn-home-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; min-height: 22rem; gap: clamp(1rem, 3vw, 2rem); padding: 1.2rem .5rem 1.5rem; }
 .ujn-home-hero__copy { position: relative; z-index: 1; }
 .ujn-home-eyebrow { display: inline-flex; align-items: center; gap: .45rem; margin: 0 0 1.5rem; font-size: .65rem; font-weight: 650; letter-spacing: .07em; color: var(--md-default-fg-color--light); }
 .ujn-home-eyebrow > span { width: .35rem; height: .35rem; border-radius: 50%; background: #4aaba0; box-shadow: 0 0 0 .18rem color-mix(in srgb, #4aaba0 15%, transparent); }
@@ -54,9 +101,9 @@
 .ujn-home-hero__description { max-width: 26rem; margin: 0; font-size: .77rem; line-height: 1.95; color: var(--md-default-fg-color--light); }
 .ujn-home-hero__signature { display: inline-flex; align-items: center; gap: .5rem; margin-top: 1.4rem; font-size: .66rem; letter-spacing: .04em; }
 .ujn-home-hero__signature > span { color: var(--md-typeset-a-color); font-size: 1rem; }
-.ujn-home-scene { position: relative; min-width: 0; width: 100%; aspect-ratio: 1.2; color: var(--md-typeset-a-color); }
+.ujn-home-scene { position: relative; min-width: 0; width: min(100%, 34rem); justify-self: end; aspect-ratio: 1.35; color: var(--md-typeset-a-color); }
 .ujn-home-scene__halo { position: absolute; inset: 14% 9%; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, #8d86e9 8%, transparent), transparent 68%); }
-.ujn-home-campus { display: block; width: 100%; height: 100%; overflow: visible; }
+.ujn-home-campus { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }
 .ujn-home-campus__orbit { stroke: currentColor; stroke-opacity: .13; stroke-width: 1; }
 .ujn-home-campus__orbit--inner { stroke-dasharray: 3 8; }
 .ujn-home-campus__sun { fill: #d7ae8e; fill-opacity: .2; stroke: #c49a81; stroke-opacity: .4; }
@@ -82,7 +129,6 @@
 @keyframes ujn-cloud-drift { from { transform: translateX(-4px); } to { transform: translateX(5px); } }
 @keyframes ujn-plane-float { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(2deg); } }
 @media (max-width: 76.234375em) {
-  body:has(.ujn-page--home) .md-main__inner { margin-top: .35rem; }
   body:has(.ujn-page--home) .md-content__inner { margin-top: 0; padding-top: 0; }
   .ujn-home-navigation-hint { display: flex; width: 100%; box-sizing: border-box; align-items: center; gap: .65rem; margin: 0 0 .8rem; padding: .65rem .85rem; border: 1px solid var(--ujn-border); border-radius: .6rem; background: var(--ujn-soft); }
   .ujn-home-navigation-hint > span { font-size: 1rem; color: var(--md-typeset-a-color); }
@@ -96,7 +142,7 @@
   .ujn-home-hero__description { font-size: .73rem; max-width: 27rem; }
   .ujn-home-desktop-break { display: none; }
   .ujn-home-hero__signature { margin-top: 1rem; }
-  .ujn-home-scene { width: min(100%, 24rem); max-height: 15rem; margin: .5rem auto 0; }
+  .ujn-home-scene { width: min(100%, 24rem); justify-self: center; max-height: 15rem; margin: .5rem auto 0; }
   .ujn-home-scene__label--top { left: 8%; }
   .ujn-home-about { grid-template-columns: minmax(0, 1fr); gap: 1.3rem; padding: 1.3rem 0; }
   .ujn-home-story + .ujn-home-story { padding-top: 1.2rem; border-top: 1px dashed var(--ujn-border); }
@@ -151,7 +197,7 @@
 .ujn-mobile-toc { background: var(--ujn-soft); }
 .ujn-mobile-toc a { display: inline-flex; align-items: center; width: 100%; min-height: 2.2rem; padding-block: .25rem; }
 @media (max-width: 600px) {
-  .md-main__inner { margin-top: .8rem; }
+  .md-main__inner { margin-top: .6rem; }
   .md-content__inner { margin-inline: .8rem; padding-top: .6rem; }
   .ujn-page { font-size: .8rem; line-height: 1.85; }
   .ujn-page > h1 { font-size: 1.3rem; margin-bottom: 1rem; }

@@ -131,7 +131,7 @@ extra_css:
   # 改动这个文件后要递增 ?v=，否则访客会继续用缓存里的旧样式。
   - assets/stylesheets/ujn.css?v=20261009-5
   - assets/stylesheets/ujn-contributors.css?v=20261009-1
-  - assets/stylesheets/experience.css?v=20261009-6
+  - assets/stylesheets/experience.css?v=20261009-8
 
 extra_javascript:
   - javascripts/directory.js?v=20261009-1

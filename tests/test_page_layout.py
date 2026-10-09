@@ -89,6 +89,50 @@ class PageLayoutTests(unittest.TestCase):
         self.assertIn(':root, [data-md-color-scheme]', css)
         self.assertIn('--ujn-ui-font: var(--md-text-font-family)', css)
 
+    def test_all_pages_share_chrome_while_reading_width_stays_comfortable(self):
+        css = (ROOT / 'docs/assets/stylesheets/experience.css').read_text(encoding='utf-8')
+        self.assertIn('.md-grid { max-width: min(80rem, 94%); }', css)
+        self.assertNotIn('body:has(.ujn-page--home) .md-grid', css)
+        self.assertIn('@media (min-width: 76.25em)', css)
+        self.assertIn('.ujn-page--home { max-width: none;', css)
+        self.assertIn('justify-self: center; max-height: 15rem;', css)
+        self.assertIn('aspect-ratio: 1.35', css)
+        self.assertIn('.ujn-home-campus { position: absolute; inset: 0;', css)
+        self.assertIn('.ujn-page--reading { max-width: 78ch;', css)
+        self.assertNotIn('.ujn-home-hero::before', css)
+        self.assertIn('.md-main { background: var(--ujn-surface); background: radial-gradient', css)
+        self.assertNotIn('body:has(.ujn-page--home) .md-main { background:', css)
+
+    def test_useful_sidebar_navigation_is_retained_and_single_anchor_is_compacted(self):
+        css = (ROOT / 'docs/assets/stylesheets/experience.css').read_text(encoding='utf-8')
+        self.assertIn('.md-sidebar--primary:not(:has(.md-nav__item--active.md-nav__item--nested))', css)
+        self.assertIn('.md-sidebar--secondary:not(:has(.md-nav__list .md-nav__list)):not(:has(.md-nav__item ~ .md-nav__item))', css)
+        # These overrides are inside the desktop query; never hide the phone drawer.
+        desktop = css.split('@media (min-width: 76.25em) {', 1)[1].split('@media (max-width: 76.234375em)', 1)[0]
+        self.assertIn('.md-sidebar--primary:not(', desktop)
+        self.assertIn('.md-sidebar--secondary:not(', desktop)
+
+    def test_internal_pages_share_a_panel_but_mobile_stays_edge_to_edge(self):
+        css = (ROOT / 'docs/assets/stylesheets/experience.css').read_text(encoding='utf-8')
+        self.assertIn('.md-content__inner:has(.ujn-page:not(.ujn-page--home))', css)
+        self.assertIn('border-radius: .85rem; background: var(--ujn-surface)', css)
+        self.assertIn('padding: .5rem 0; border: 0; border-radius: 0; background: transparent;', css)
+        self.assertNotIn('transition: width', css)
+        self.assertNotIn('transition: max-width', css)
+
+    def test_scrollbar_remains_native_and_follows_theme(self):
+        css = (ROOT / 'docs/assets/stylesheets/experience.css').read_text(encoding='utf-8')
+        self.assertIn('html:has(body[data-md-color-scheme="slate"])', css)
+        self.assertIn('scrollbar-gutter: stable', css)
+        self.assertIn('scrollbar-width: thin', css)
+        self.assertIn('scrollbar-color: var(--ujn-scroll-thumb) var(--ujn-scroll-track)', css)
+        self.assertIn('html::-webkit-scrollbar-thumb', css)
+        self.assertIn('width: 10px; height: 10px;', css)
+        self.assertIn('border-radius: 999px', css)
+        self.assertIn('@media (forced-colors: active)', css)
+        self.assertIn('background: CanvasText; border-color: Canvas', css)
+        self.assertNotIn('scrollbar-width: none', css)
+
     def test_calendar_and_life_children_have_visible_parent_navigation(self):
         for src in ['school-calendar/index.md', 'clubs/index.md', 'hometown-groups/index.md']:
             self.assertIn('href="/ujn-guide/campus-life/"', self.render(src))
