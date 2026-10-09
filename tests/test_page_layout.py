@@ -120,6 +120,17 @@ class PageLayoutTests(unittest.TestCase):
         self.assertNotIn('transition: width', css)
         self.assertNotIn('transition: max-width', css)
 
+    def test_table_rows_fill_frame_without_disabling_mobile_scroll(self):
+        import re
+        css = (ROOT / 'docs/assets/stylesheets/experience.css').read_text(encoding='utf-8')
+        rule = re.search(r'\.ujn-page table:not\(\[class\]\)\s*\{([^}]+)\}', css).group(1)
+        # A full-width inline-block only stretches the border, not the table grid.
+        self.assertRegex(rule, r'display:\s*table\s*;')
+        self.assertRegex(rule, r'width:\s*100%\s*;')
+        self.assertNotIn('table-layout: fixed', rule)
+        self.assertIn('overflow-x: auto', css)
+        self.assertIn('.ujn-page--directory table:not([class]) { min-width: 0; }', css)
+
     def test_scrollbar_remains_native_and_follows_theme(self):
         css = (ROOT / 'docs/assets/stylesheets/experience.css').read_text(encoding='utf-8')
         self.assertIn('html:has(body[data-md-color-scheme="slate"])', css)

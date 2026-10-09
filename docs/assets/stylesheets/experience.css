@@ -159,7 +159,9 @@ html:has(body[data-md-color-scheme="slate"]) {
 /* Wide tables scroll inside their own region; never shrink policy text to fit. */
 .ujn-page .md-typeset__table { display: block; max-width: 100%; }
 .ujn-page .md-typeset__scrollwrap { overflow-x: auto; overscroll-behavior-inline: contain; margin: 1rem 0; }
-.ujn-page table:not([class]) { width: 100%; font-size: .73rem; border: 1px solid var(--ujn-border); border-radius: .5rem; overflow: hidden; }
+/* Material defaults to inline-block: a 100% outer box then leaves anonymous
+   table rows at intrinsic width. Restore table layout so cells fill the frame. */
+.ujn-page table:not([class]) { display: table; width: 100%; font-size: .73rem; border: 1px solid var(--ujn-border); border-radius: .5rem; overflow: hidden; }
 .ujn-page table:not([class]) th { background: var(--ujn-soft); color: var(--ujn-ink); font: 650 .7rem/1.6 var(--ujn-ui-font); }
 .ujn-page table:not([class]) :is(td, th) { padding: .65rem .75rem; }
 .ujn-page table:not([class]) tbody tr:nth-child(even) { background: color-mix(in srgb, var(--md-default-fg-color) 2%, transparent); }
