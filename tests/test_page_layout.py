@@ -162,5 +162,11 @@ class PageLayoutTests(unittest.TestCase):
         self.assertIn('href="/ujn-guide/"', html)
         self.assertIn('href="/ujn-guide/site-guide/"', html)
 
+    def test_hometown_has_calendar_style_parent_navigation(self):
+        content = (ROOT / 'docs/hometown-groups/index.md').read_text(encoding='utf-8')
+        self.assertNotIn('hide: [navigation]', content)
+        self.assertIn('[← 返回校园生活](../campus-life/index.md){ .md-button .ujn-parent-return }', content)
+        self.assertLess(content.index('ujn-parent-return'), content.index('!!! info'))
+
 if __name__ == '__main__':
     unittest.main()

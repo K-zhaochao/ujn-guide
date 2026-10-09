@@ -71,4 +71,14 @@ describe('本页通讯录筛选', () => {
     const event = new Event('submit', { cancelable: true });
     document.querySelector('form').dispatchEvent(event); expect(event.defaultPrevented).toBe(true);
   });
+  it('同乡页的静态返回按钮保持在标题之后、搜索框之前，筛选不隐藏返回入口', () => {
+    document.body.innerHTML = '<div class="ujn-page ujn-page--directory" data-page-section="hometown-groups"><h1>老乡群</h1><p><a class="md-button ujn-parent-return" href="/campus-life/">← 返回校园生活</a></p><h2>各省份老乡群</h2><table><tbody><tr><td>河北</td></tr><tr><td>河南</td></tr></tbody></table></div>';
+    window.eval(source);
+    const root = document.querySelector('.ujn-page');
+    expect(root.children[1].querySelector('.ujn-parent-return')).not.toBeNull();
+    expect(root.children[2].className).toBe('ujn-directory-search');
+    const input = root.querySelector('input'); input.value = '不存在'; input.dispatchEvent(new Event('input'));
+    expect(root.querySelector('.ujn-parent-return').closest('[hidden]')).toBeNull();
+    window.UJNDirectory.sync(); expect(root.querySelectorAll('form')).toHaveLength(1);
+  });
 });

@@ -60,7 +60,10 @@
     status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
     controls.append(input, reset); form.append(label, controls, status);
     var title = root.querySelector('h1');
-    if (title) title.insertAdjacentElement('afterend', form); else root.prepend(form);
+    // Keep a static parent-page return action above progressive search controls.
+    var returnRow = title && title.nextElementSibling;
+    var anchor = returnRow && returnRow.querySelector('a.ujn-parent-return') ? returnRow : title;
+    if (anchor) anchor.insertAdjacentElement('afterend', form); else root.prepend(form);
     var searching = false;
     function filter() {
       var query = input.value.trim().toLocaleLowerCase();

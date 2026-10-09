@@ -134,7 +134,7 @@ extra_css:
   - assets/stylesheets/experience.css?v=20261009-9
 
 extra_javascript:
-  - javascripts/directory.js?v=20261009-1
+  - javascripts/directory.js?v=20261009-2
   - javascripts/changelog.js?v=20261008-6
   - javascripts/mathjax.js?v=20260907-1
   - javascripts/github-issues.js?v=20261008-1

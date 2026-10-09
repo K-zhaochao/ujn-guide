@@ -1,10 +1,11 @@
 ﻿---
 tags:
   - 老乡群
-hide: [navigation]
 ---
 
 # 🏘️ 老乡群
+
+[← 返回校园生活](../campus-life/index.md){ .md-button .ujn-parent-return }
 
 !!! info "📜 老乡群准则"
     1. **互助与分享**：鼓励分享家乡资讯、生活经验、求助信息，互帮互助，共叙乡情。
