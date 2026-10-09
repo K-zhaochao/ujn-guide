@@ -95,13 +95,21 @@ class PetGalleryBuildTests(unittest.TestCase):
             ["../assets/images/优米1.webp", "../assets/images/优米2.webp", "../assets/images/优米3.webp"],
         )
         # 封面取页面里的第一张，但用 thumbs/ 里的缩略图（相册弹窗仍按 data-photos 加载原图）
-        cover = re.search(r'class="pet-photo" src="([^"]+)"', deck).group(1)
+        cover = re.search(r'class="pet-photo" data-pet-src="([^"]+)"', deck).group(1)
         self.assertEqual(unquote(cover), "../assets/images/thumbs/优米1.webp")
 
     def test_missing_thumbnail_fails_with_instruction(self) -> None:
         self.add_cat("缺缩略图", photos=1, thumbs=False)
         with self.assertRaisesRegex(build_gallery.GalleryError, "build_thumbs.py"):
             build_gallery.render_deck(self.cats, self.pets)
+
+    def test_cover_loading_is_deferred_with_no_script_fallback(self) -> None:
+        self.add_cat("优米", photos=1)
+        deck = self.deck()
+        main = re.sub(r"<noscript>.*?</noscript>", "", deck, flags=re.S)
+        self.assertIn('data-pet-src="', main)
+        self.assertNotRegex(main, r"<img\b[^>]*\s+src=")
+        self.assertRegex(deck, r'<noscript><img src="[^"]+"[^>]*loading="lazy"')
 
     def test_heading_decoration_is_stripped_from_card_name(self) -> None:
         self.add_cat("新猫", "🐱 新猫 ✨", photos=1)
@@ -167,7 +175,7 @@ class PetGalleryBuildTests(unittest.TestCase):
     def test_repository_card_covers_exist(self) -> None:
         """每张卡牌的封面（thumbs/ 缩略图）都必须真实存在。"""
         deck, _, _ = build_gallery.render_deck()
-        covers = [unquote(src) for src in re.findall(r'class="pet-photo" src="([^"]+)"', deck)]
+        covers = [unquote(src) for src in re.findall(r'class="pet-photo" data-pet-src="([^"]+)"', deck)]
         self.assertTrue(covers)
         missing = [cover for cover in covers if not (build_gallery.PETS_DIR / cover).resolve().is_file()]
         self.assertEqual(missing, [], "卡牌缩略图缺失，请运行 python scripts/images/build_thumbs.py 后一起提交")

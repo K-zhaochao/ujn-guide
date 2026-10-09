@@ -1,10 +1,11 @@
 ﻿---
 tags:
   - 校历
-hide: [navigation]
 ---
 
 # 📅 校历
+
+[← 返回校园生活](../campus-life/index.md){ .md-button }
 
 !!! info "📋 说明"
     以下为济南大学最新校历，点击图片可放大查看。

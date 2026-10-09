@@ -44,6 +44,10 @@ def page_text() -> str:
         html = page.read_text(encoding="utf-8", errors="ignore")
         html = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.S | re.I)
         chars.update(re.sub(r"<[^>]+>", " ", html))
+    # Modal text is rendered by JavaScript, so it does not appear in static HTML.
+    for ui_script in [ROOT / "docs/javascripts/ujn-ui.js", ROOT / "docs/pets/gallery.js"]:
+        if ui_script.is_file():
+            chars.update(re.findall(r"[\u3400-\u9fff]", ui_script.read_text(encoding="utf-8")))
     return "".join(sorted(chars))
 
 

@@ -40,7 +40,7 @@ body,
    代码块仍用等宽字体——楷体看代码不合适。 */
 @font-face {
   font-family: "UJN WenKai";
-  src: url("../fonts/lxgw-wenkai-site.woff2") format("woff2");
+  src: url("../fonts/lxgw-wenkai-site.woff2?v=20261009-5") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -545,146 +545,30 @@ html[data-announce="hidden"] .md-banner {
   cursor: pointer;
 }
 
-/* ===== 跳蚤市场弹窗 ===== */
-/* 遮罩与卡片骨架来自 .ujn-overlay / .ujn-modal（见文件顶部），这里只留差异 */
-.flea-overlay--open {
-  display: flex;
-}
-
-.flea-card {
-  padding: 2rem 1.2rem;
-  max-width: 580px;
-  width: 92%;
-  max-height: 85vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-}
-
-@media (max-width: 480px) {
-  .flea-card {
-    padding: 1.6rem 0.8rem;
-    width: 94%;
-    max-height: 80vh;
-  }
-}
-
-.flea-close {
-  position: sticky;
-  top: -1.2rem;
-  float: right;
-  background: var(--md-default-bg-color);
-  border: none;
-  border-radius: var(--ujn-radius-circle);
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: var(--md-default-fg-color--light);
-  transition: color 0.2s, background 0.2s;
-  padding: 0.5rem 0.9rem;
-  line-height: 1;
-  z-index: 10;
-  box-shadow: var(--ujn-shadow-soft);
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.flea-close:hover {
-  color: var(--md-default-fg-color);
-  background: var(--md-default-fg-color--transparent);
-}
-
-@media (max-width: 480px) {
-  .flea-close {
-    font-size: 1.6rem;
-    padding: 0.6rem 1rem;
-    min-width: 48px;
-    min-height: 48px;
-  }
-}
-
-/* 阻止华为等手机浏览器内置看图模式 */
-.flea-qr-item img {
-  -webkit-user-drag: none;
-  -khtml-user-drag: none;
-  -moz-user-drag: none;
-  -o-user-drag: none;
-  user-drag: none;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  touch-action: none;
-}
-
-.flea-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin-bottom: 1.2rem;
-  color: var(--md-default-fg-color);
-}
-
-.flea-qr-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1.8rem;
-}
-
-.flea-qr-item {
-  flex: 1;
-  min-width: 140px;
-  max-width: 200px;
-  display: flex;
-  flex-direction: column;
-}
-
-.flea-qr-item .flea-qr-img-wrap {
-  flex: 1;
-  display: flex;
-  align-items: stretch;
-}
-
-.flea-qr-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 0.6rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.10);
-  display: block;
-}
-
-.flea-qr-item--qq .flea-qr-img-wrap {
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.flea-qr-item--qq .flea-qr-img-wrap:hover {
-  transform: scale(1.03);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
-}
-
-.flea-qr-label {
-  margin-top: 0.5rem;
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.flea-qr-label--wechat {
-  color: #07c160;
-}
-
-.flea-qr-label--qq {
-  color: #1677ff;
-}
-
-.flea-tip {
-  margin-top: 1.2rem;
-  padding: 0.5rem 1rem;
-  background: var(--md-default-fg-color--transparent);
-  border-radius: 0.5rem;
-  font-size: 0.78rem;
-  color: var(--md-default-fg-color--light);
+/* ===== 跳蚤市场：单平台二维码 + 手机底部面板 ===== */
+.flea-overlay--open { display: flex; }
+.flea-card { width: min(430px, calc(100% - 2rem)); max-height: calc(100vh - 2rem); max-height: calc(100dvh - 2rem); display: flex; flex-direction: column; overflow: hidden; padding: 0; border: 1px solid var(--md-default-fg-color--lightest); text-align: left; font-family: var(--md-text-font-family); }
+.flea-header { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; padding: 1rem 1rem .7rem; flex-shrink: 0; }
+.flea-header h2 { font-size: .95rem; font-weight: 700; line-height: 1.6; margin: 0; color: var(--md-default-fg-color); }
+.flea-header p { font-size: .62rem; line-height: 1.7; margin: .25rem 0 0; color: var(--md-default-fg-color--light); }
+.flea-close { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; margin: -.15rem -.2rem 0 0; padding: 0; border: 1px solid var(--md-default-fg-color--lightest); border-radius: .6rem; background: transparent; color: var(--md-default-fg-color); font: 400 1.3rem/1 var(--md-text-font-family); cursor: pointer; }
+.flea-tabs { display: flex; flex-shrink: 0; gap: .2rem; margin: 0 1rem .65rem; padding: .2rem; border: 1px solid var(--md-default-fg-color--lightest); border-radius: .65rem; background: var(--md-default-fg-color--transparent); }
+.flea-tabs button { flex: 1; min-height: 44px; padding: .35rem .3rem; border: 0; border-radius: .45rem; background: transparent; color: var(--md-default-fg-color); font: 600 .68rem/1.5 var(--md-text-font-family); cursor: pointer; }
+.flea-tabs button[aria-selected="true"] { background: var(--md-primary-fg-color); color: var(--md-primary-bg-color); box-shadow: var(--ujn-shadow-soft); }
+.flea-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: .1rem 1rem .7rem; -webkit-overflow-scrolling: touch; }
+.flea-panel { text-align: center; }
+.flea-panel[hidden] { display: none; }
+.flea-qr-frame { display: flex; justify-content: center; }
+.flea-qr-frame img { display: block; max-width: 100%; width: auto; height: auto; max-height: 300px; max-height: min(42dvh, 300px); border-radius: .65rem; object-fit: contain; -webkit-touch-callout: default; touch-action: auto; }
+.flea-caption { margin: .65rem 0 .2rem; font-size: .62rem; line-height: 1.8; color: var(--md-default-fg-color--light); }
+.flea-join { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; margin-top: .6rem; padding: .4rem .8rem; border-radius: .5rem; background: var(--md-primary-fg-color); color: var(--md-primary-bg-color); font-size: .7rem; text-decoration: none; }
+.flea-tip { flex-shrink: 0; margin: 0; padding: .65rem 1rem; border-top: 1px solid var(--md-default-fg-color--lightest); font-size: .6rem; line-height: 1.7; color: var(--md-default-fg-color--light); text-align: center; }
+.flea-card :is(button, a):focus-visible, .flea-panel:focus-visible { outline: 2px solid var(--md-typeset-a-color); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .flea-overlay { align-items: flex-end; padding-top: max(1rem, env(safe-area-inset-top)); box-sizing: border-box; }
+  .flea-card { width: 100%; max-width: 100%; max-height: calc(100vh - 1rem); max-height: calc(100dvh - max(1rem, env(safe-area-inset-top))); border-radius: 1rem 1rem 0 0; border-bottom: 0; }
+  .flea-header { padding-top: .9rem; }
+  .flea-tip { padding-bottom: calc(.65rem + env(safe-area-inset-bottom)); }
 }
 
 /* ===== 赞助弹窗 ===== */

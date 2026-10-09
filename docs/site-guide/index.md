@@ -11,14 +11,20 @@ tags:
 
 ## 🏫 选择校区
 
-=== "主校区"
+<div class="grid cards" markdown>
 
-    济南大学主校区（中心校区）位于济南市**市中区南辛庄西路 336 号**，是面积最大、设施最齐全的校区。
+- **🏫 主校区 · 中心校区**
 
-    [进入主校区导览 :fontawesome-solid-arrow-right:](main-campus/index.md){ .md-button .md-button--primary }
+    ---
+    市中区南辛庄西路 **336 号**。按教学楼、食堂和生活设施查找，实拍照片帮你认路。
 
-=== "舜耕校区"
+    [进入主校区导览 →](main-campus/index.md){ .md-button .md-button--primary }
 
-    济南大学舜耕校区位于济南市**历下区舜耕路 13 号**。
+- **🏫 舜耕校区**
 
-    [进入舜耕校区导览 :fontawesome-solid-arrow-right:](shungeng-campus/index.md){ .md-button .md-button--primary }
+    ---
+    历下区舜耕路 **13 号**。查看教学楼、图书馆、食堂与生活设施。
+
+    [进入舜耕校区导览 →](shungeng-campus/index.md){ .md-button .md-button--primary }
+
+</div>

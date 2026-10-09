@@ -85,6 +85,12 @@
     var article = articleRoot();
     if (!article) return null;
     var existing = article.querySelector('.' + MOUNT_CLASS);
+    // Action-first pages already have shortcuts or their own controls, not an article TOC.
+    var layout = article.querySelector('[data-page-kind]');
+    if (layout && ['home', 'tool', 'gallery'].indexOf(layout.dataset.pageKind) !== -1) {
+      if (existing) existing.remove();
+      return null;
+    }
     var wanted = railVisible() ? null : build(article);
 
     if (!wanted) {

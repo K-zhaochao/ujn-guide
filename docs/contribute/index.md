@@ -21,13 +21,13 @@ hide:
 </div></div>
 <section class="ujn-contributors__panel" id="contributors-panel-github" role="region" aria-labelledby="contributors-label-github" data-platform="github">
 <p class="ujn-contributors__caption">GitHub</p><div class="ujn-contributors__cards">
-<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial" aria-hidden="true">K</span><img class="off-glb" src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="40" height="40" loading="eager" decoding="async"></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">144 次提交</span></span><span class="ujn-contributor__badge">GitHub</span></a>
+<a class="ujn-contributor" href="https://github.com/K-zhaochao" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial" aria-hidden="true">K</span><img class="off-glb" src="https://avatars.githubusercontent.com/u/179425934?v=4" alt="" width="40" height="40" loading="eager" decoding="async"></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">K-zhaochao</span><span class="ujn-contributor__meta">145 次提交</span></span><span class="ujn-contributor__badge">GitHub</span></a>
 </div></section>
 <section class="ujn-contributors__panel" id="contributors-panel-gitee" role="region" aria-labelledby="contributors-label-gitee" data-platform="gitee">
 <p class="ujn-contributors__caption">Gitee</p><div class="ujn-contributors__cards">
-<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial" aria-hidden="true">D</span></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">144 次提交</span></span><span class="ujn-contributor__badge">Gitee</span></a>
+<a class="ujn-contributor" href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer"><span class="ujn-contributor__portrait"><span class="ujn-contributor__initial" aria-hidden="true">D</span></span><span class="ujn-contributor__text"><span class="ujn-contributor__name">Draven</span><span class="ujn-contributor__meta">145 次提交</span></span><span class="ujn-contributor__badge">Gitee</span></a>
 </div></section>
-<script type="application/json" data-contributors-cache>[{"name": "K-zhaochao", "avatar": "https://avatars.githubusercontent.com/u/179425934?v=4", "url": "https://github.com/K-zhaochao", "contributions": 144, "source": "GitHub"}, {"name": "Draven", "avatar": "", "url": "https://gitee.com/Draven323/ujn-guide", "contributions": 144, "source": "Gitee"}]</script>
+<script type="application/json" data-contributors-cache>[{"name": "K-zhaochao", "avatar": "https://avatars.githubusercontent.com/u/179425934?v=4", "url": "https://github.com/K-zhaochao", "contributions": 145, "source": "GitHub"}, {"name": "Draven", "avatar": "", "url": "https://gitee.com/Draven323/ujn-guide", "contributions": 145, "source": "Gitee"}]</script>
 </div>
 <!-- contributors:end -->
 

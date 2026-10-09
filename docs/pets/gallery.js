@@ -16,9 +16,9 @@
 
   // ==================== 配置 ====================
   var DESKTOP_PAGE_SIZE = 12;
-  var MOBILE_PAGE_SIZE = 6;
+  var MOBILE_PAGE_SIZE = 8;
   var MOBILE_QUERY = '(max-width: 640px)';
-  var PAGE_SIZE_OPTIONS = [6, 12, 24, 0]; // 0 表示「全部」
+  var PAGE_SIZE_OPTIONS = [8, 12, 24];
   var SWIPE_THRESHOLD = 42; // 触发翻页的最小横向位移（px）
   var SWIPE_FOLLOW = 0.32; // 拖动时图片跟手的比例
 
@@ -41,27 +41,6 @@
     return Math.min(Math.max(value, min), max);
   }
 
-  function sizeLabel(size) {
-    return size === 0 ? '全部' : String(size);
-  }
-
-  /** 生成页码序列，过长时用 null 表示省略号。 */
-  function pageSequence(current, total) {
-    var wanted = [1, total, current - 1, current, current + 1];
-    var pages = [];
-    for (var i = 0; i < wanted.length; i += 1) {
-      var page = wanted[i];
-      if (page >= 1 && page <= total && pages.indexOf(page) === -1) pages.push(page);
-    }
-    pages.sort(function (a, b) { return a - b; });
-    var sequence = [];
-    for (var j = 0; j < pages.length; j += 1) {
-      if (j > 0 && pages[j] - pages[j - 1] > 1) sequence.push(null);
-      sequence.push(pages[j]);
-    }
-    return sequence;
-  }
-
   function createController(deck, cards) {
     var pager = document.getElementById('pet-pager');
     var viewer = null;
@@ -69,31 +48,16 @@
     var page = 1;
     var sizeChosen = false;
     var media = typeof window.matchMedia === 'function' ? window.matchMedia(MOBILE_QUERY) : null;
+    var sizePicker = null;
 
     // ==================== 分页 ====================
-    /** 当前卡牌墙实际排了几列（跟着响应式变，所以每次现算）。 */
-    function columnCount() {
-      if (!deck || typeof window.getComputedStyle !== 'function') return 1;
-      var template = window.getComputedStyle(deck).gridTemplateColumns || '';
-      var count = template.split(' ').filter(Boolean).length;
-      return count > 1 ? count : 1;
-    }
-
-    /** 每页数量取「列数的整数倍」：否则最后一行只填一半，读者会以为内容没加载完。 */
-    function alignedPageSize(size) {
-      var columns = columnCount();
-      if (columns < 2 || size <= 0) return size;
-      return Math.ceil(size / columns) * columns;
-    }
-
     function totalPages() {
-      var size = alignedPageSize(pageSize);
-      return size > 0 ? Math.max(1, Math.ceil(cards.length / size)) : 1;
+      return Math.max(1, Math.ceil(cards.filter(matches).length / pageSize));
     }
 
     // ==================== 按名字找猫 ====================
     // 页面上那个搜索框（docs/pets/index.md 的 #pet-filter-input）用来按名字筛卡牌。
-    // 筛选期间不翻页：直接显示全部命中项并收起分页条——否则读者会以为「只搜到 6 只」。
+    // 筛选结果也分页，计数仍显示全部命中数量，避免一次加载大量照片。
     var filterInput = document.getElementById('pet-filter-input');
     var filterCount = document.getElementById('pet-filter-count');
     var query = '';
@@ -120,15 +84,18 @@
     function applyPage() {
       var pages = totalPages();
       page = clamp(page, 1, pages);
-      var size = alignedPageSize(pageSize);
-      var start = size > 0 ? (page - 1) * size : 0;
-      var end = size > 0 ? start + size : cards.length;
       var hits = applyFilter();
+      var filtered = cards.filter(matches);
+      var visibleCards = filtered.slice((page - 1) * pageSize, page * pageSize);
       for (var i = 0; i < cards.length; i += 1) {
-        var visible = query ? matches(cards[i]) : (i >= start && i < end);
+        var visible = visibleCards.indexOf(cards[i]) !== -1;
         cards[i].classList.toggle('is-hidden', !visible);
+        if (visible) {
+          var image = cards[i].querySelector('img[data-pet-src]');
+          if (image && !image.getAttribute('src')) image.src = image.getAttribute('data-pet-src');
+        }
       }
-      if (pager) pager.hidden = Boolean(query) || hits === 0;
+      if (pager) pager.hidden = hits === 0;
       renderPager();
     }
 
@@ -155,12 +122,14 @@
       return element;
     }
 
-    function goTo(nextPage) {
+    function goTo(nextPage, focusSelector) {
       var pages = totalPages();
       var target = clamp(nextPage, 1, pages);
       if (target === page) return;
       page = target;
       applyPage();
+      var control = pager && pager.querySelector(focusSelector || '#pet-page-input');
+      if (control) control.focus({ preventScroll: true });
       scrollToDeck();
     }
 
@@ -175,161 +144,125 @@
       if (!pager) return;
       var pages = totalPages();
       pager.textContent = '';
-
-      if (pages > 1) {
-        var prev = button('pet-pager__btn', '上一页', '‹ 上一页');
-        prev.disabled = page === 1;
-        prev.addEventListener('click', function () { goTo(page - 1); });
-        pager.appendChild(prev);
-
-        var sequence = pageSequence(page, pages);
-        for (var i = 0; i < sequence.length; i += 1) {
-          if (sequence[i] === null) {
-            var gap = document.createElement('span');
-            gap.className = 'pet-pager__gap';
-            gap.textContent = '…';
-            pager.appendChild(gap);
-            continue;
-          }
-          var number = sequence[i];
-          // 胶囊形状与选中态配色来自共用的 .ujn-pill（见 ujn.css）
-          var item = button('ujn-pill pet-pager__num', '第 ' + number + ' 页', String(number));
-          if (number === page) {
-            item.classList.add('is-active');
-            item.setAttribute('aria-current', 'page');
-          }
-          (function (target) {
-            item.addEventListener('click', function () { goTo(target); });
-          })(number);
-          pager.appendChild(item);
+      sizePicker = null;
+      var navigation = document.createElement('div');
+      navigation.className = 'pet-pager__navigation';
+      var prev = button('pet-pager__btn pet-pager__prev', '上一页', '上一页');
+      var next = button('pet-pager__btn pet-pager__next', '下一页', '下一页');
+      prev.disabled = page === 1;
+      next.disabled = page === pages;
+      prev.addEventListener('click', function () { goTo(page - 1, '.pet-pager__prev'); });
+      next.addEventListener('click', function () { goTo(page + 1, '.pet-pager__next'); });
+      var form = document.createElement('form');
+      form.className = 'pet-pager__jump';
+      form.noValidate = true;
+      var label = document.createElement('label');
+      label.className = 'pet-pager__page-label';
+      var input = document.createElement('input');
+      input.id = 'pet-page-input';
+      input.type = 'text'; input.inputMode = 'numeric'; input.pattern = '[0-9]+';
+      input.autocomplete = 'off'; input.maxLength = 12; input.value = String(page);
+      input.setAttribute('aria-label', '跳转页码');
+      input.setAttribute('aria-describedby', 'pet-page-summary pet-page-error');
+      var total = document.createElement('span');
+      total.textContent = '/ ' + pages + ' 页';
+      label.append(input, total);
+      var jump = button('pet-pager__jump-btn', '跳转到指定页', '→');
+      jump.type = 'submit'; jump.title = '输入页码后跳转';
+      form.append(label, jump);
+      var error = document.createElement('p');
+      error.id = 'pet-page-error'; error.className = 'pet-pager__error';
+      error.setAttribute('role', 'alert'); error.hidden = true;
+      function clearError() { input.removeAttribute('aria-invalid'); error.hidden = true; error.textContent = ''; }
+      input.addEventListener('input', clearError);
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var text = input.value.trim(), value = Number(text);
+        if (!/^[0-9]+$/.test(text) || !Number.isSafeInteger(value) || value < 1 || value > pages) {
+          input.setAttribute('aria-invalid', 'true'); error.hidden = false;
+          error.textContent = '请输入 1～' + pages + ' 之间的整数页码。';
+          input.focus({ preventScroll: true });
+          return;
         }
-
-        var next = button('pet-pager__btn', '下一页', '下一页 ›');
-        next.disabled = page === pages;
-        next.addEventListener('click', function () { goTo(page + 1); });
-        pager.appendChild(next);
-      }
-
+        clearError(); input.value = String(value); goTo(value);
+      });
+      navigation.append(prev, form, next);
+      var settings = document.createElement('div');
+      settings.className = 'pet-pager__settings';
       var meta = document.createElement('span');
-      meta.className = 'pet-pager__meta';
-      meta.textContent = pages > 1 ?
-        '共 ' + cards.length + ' 只 · 第 ' + page + '/' + pages + ' 页' :
-        '共 ' + cards.length + ' 只';
-      pager.appendChild(meta);
-
-      pager.appendChild(buildSizePicker());
+      meta.id = 'pet-page-summary'; meta.className = 'pet-pager__meta';
+      meta.setAttribute('role', 'status'); meta.setAttribute('aria-live', 'polite');
+      var count = cards.filter(matches).length;
+      meta.textContent = (query ? '匹配 ' : '共 ') + count + ' 只 · 第 ' + page + '/' + pages + ' 页';
+      settings.append(meta, buildSizePicker());
+      pager.append(navigation, settings, error);
     }
 
-    /** 每页数量：自绘下拉面板（原生 select 的选项列表无法跟随站点主题）。 */
+    function changeSize(size) {
+      if (PAGE_SIZE_OPTIONS.indexOf(size) === -1) return;
+      sizeChosen = true; pageSize = size; page = 1;
+      applyPage();
+      var next = pager.querySelector('.pet-pager__size-trigger');
+      if (next) next.focus({ preventScroll: true });
+    }
+
+    // Fully themed popover, with a roving active option while focus stays on the combobox.
     function buildSizePicker() {
       var wrap = document.createElement('div');
       wrap.className = 'pet-pager__size-wrap';
-
       var label = document.createElement('span');
-      label.className = 'pet-pager__size-label';
-      label.textContent = '每页';
-      wrap.appendChild(label);
-
-      var button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'pet-pager__size-btn';
-      button.setAttribute('aria-haspopup', 'listbox');
-      button.setAttribute('aria-expanded', 'false');
-      button.setAttribute('aria-label', '每页显示数量');
-      var value = document.createElement('span');
-      value.className = 'pet-pager__size-value';
-      value.textContent = sizeLabel(alignedPageSize(pageSize));  // 显示实际每页数量，和分页一致
-      var caret = document.createElement('span');
-      caret.className = 'pet-pager__size-caret';
-      caret.setAttribute('aria-hidden', 'true');
-      caret.textContent = '▾';
-      button.appendChild(value);
-      button.appendChild(caret);
-      wrap.appendChild(button);
-
+      label.id = 'pet-page-size-label'; label.className = 'pet-pager__size-label'; label.textContent = '每页';
+      var trigger = button('pet-pager__size-trigger', '每页显示数量', String(pageSize));
+      trigger.setAttribute('role', 'combobox'); trigger.setAttribute('aria-haspopup', 'listbox');
+      trigger.setAttribute('aria-expanded', 'false'); trigger.setAttribute('aria-controls', 'pet-page-size-menu');
       var menu = document.createElement('div');
-      menu.className = 'pet-pager__size-menu';
-      menu.setAttribute('role', 'listbox');
-      menu.setAttribute('aria-label', '每页显示数量');
-      menu.hidden = true;
-      wrap.appendChild(menu);
-
+      menu.id = 'pet-page-size-menu'; menu.className = 'pet-pager__size-menu';
+      menu.setAttribute('role', 'listbox'); menu.setAttribute('aria-labelledby', label.id); menu.hidden = true;
+      var active = PAGE_SIZE_OPTIONS.indexOf(pageSize);
       var options = [];
-      for (var i = 0; i < PAGE_SIZE_OPTIONS.length; i += 1) {
-        var size = PAGE_SIZE_OPTIONS[i];
-        var option = document.createElement('button');
-        option.type = 'button';
-        option.className = 'pet-pager__size-option';
-        option.setAttribute('role', 'option');
-        option.setAttribute('data-value', String(size));
-        option.textContent = sizeLabel(size);
-        if (size === pageSize) {
-          option.classList.add('is-selected');
-          option.setAttribute('aria-selected', 'true');
-        } else {
-          option.setAttribute('aria-selected', 'false');
-        }
-        options.push(option);
-        menu.appendChild(option);
+      function paintActive() {
+        options.forEach(function (option, index) { option.classList.toggle('is-highlighted', index === active); });
+        trigger.setAttribute('aria-activedescendant', options[active].id);
       }
-
-      function close() {
-        if (menu.hidden) return;
-        menu.hidden = true;
-        button.setAttribute('aria-expanded', 'false');
-        document.removeEventListener('pointerdown', onOutside, true);
-        document.removeEventListener('keydown', onMenuKey, true);
+      function closeMenu() {
+        menu.hidden = true; trigger.setAttribute('aria-expanded', 'false'); trigger.removeAttribute('aria-activedescendant');
       }
-
-      function onOutside(event) {
-        if (!wrap.contains(event.target)) close();
+      function openMenu() {
+        active = PAGE_SIZE_OPTIONS.indexOf(pageSize);
+        menu.hidden = false; trigger.setAttribute('aria-expanded', 'true'); paintActive();
       }
-
-      function focusOption(index) {
-        var bounded = (index + options.length) % options.length;
-        options[bounded].focus();
-      }
-
-      function onMenuKey(event) {
-        var current = options.indexOf(document.activeElement);
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          close();
-          button.focus();
-        } else if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          focusOption(current + 1);
-        } else if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          focusOption(current - 1);
-        }
-      }
-
-      function open() {
-        menu.hidden = false;
-        button.setAttribute('aria-expanded', 'true');
-        var selected = options.filter(function (option) { return option.classList.contains('is-selected'); })[0];
-        (selected || options[0]).focus();
-        document.addEventListener('pointerdown', onOutside, true);
-        document.addEventListener('keydown', onMenuKey, true);
-      }
-
-      button.addEventListener('click', function () {
-        if (menu.hidden) open();
-        else close();
+      PAGE_SIZE_OPTIONS.forEach(function (size, index) {
+        var option = button('pet-pager__size-option', null, size + ' 张');
+        option.id = 'pet-size-' + size; option.dataset.value = String(size); option.tabIndex = -1;
+        option.setAttribute('role', 'option'); option.setAttribute('aria-selected', String(size === pageSize));
+        option.addEventListener('click', function () { changeSize(size); });
+        options.push(option); menu.appendChild(option);
       });
-
-      menu.addEventListener('click', function (event) {
-        var option = event.target.closest ? event.target.closest('.pet-pager__size-option') : null;
-        if (!option) return;
-        sizeChosen = true;
-        pageSize = parseInt(option.getAttribute('data-value'), 10) || 0;
-        page = 1;
-        close();
-        applyPage();
+      trigger.addEventListener('click', function () { if (menu.hidden) openMenu(); else closeMenu(); });
+      trigger.addEventListener('keydown', function (event) {
+        if (event.key === 'Tab') { closeMenu(); return; }
+        if (event.key === 'Escape') { closeMenu(); event.preventDefault(); return; }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          if (menu.hidden) { openMenu(); return; }
+          active = (active + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+          paintActive(); return;
+        }
+        if (event.key === 'Home' || event.key === 'End') {
+          event.preventDefault(); if (menu.hidden) openMenu();
+          active = event.key === 'Home' ? 0 : options.length - 1; paintActive(); return;
+        }
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault(); if (menu.hidden) openMenu(); else changeSize(PAGE_SIZE_OPTIONS[active]);
+        }
       });
-
+      sizePicker = { wrap: wrap, close: closeMenu };
+      wrap.append(label, trigger, menu);
       return wrap;
+    }
+
+    function closeSizeMenuOutside(event) {
+      if (sizePicker && !sizePicker.wrap.contains(event.target)) sizePicker.close();
     }
 
     function onMediaChange() {
@@ -570,6 +503,7 @@
       applyPage();
       deck.addEventListener('click', onDeckClick);
       document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('click', closeSizeMenuOutside);
       if (media) {
         if (media.addEventListener) media.addEventListener('change', onMediaChange);
         else if (media.addListener) media.addListener(onMediaChange);
@@ -580,6 +514,8 @@
       close();
       deck.removeEventListener('click', onDeckClick);
       document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('click', closeSizeMenuOutside);
+      sizePicker = null;
       if (media) {
         if (media.removeEventListener) media.removeEventListener('change', onMediaChange);
         else if (media.removeListener) media.removeListener(onMediaChange);

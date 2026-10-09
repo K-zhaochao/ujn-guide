@@ -46,6 +46,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // ==================== 弹窗创建（仅执行一次）====================
   var MODALS_CREATED = false;
+  var openFleaModal;
+  var closeFleaModal;
 
   function createModals() {
     if (MODALS_CREATED) return;
@@ -98,100 +100,94 @@ document.addEventListener("DOMContentLoaded", function () {
     overlay.appendChild(card);
     document.body.appendChild(overlay);
 
-    /* ===== 跳蚤市场弹窗 ===== */
+    /* One QR at a time, with a fixed header and a scrollable body on small screens. */
     var fleaOverlay = document.createElement("div");
     fleaOverlay.id = "flea-modal-overlay";
     fleaOverlay.className = "ujn-overlay flea-overlay";
-    fleaOverlay.onclick = function (e) {
-      if (e.target === fleaOverlay) {
-        fleaOverlay.classList.remove("flea-overlay--open");
-      }
-    };
-
-    document.addEventListener("keydown", function fleaKeydown(e) {
-      if (e.key === "Escape" && fleaOverlay.classList.contains("flea-overlay--open")) {
-        fleaOverlay.classList.remove("flea-overlay--open");
-      }
-    });
-
     var fleaCard = document.createElement("div");
     fleaCard.className = "ujn-modal flea-card";
-
-    var fleaClose = document.createElement("button");
-    fleaClose.className = "flea-close";
-    fleaClose.textContent = "\u2715";
-    fleaClose.title = "关闭";
-    fleaClose.onclick = function () {
+    fleaCard.setAttribute("role", "dialog");
+    fleaCard.setAttribute("aria-modal", "true");
+    fleaCard.setAttribute("aria-labelledby", "flea-title");
+    fleaCard.setAttribute("aria-describedby", "flea-description");
+    fleaCard.innerHTML = `
+      <header class="flea-header">
+        <div><h2 id="flea-title">校园跳蚤市场</h2><p id="flea-description">选择常用平台，加入校园闲置交流。</p></div>
+        <button type="button" class="flea-close" aria-label="关闭跳蚤市场" title="关闭">×</button>
+      </header>
+      <div class="flea-tabs" role="tablist" aria-label="加入平台">
+        <button type="button" id="flea-tab-wechat" role="tab" aria-controls="flea-panel-wechat" aria-selected="true" tabindex="0">微信 · 腾讯频道</button>
+        <button type="button" id="flea-tab-qq" role="tab" aria-controls="flea-panel-qq" aria-selected="false" tabindex="-1">QQ 频道</button>
+      </div>
+      <div class="flea-body">
+        <section id="flea-panel-wechat" class="flea-panel" role="tabpanel" aria-labelledby="flea-tab-wechat" tabindex="0">
+          <div class="flea-qr-frame"><img alt="微信腾讯频道二维码" draggable="false"></div>
+          <p class="flea-caption">用微信扫一扫，或长按保存二维码后识别。</p>
+        </section>
+        <section id="flea-panel-qq" class="flea-panel" role="tabpanel" aria-labelledby="flea-tab-qq" tabindex="0" hidden>
+          <div class="flea-qr-frame"><img alt="QQ频道二维码" draggable="false"></div>
+          <a class="flea-join" href="https://pd.qq.com/s/a41e8nsi6?b=5" target="_blank" rel="noopener noreferrer">打开 QQ 频道 ↗</a>
+        </section>
+      </div>
+      <p class="flea-tip">闲置流转，让校园生活轻一点。</p>`;
+    var images = fleaCard.querySelectorAll(".flea-qr-frame img");
+    images[0].src = UJN_SITE_ROOT + "assets/images/跳蚤市场/跳蚤市场-微信小程序版.webp";
+    images[1].src = UJN_SITE_ROOT + "assets/images/跳蚤市场/跳蚤市场-QQ频道.webp";
+    var tabs = Array.prototype.slice.call(fleaCard.querySelectorAll('[role="tab"]'));
+    var panels = Array.prototype.slice.call(fleaCard.querySelectorAll('[role="tabpanel"]'));
+    var fleaClose = fleaCard.querySelector(".flea-close");
+    var opener = null;
+    var previousOverflow = "";
+    function selectPlatform(index, focus) {
+      tabs.forEach(function (tab, i) {
+        tab.setAttribute("aria-selected", String(i === index));
+        tab.tabIndex = i === index ? 0 : -1;
+        panels[i].hidden = i !== index;
+      });
+      fleaCard.querySelector(".flea-body").scrollTop = 0;
+      if (focus) tabs[index].focus();
+    }
+    tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () { selectPlatform(index, true); });
+      tab.addEventListener("keydown", function (event) {
+        var target;
+        if (event.key === "ArrowRight" || event.key === "ArrowLeft") target = 1 - index;
+        else if (event.key === "Home") target = 0;
+        else if (event.key === "End") target = 1;
+        else return;
+        event.preventDefault();
+        selectPlatform(target, true);
+      });
+    });
+    closeFleaModal = function () {
+      if (!fleaOverlay.classList.contains("flea-overlay--open")) return;
       fleaOverlay.classList.remove("flea-overlay--open");
+      document.body.style.overflow = previousOverflow;
+      if (opener && opener.isConnected) opener.focus({ preventScroll: true });
     };
-    fleaCard.appendChild(fleaClose);
-
-    var fleaTitle = document.createElement("div");
-    fleaTitle.className = "flea-title";
-    fleaTitle.textContent = "\uD83D\uDED2 \u626B\u7801\u52A0\u5165\u8DF3\u86A4\u5E02\u573A";
-    fleaCard.appendChild(fleaTitle);
-
-    var fleaRow = document.createElement("div");
-    fleaRow.className = "flea-qr-row";
-
-    /* 微信小程序 */
-    var fleaWx = document.createElement("div");
-    fleaWx.className = "flea-qr-item";
-    var fleaWxWrap = document.createElement("div");
-    fleaWxWrap.className = "flea-qr-img-wrap";
-    var fleaWxImg = document.createElement("img");
-    fleaWxImg.src = UJN_SITE_ROOT + "assets/images/\u8DF3\u86A4\u5E02\u573A/\u8DF3\u86A4\u5E02\u573A-\u5FAE\u4FE1\u5C0F\u7A0B\u5E8F\u7248.webp";
-    fleaWxImg.alt = "\u5FAE\u4FE1\u5C0F\u7A0B\u5E8F\u4E8C\u7EF4\u7801";
-    fleaWxImg.loading = "lazy";
-    fleaWxWrap.appendChild(fleaWxImg);
-    fleaWx.appendChild(fleaWxWrap);
-    var fleaWxLabel = document.createElement("div");
-    fleaWxLabel.className = "flea-qr-label flea-qr-label--wechat";
-    fleaWxLabel.textContent = "\uD83D\uDCAC \u5FAE\u4FE1 \u00B7 \u817E\u8BAF\u9891\u9053\u5C0F\u7A0B\u5E8F";
-    fleaWx.appendChild(fleaWxLabel);
-    fleaRow.appendChild(fleaWx);
-
-    /* QQ 频道 */
-    var fleaQq = document.createElement("div");
-    fleaQq.className = "flea-qr-item flea-qr-item--qq";
-    var fleaQqWrap = document.createElement("div");
-    fleaQqWrap.className = "flea-qr-img-wrap";
-    var fleaQqLink = document.createElement("a");
-    fleaQqLink.href = "https://pd.qq.com/s/a41e8nsi6?b=5";
-    fleaQqLink.target = "_blank";
-    fleaQqLink.rel = "noopener";
-    var fleaQqImg = document.createElement("img");
-    fleaQqImg.src = UJN_SITE_ROOT + "assets/images/\u8DF3\u86A4\u5E02\u573A/\u8DF3\u86A4\u5E02\u573A-QQ\u9891\u9053.webp";
-    fleaQqImg.alt = "QQ\u9891\u9053\u4E8C\u7EF4\u7801";
-    fleaQqImg.loading = "lazy";
-    fleaQqLink.appendChild(fleaQqImg);
-    fleaQqWrap.appendChild(fleaQqLink);
-    fleaQq.appendChild(fleaQqWrap);
-    var fleaQqLabel = document.createElement("div");
-    fleaQqLabel.className = "flea-qr-label flea-qr-label--qq";
-    var fleaQqLabelLink = document.createElement("a");
-    fleaQqLabelLink.href = "https://pd.qq.com/s/a41e8nsi6?b=5";
-    fleaQqLabelLink.target = "_blank";
-    fleaQqLabelLink.rel = "noopener";
-    fleaQqLabelLink.textContent = "\uD83D\uDC27 QQ \u9891\u9053 \u00B7 \u70B9\u51FB\u52A0\u5165 \u2192";
-    fleaQqLabelLink.style.textDecoration = "none";
-    fleaQqLabelLink.style.color = "#1677ff";
-    fleaQqLabel.appendChild(fleaQqLabelLink);
-    fleaQq.appendChild(fleaQqLabel);
-    fleaRow.appendChild(fleaQq);
-
-    fleaCard.appendChild(fleaRow);
-
-    var fleaTip = document.createElement("div");
-    fleaTip.className = "flea-tip";
-    fleaTip.textContent = "\uD83D\uDCA1 \u957F\u6309\u6216\u626B\u4E00\u626B\u4E0A\u65B9\u4E8C\u7EF4\u7801\u5373\u53EF\u52A0\u5165 \u00B7 \u8BF7\u9075\u5B88\u5E73\u53F0\u4EA4\u6613\u89C4\u5219\uFF0C\u8C28\u9632\u8BC8\u9A97";
-    fleaCard.appendChild(fleaTip);
-
-    fleaWxImg.addEventListener("pointerdown", function (e) { e.preventDefault(); });
-    fleaWxImg.addEventListener("touchstart", function (e) { e.preventDefault(); });
-    fleaWxImg.addEventListener("dragstart", function (e) { e.preventDefault(); });
-    fleaQqImg.addEventListener("dragstart", function (e) { e.preventDefault(); });
-
+    openFleaModal = function () {
+      if (fleaOverlay.classList.contains("flea-overlay--open")) return;
+      opener = document.activeElement;
+      previousOverflow = document.body.style.overflow;
+      selectPlatform(0, false);
+      document.body.style.overflow = "hidden";
+      fleaOverlay.classList.add("flea-overlay--open");
+      fleaClose.focus({ preventScroll: true });
+    };
+    fleaClose.addEventListener("click", closeFleaModal);
+    fleaOverlay.addEventListener("click", function (event) {
+      if (event.target === fleaOverlay) closeFleaModal();
+    });
+    fleaOverlay.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") { event.preventDefault(); closeFleaModal(); return; }
+      if (event.key !== "Tab") return;
+      var focusable = Array.prototype.slice.call(fleaCard.querySelectorAll('button, a[href], [tabindex="0"]')).filter(function (node) {
+        return node.tabIndex >= 0 && !node.closest('[hidden]');
+      });
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
     fleaOverlay.appendChild(fleaCard);
     document.body.appendChild(fleaOverlay);
   }
@@ -229,6 +225,8 @@ function injectFooterSignature() {
 
 /** 打开首页卡片对应的弹窗：任何带 data-ujn-modal 的元素都能触发。 */
 function openModalByName(name) {
+  if (name === "flea" && openFleaModal) { openFleaModal(); return true; }
+  if (name !== "donate") return false;
   var overlayId = name === "donate" ? "donate-modal-overlay" : "flea-modal-overlay";
   var openClass = name === "donate" ? "donate-overlay--open" : "flea-overlay--open";
   var overlay = document.getElementById(overlayId);
@@ -255,6 +253,7 @@ document.addEventListener("click", onModalTriggerClick);
 // 即时导航后：重新注入签名（弹窗与代理监听已存在，不需要重建）
 if (typeof document$ !== "undefined") {
   document$.subscribe(function () {
+    if (closeFleaModal) closeFleaModal();
     injectFooterSignature();
   });
 }

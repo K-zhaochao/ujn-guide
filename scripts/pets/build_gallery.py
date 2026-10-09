@@ -135,7 +135,8 @@ def card_html(name: str, url: str, photos: list[str], cover_thumb: str) -> str:
         [
             f'  <div class="pet-card" data-name="{safe_name}" data-photos="{"|".join(photos)}">',
             f'    <button class="pet-card__shot" type="button" aria-label="{safe_name}：查看 {len(photos)} 张照片">',
-            f'      <img class="pet-photo" src="{cover_thumb}" alt="{safe_name}" loading="lazy" decoding="async">',
+            f'      <img class="pet-photo" data-pet-src="{cover_thumb}" alt="{safe_name}" loading="lazy" decoding="async">',
+            f'      <noscript><img src="{cover_thumb}" alt="{safe_name}" loading="lazy" decoding="async"></noscript>',
             "    </button>",
             f'    <a class="pet-card__plate" href="{url}">'
             f'<span class="pet-card__name">{safe_name}</span></a>',

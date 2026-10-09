@@ -47,6 +47,18 @@ function boot() {
 }
 
 describe('窄屏本页目录', () => {
+  it('首页、工具和图鉴优先操作入口，不插入额外正文目录', () => {
+    installRail({ visible: false });
+    const article = newPage([['h2', 'a', '第一节'], ['h2', 'b', '第二节']]);
+    const layout = document.createElement('div'); layout.dataset.pageKind = 'home';
+    article.append(layout);
+    const api = boot();
+    ['home', 'tool', 'gallery'].forEach(kind => {
+      layout.dataset.pageKind = kind;
+      expect(api.sync()).toBeNull();
+      expect(article.querySelector('.ujn-mobile-toc')).toBeNull();
+    });
+  });
   beforeEach(() => {
     document.body.replaceChildren();
     delete window.UJNMobileToc;

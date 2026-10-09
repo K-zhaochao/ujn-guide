@@ -1,0 +1,33 @@
+{# Resolve the layout during build, not after page load. Keep Material's content/actions. #}
+{% set src = page.file.src_uri if page and page.file else '' %}
+{% set group = src.split('/')[0] %}
+{% set sections = {
+  'site-guide': ['校园导览', 'site-guide/', 'place'],
+  'green-book': ['学业与办事', 'green-book/', 'reading'],
+  'phone-book': ['校园通讯录', 'phone-book/', 'directory'],
+  'campus-life': ['校园生活', 'campus-life/', 'hub'],
+  'clubs': ['校园生活', 'campus-life/', 'reading'],
+  'hometown-groups': ['校园生活', 'campus-life/', 'directory'],
+  'rules': ['校园规章', 'rules/', 'reading'],
+  'pets': ['校园猫猫图鉴', 'pets/', 'gallery'],
+  'school-calendar': ['校园生活', 'campus-life/', 'calendar'],
+  'tools': ['浏览器工具箱', 'tools/', 'hub'],
+  'contribute': ['一起建设校园指南', 'contribute/', 'community']
+} %}
+{% set section = sections.get(group, ['校园指南', '', 'reading']) %}
+{% set kind = section[2] %}
+{% if src == 'index.md' %}{% set kind = 'home' %}
+{% elif src == 'changelog.md' %}{% set kind = 'updates' %}
+{% elif src == 'green-book/scholarship/zongce-calculator.md' %}{% set kind = 'tool' %}
+{% elif group in ['site-guide', 'green-book', 'phone-book', 'clubs', 'rules'] and src.endswith('/index.md') %}{% set kind = 'hub' %}
+{% endif %}
+<div class="ujn-page ujn-page--{{ kind }}" data-page-kind="{{ kind }}" data-page-section="{{ group }}">
+  {% if kind != 'home' %}
+  <nav class="ujn-context" aria-label="页面位置">
+    <a href="{{ section[1] | url }}">{{ section[0] }}</a>
+    <span aria-hidden="true">/</span>
+    <span>{{ '内容导航' if kind == 'hub' else '最近更新' if kind == 'updates' else '正文' }}</span>
+  </nav>
+  {% endif %}
+  {% include "partials/content.html" %}
+</div>

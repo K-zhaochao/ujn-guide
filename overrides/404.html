@@ -1,0 +1,10 @@
+{% extends "main.html" %}
+{% block content %}
+<div class="ujn-page ujn-page--error" data-page-kind="error" data-page-section="not-found">
+  <p class="ujn-error-code" aria-hidden="true">404</p>
+  <h1>这个页面暂时找不到了</h1>
+  <p>链接可能已更新，也可能少打了几个字。回到首页重新找找，或者用顶部搜索查找你需要的校园信息。</p>
+  <a class="md-button md-button--primary" href="{{ '' | url }}">回到首页</a>
+  <a class="md-button" href="{{ 'site-guide/' | url }}">探索校园</a>
+</div>
+{% endblock %}

@@ -348,3 +348,16 @@ jobs:
 模板每半小时检查一次，定时触发可能排队延迟；两端分叉时 --ff-only 停止并留下错误，不强推、不丢提交。GITHUB_TOKEN 的 push 默认不触发另一个 push workflow，因此模板显式调用 workflow_dispatch；忽略这一步会出现“代码同步了但页面未部署”。公开仓库的定时任务长期无活动可能被停用，需要在 Actions 中恢复。
 
 参考：[GitHub 工作流触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)、[Gitee 官方镜像说明](https://blog.gitee.com/2021/07/15/repo-mirror/)、[GitHub 访问令牌](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)。
+## 页面布局与手机适配
+
+`overrides/partials/page-layout.html` 在构建时按页面路径选择导航、阅读、照片、通讯录、工具等布局，保留 Material 原有正文与操作。`docs/assets/stylesheets/experience.css` 统一标题、卡片、主题色、触控尺寸和宽表滚动；修改后递增 `mkdocs.yml` 的样式版本。不要用加载后的脚本切换整页布局。
+
+电话与同乡页面由 `docs/javascripts/directory.js` 渐进增强：按标题及行内容筛选，电话生成独立 `tel:` 链接，清空筛选恢复原有展开状态。无脚本时仍显示全部原始数据。脚本订阅 Material 即时导航，重复初始化不会重复控件。
+
+验证需覆盖 360 / 390 / 768 / 桌面宽度、浅深两色、菜单与目录、通讯录无结果及清空恢复、照片相册、计算器输入和提交；不要把维护测试文案写进读者页面。
+
+界面字体统一沿用 `--md-text-font-family`（霞鹜文楷），导航、标题、卡片及表单不另行指定系统字体；代码区保留等宽字体。首页仅介绍本站，窄屏提示打开左上角菜单；仅保留跳蚤市场、支持站长及参与联系入口。校园生活以 `docs/campus-life/index.md` 为总览，校历保留明确返回入口。宠物图鉴电脑固定每行 4 张，900px 以下每行 2 张；默认电脑 12、手机 8，每页仅支持 8/12/24，无全部选项。分页以页码输入与跳转按钮替代数字按钮条，拒绝空值、非整数和越界页码。每页数量使用可键盘操作的主题化组合框，浮层向上展开，支持方向键、Enter、Escape 与点击外部关闭。筛选结果同样分页；卡牌缩略图只在该页显示时设置 src，未访问页面保留 data-pet-src，无 JavaScript 时由 noscript 保留照片。
+
+首页使用静态双栏封面、内联 SVG 校园意象与简短共建介绍，不重复导航栏目。手机端为单栏，保留菜单提示与参与联系入口；轻微动效遵循 `prefers-reduced-motion`，装饰图标不进入读屏内容。
+
+窄屏首页导航提示必须位于主视觉之前并占内容全宽；跳蚤市场与赞助入口位于主视觉文案下方。跳蚤市场使用可键盘操作的微信/QQ 页签，手机端为底部面板；只展示一张二维码，关闭时恢复页面滚动与入口焦点。

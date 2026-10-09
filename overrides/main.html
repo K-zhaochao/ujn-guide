@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block content %}
+{% include "partials/page-layout.html" %}
+{% endblock %}
+
 {% block announce %}
 {# 公告栏：可关闭。关闭状态记在 localStorage，并与文案绑定——
    改了 extra.announce 的文案之后，之前关掉的人会重新看到新公告。 #}
@@ -63,12 +67,11 @@ docs/javascripts/mathjax.js 负责先写好配置，只有当前页面真的出�
 <script type="application/json" id="ujn-flea-config">{{ config.extra.flea_market | tojson }}</script>
 {# 路径统一交给 Material 的 url 过滤器：手写 {{ base_url }}/xxx 在 404 页（base_url 为 "/"）
    会拼出 //javascripts/... —— 那是「协议相对地址」，浏览器会去找一台叫 javascripts 的主机。 #}
-<script src="{{ 'javascripts/ujn-ui.js?v=20261007-3' | url }}"></script>
+<script src="{{ 'javascripts/ujn-ui.js?v=20261009-1' | url }}"></script>
 
 
 <!-- AI 问答助手（改了它也要递增下面的 ?v=，否则访客继续用缓存里的旧脚本） -->
 <script src="{{ 'javascripts/ai-assistant.js?v=20260911-1' | url }}"></script>
 {% endblock %}
-
 
 

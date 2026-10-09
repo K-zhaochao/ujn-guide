@@ -11,12 +11,62 @@ tags:
 
 ## 📂 内容导航
 
-| 分类 | 说明 |
-|------|------|
-| [🧰 实用工具](scholarship/zongce-calculator.md) | 综测计算器：绩点与综测计算、表格导入、校友开源工具 |
-| [📖 学业管理](academic/score-rules.md) | 成绩规则、推免保送、辅修、缓补考、重修、免修、免听、休学 |
-| [🎖️ 应征入伍指南](military/enlistment-conditions.md) | 入伍条件、优惠政策 |
-| [🔄 转专业指南](major-transfer/guide.md) | 转专业须知及各学期方案汇总 |
-| [🏆 奖助&评优政策指南](scholarship/honor-award.md) | 荣誉评选、科技创新奖励、助学金 |
-| [📋 培养方案](academic/curriculum.md) | 各专业培养方案 |
-| [🏛️ 共青团员须知](youth-league/recommendation.md) | 推优、团员证、团费 |
+<div class="grid cards" markdown>
+
+- **🧰 计算与实用工具**
+
+    ---
+    综测计算、绩点加权和表格导入，直接在浏览器里使用。
+
+    [打开工具箱 →](../tools/index.md)
+
+- **📖 学业管理**
+
+    ---
+    成绩规则、推免、辅修、缓补考与重修、免修免听、休学。
+
+    [从成绩规则开始 →](academic/score-rules.md)
+
+- **🔄 转专业**
+
+    ---
+    了解申请条件与流程，查阅各学期转专业方案。
+
+    [查看转专业指南 →](major-transfer/guide.md)
+
+- **🏆 奖助与评优**
+
+    ---
+    荣誉评选、科技创新奖励和助学金申请。
+
+    [了解评选与奖励 →](scholarship/honor-award.md)
+
+- **📋 培养方案**
+
+    ---
+    按学院查找专业培养方案，提前规划课程。
+
+    [查找培养方案 →](academic/curriculum.md)
+
+- **🎖️ 应征入伍**
+
+    ---
+    入伍条件、报名流程和大学生优惠政策。
+
+    [查看入伍指南 →](military/enlistment-conditions.md)
+
+- **🏛️ 共青团员须知**
+
+    ---
+    推优、团员证管理与团费收缴。
+
+    [了解团员事务 →](youth-league/recommendation.md)
+
+- **💬 学生申诉**
+
+    ---
+    了解申诉渠道、申请要求和办理程序。
+
+    [查看申诉指南 →](appeal/index.md)
+
+</div>

@@ -8,7 +8,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const source = readFileSync(resolve(process.cwd(), 'docs/pets/gallery.js'), 'utf8');
 
@@ -22,7 +22,7 @@ function deckHtml(count, photosPerCat = 2) {
     const photos = Array.from({ length: photosPerCat }, (_, photo) => `photo-${index + 1}-${photo + 1}.webp`);
     cards.push(
       `  <div class="pet-card" data-name="${name}" data-photos="${photos.join('|')}">`,
-      `    <button class="pet-card__shot" type="button" aria-label="${name}"><img class="pet-photo" src="${photos[0]}" alt="${name}"></button>`,
+      `    <button class="pet-card__shot" type="button" aria-label="${name}"><img class="pet-photo" data-pet-src="${photos[0]}" alt="${name}"></button>`,
       `    <a class="pet-card__plate" href="cats/${name}/"><span class="pet-card__name">${name}</span></a>`,
       '  </div>',
     );
@@ -64,14 +64,21 @@ function pagerButton(label) {
   );
 }
 
-/** 通过自绘下拉面板选择每页数量 */
 function choosePageSize(value) {
-  document.querySelector('#pet-pager .pet-pager__size-btn').click();
-  const option = Array.from(document.querySelectorAll('#pet-pager .pet-pager__size-option')).find(
-    item => item.getAttribute('data-value') === String(value),
-  );
-  if (!option) throw new Error('下拉面板里没有 ' + value);
+  const trigger = document.querySelector('.pet-pager__size-trigger');
+  if (trigger.getAttribute('aria-expanded') === 'false') trigger.click();
+  const option = document.querySelector('.pet-pager__size-option[data-value="' + value + '"]');
+  if (!option) throw new Error('Missing page-size option ' + value);
   option.click();
+}
+function submitPage(value) {
+  const input = document.querySelector('#pet-page-input');
+  input.value = value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  document.querySelector('.pet-pager__jump').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+}
+function comboKey(key) {
+  document.querySelector('.pet-pager__size-trigger').dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
 }
 
 // 脚本在模块加载时执行一次；此时还没有卡牌，init() 会安全返回
@@ -80,80 +87,136 @@ new Function(source)();
 beforeEach(() => {
   document.body.innerHTML = '';
 });
+afterEach(() => vi.unstubAllGlobals());
 
 describe('猫猫图鉴分页', () => {
-  it('桌面默认每页 12 张，并渲染分页条与页码', () => {
-    boot(deckHtml(30));
+  it('电脑默认 12 张，使用页码输入而不是数字按钮条', () => {
+    boot(deckHtml(37));
     expect(visibleCards()).toHaveLength(12);
-    expect(visibleNames()[0]).toBe('猫1');
-    expect(document.querySelectorAll('#pet-pager .pet-pager__num')).toHaveLength(3);
-    expect(document.querySelector('#pet-pager .pet-pager__num.is-active').textContent).toBe('1');
-    expect(document.querySelector('#pet-pager .pet-pager__meta').textContent).toBe('共 30 只 · 第 1/3 页');
+    expect(document.querySelector('#pet-page-input').value).toBe('1');
+    expect(document.querySelector('.pet-pager__meta').textContent).toBe('共 37 只 · 第 1/4 页');
+    expect(document.querySelectorAll('.pet-pager__num')).toHaveLength(0);
   });
-
-  it('窄屏默认每页 6 张', () => {
-    boot(deckHtml(30), { mobile: true });
-    expect(visibleCards()).toHaveLength(6);
-    expect(document.querySelector('#pet-pager .pet-pager__meta').textContent).toBe('共 30 只 · 第 1/5 页');
+  it('手机默认每页 8 张', () => {
+    boot(deckHtml(37), { mobile: true });
+    expect(visibleCards()).toHaveLength(8);
+    expect(document.querySelector('.pet-pager__meta').textContent).toContain('第 1/5 页');
   });
-
-  it('下一页 / 页码 / 上一页都能切换，并在首末页禁用按钮', () => {
+  it('上一页、下一页和页码跳转不遗漏，末页按钮禁用', () => {
     boot(deckHtml(30));
     expect(pagerButton('上一页').disabled).toBe(true);
-
     pagerButton('下一页').click();
     expect(visibleNames()[0]).toBe('猫13');
-    expect(pagerButton('上一页').disabled).toBe(false);
-
-    Array.from(document.querySelectorAll('#pet-pager .pet-pager__num'))
-      .find(button => button.textContent === '3')
-      .click();
+    submitPage('3');
     expect(visibleNames()).toEqual(['猫25', '猫26', '猫27', '猫28', '猫29', '猫30']);
     expect(pagerButton('下一页').disabled).toBe(true);
-
     pagerButton('上一页').click();
-    expect(document.querySelector('#pet-pager .pet-pager__num.is-active').textContent).toBe('2');
+    expect(document.querySelector('#pet-page-input').value).toBe('2');
+    expect(document.activeElement).toBe(pagerButton('上一页'));
   });
-
-  it('每页数量下拉面板可以改成 24 或全部，并可开合', () => {
-    boot(deckHtml(30));
-    const button = document.querySelector('#pet-pager .pet-pager__size-btn');
-    const menu = document.querySelector('#pet-pager .pet-pager__size-menu');
-    expect(button.textContent).toContain('12');
-    expect(menu.hidden).toBe(true);
-    expect(button.getAttribute('aria-expanded')).toBe('false');
-
-    button.click();
-    expect(menu.hidden).toBe(false);
-    expect(button.getAttribute('aria-expanded')).toBe('true');
-    expect(document.querySelectorAll('#pet-pager .pet-pager__size-option')).toHaveLength(4);
-    expect(document.querySelector('#pet-pager .pet-pager__size-option.is-selected').textContent).toBe('12');
-    button.click();
-    expect(menu.hidden).toBe(true);
-
+  it('每页只支持 8/12/24，无全部和原生下拉框', () => {
+    boot(deckHtml(37));
+    expect([...document.querySelectorAll('[role="option"]')].map(x => x.dataset.value)).toEqual(['8', '12', '24']);
+    expect(document.querySelector('#pet-pager select')).toBeNull();
     choosePageSize(24);
-    expect(menu.hidden).toBe(true);
-    expect(document.querySelector('#pet-pager .pet-pager__size-btn').textContent).toContain('24');
     expect(visibleCards()).toHaveLength(24);
-    expect(document.querySelectorAll('#pet-pager .pet-pager__num')).toHaveLength(2);
-
-    choosePageSize(0);
-    expect(document.querySelector('#pet-pager .pet-pager__size-btn').textContent).toContain('全部');
-    expect(visibleCards()).toHaveLength(30);
-    expect(document.querySelectorAll('#pet-pager .pet-pager__num')).toHaveLength(0);
-    expect(document.querySelector('#pet-pager .pet-pager__meta').textContent).toBe('共 30 只');
+    expect(document.querySelector('.pet-pager__size-trigger').textContent).toBe('24');
+    expect(document.activeElement).toBe(document.querySelector('.pet-pager__size-trigger'));
+    choosePageSize(8);
+    expect(visibleCards()).toHaveLength(8);
+    expect(document.querySelector('.pet-pager__meta').textContent).toContain('第 1/5 页');
   });
-
-  it('卡牌数量不足一页时不渲染翻页按钮', () => {
-    boot(deckHtml(5));
+  it('空值、非整数、不合理数值和越界页码均保持当前页', () => {
+    boot(deckHtml(37));
+    for (const value of ['', '0', '-1', '1.5', '2e0', 'Infinity', 'abc', '5', '9999999999999999', '２', '1foo']) {
+      submitPage(value);
+      expect(visibleNames()[0]).toBe('猫1');
+      expect(document.querySelector('#pet-page-input').getAttribute('aria-invalid')).toBe('true');
+      expect(document.querySelector('#pet-page-error').hidden).toBe(false);
+      expect(document.querySelector('#pet-page-error').textContent).toContain('1～4');
+      expect(document.activeElement.id).toBe('pet-page-input');
+    }
+    submitPage(' 02 ');
+    expect(visibleNames()[0]).toBe('猫13');
+    expect(document.querySelector('#pet-page-input').value).toBe('2');
+    expect(document.querySelector('#pet-page-input').hasAttribute('aria-invalid')).toBe(false);
+    expect(document.querySelector('#pet-page-error').hidden).toBe(true);
+  });
+  it('重新输入清除错误，同页跳转也规范化数字', () => {
+    boot(deckHtml(37));
+    submitPage('0');
+    const input = document.querySelector('#pet-page-input');
+    input.value = '1'; input.dispatchEvent(new Event('input'));
+    expect(input.hasAttribute('aria-invalid')).toBe(false);
+    expect(document.querySelector('#pet-page-error').hidden).toBe(true);
+    submitPage('01');
+    expect(document.querySelector('#pet-page-input').value).toBe('1');
+    expect(visibleCards()).toHaveLength(12);
+  });
+  it('主题化菜单支持方向键、首末选项、确认和 Escape', () => {
+    boot(deckHtml(37));
+    comboKey('ArrowDown');
+    expect(document.querySelector('[role="listbox"]').hidden).toBe(false);
+    expect(document.querySelector('[role="combobox"]').getAttribute('aria-activedescendant')).toBe('pet-size-12');
+    comboKey('ArrowDown'); comboKey('Enter');
+    expect(visibleCards()).toHaveLength(24);
+    expect(document.querySelector('[role="listbox"]').hidden).toBe(true);
+    comboKey('Home');
+    expect(document.querySelector('[role="combobox"]').getAttribute('aria-activedescendant')).toBe('pet-size-8');
+    comboKey('Escape');
+    expect(visibleCards()).toHaveLength(24);
+    comboKey(' '); comboKey('End'); comboKey('Enter');
+    expect(document.querySelector('[role="option"][aria-selected="true"]').dataset.value).toBe('24');
+  });
+  it('点击外部或 Tab 离开关闭菜单，即时导航没有重复控件', () => {
+    boot(deckHtml(37)); comboKey('Enter');
+    document.body.click();
+    expect(document.querySelector('[role="listbox"]').hidden).toBe(true);
+    comboKey('Enter'); comboKey('Tab');
+    expect(document.querySelector('[role="combobox"]').getAttribute('aria-expanded')).toBe('false');
+    boot(deckHtml(37));
+    expect(document.querySelectorAll('[role="combobox"]')).toHaveLength(1);
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(3);
+  });
+  it('未访问页的缩略图没有 src，访问过的图片保留缓存', () => {
+    boot(deckHtml(37), { mobile: true });
+    expect(document.querySelectorAll('#pet-deck img[src]')).toHaveLength(8);
+    expect(document.querySelectorAll('#pet-deck img:not([src])')).toHaveLength(29);
+    submitPage('5');
     expect(visibleCards()).toHaveLength(5);
-    expect(document.querySelectorAll('#pet-pager .pet-pager__btn')).toHaveLength(0);
+    expect(document.querySelectorAll('#pet-deck img[src]')).toHaveLength(13);
+    submitPage('1');
+    expect(document.querySelectorAll('#pet-deck img[src]')).toHaveLength(13);
   });
-
+  it('筛选结果也分页，不一次加载所有匹配的图片', () => {
+    boot(deckHtml(100), { mobile: true });
+    const input = document.getElementById('pet-filter-input');
+    input.value = '猫'; input.dispatchEvent(new Event('input'));
+    expect(visibleCards()).toHaveLength(8);
+    expect(document.querySelector('.pet-filter__count').textContent).toBe('找到 100 只');
+    expect(document.querySelectorAll('#pet-deck img[src]')).toHaveLength(8);
+    expect(document.querySelector('.pet-pager__meta').textContent).toContain('第 1/13 页');
+    submitPage('13'); expect(visibleCards()).toHaveLength(4);
+  });
+  it('仅一页仍有禁用的前后按钮，并可输入页码 1', () => {
+    boot(deckHtml(5));
+    expect(pagerButton('上一页').disabled).toBe(true);
+    expect(pagerButton('下一页').disabled).toBe(true);
+    submitPage('1'); expect(visibleCards()).toHaveLength(5);
+  });
+  it('每页数量变化回到第一页且更新校验范围', () => {
+    boot(deckHtml(37)); submitPage('4'); choosePageSize(24);
+    expect(document.querySelector('#pet-page-input').value).toBe('1');
+    submitPage('3'); expect(document.querySelector('#pet-page-error').textContent).toContain('1～2');
+  });
+  it('桌面固定四列，平板手机为两列', () => {
+    const css = readFileSync(resolve(process.cwd(), 'docs/pets/index.md'), 'utf8');
+    expect(css).toContain('grid-template-columns: repeat(4, minmax(0, 1fr))');
+    expect(css).toContain('max-width: 900px');
+    expect(css).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
+  });
   it('换页时滚动到卡牌区顶部', () => {
-    boot(deckHtml(30));
-    pagerButton('下一页').click();
-    expect(window.scrollTo).toHaveBeenCalled();
+    boot(deckHtml(30)); pagerButton('下一页').click(); expect(window.scrollTo).toHaveBeenCalled();
   });
 });
 
@@ -303,7 +366,7 @@ describe('猫猫相册弹窗', () => {
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     expect(document.activeElement).toBe(shot);
   });
-  it('按名字找猫：只留命中项、收起分页条并给出计数', () => {
+  it('按名字找猫：分页显示命中项并给出计数', () => {
     boot(deckHtml(6, 2));
     const input = document.getElementById('pet-filter-input');
     const pager = document.getElementById('pet-pager');
@@ -315,7 +378,7 @@ describe('猫猫相册弹窗', () => {
     input.dispatchEvent(new window.Event('input', { bubbles: true }));
     expect(visibleNames()).toEqual(['猫3']);
     expect(count.textContent).toBe('找到 1 只');
-    expect(pager.hidden).toBe(true);
+    expect(pager.hidden).toBe(false);
 
     // 没命中：全部隐藏 + 给一句人话
     input.value = '不存在的名字';

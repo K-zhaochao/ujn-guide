@@ -1,147 +1,79 @@
 ---
-hide: [navigation]
+hide: [navigation, toc]
 ---
 
-# 济南大学校园通
-
-> **专属于济大学子的一站式生活百科**
-
-<div class="ujn-mobile-only" markdown>
-
-!!! tip "📱 手机端浏览提示"
-    如果你正在使用手机或平板访问本站，请点击页面**左上角的菜单按钮 ( ≡ )**，即可展开完整的目录导航，快速查找你需要的攻略！
-
+<div class="ujn-home-navigation-hint" role="note">
+  <span aria-hidden="true">☰</span>
+  <p><strong>从导航开始浏览</strong><br>点击页面左上角的菜单按钮（☰），展开导航即可查找各个栏目。</p>
 </div>
 
----
+<section class="ujn-home-hero" aria-labelledby="ujn-home-title">
+  <div class="ujn-home-hero__copy">
+    <p class="ujn-home-eyebrow"><span aria-hidden="true"></span>济南大学校园通 · 同学共建</p>
+    <h1 id="ujn-home-title">在济大，<br><span>生活有答案。</span></h1>
+    <p class="ujn-home-hero__lead">给校园生活，一份随手可查的指南。</p>
+    <p class="ujn-home-hero__description">把散落的经验整理在一起，把陌生的校园变得熟悉。<br class="ujn-home-desktop-break">从初来乍到，到从容日常，我们陪你慢慢找到答案。</p>
+    <div class="ujn-home-hero__signature" aria-label="由同学共同维护"><span aria-hidden="true">✦</span> 来自同学，写给同学。</div>
+    <div class="ujn-home-extra__actions">
+      <button type="button" data-ujn-modal="flea">🛒 校园跳蚤市场</button>
+      <button type="button" data-ujn-modal="donate">☕ 支持站长</button>
+    </div>
+  </div>
+  <div class="ujn-home-scene" aria-hidden="true">
+    <div class="ujn-home-scene__halo"></div>
+    <svg class="ujn-home-campus" viewBox="0 0 560 450" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+      <defs>
+        <linearGradient id="ujn-campus-line" x1="80" y1="100" x2="480" y2="390" gradientUnits="userSpaceOnUse"><stop stop-color="#8b8ef8"/><stop offset="1" stop-color="#49b8b3"/></linearGradient>
+        <linearGradient id="ujn-campus-fill" x1="280" y1="140" x2="280" y2="370" gradientUnits="userSpaceOnUse"><stop stop-color="currentColor" stop-opacity=".13"/><stop offset="1" stop-color="currentColor" stop-opacity=".02"/></linearGradient>
+        <linearGradient id="ujn-campus-path" x1="280" y1="310" x2="280" y2="440" gradientUnits="userSpaceOnUse"><stop stop-color="currentColor" stop-opacity=".2"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>
+      </defs>
+      <ellipse class="ujn-home-campus__orbit" cx="281" cy="230" rx="224" ry="160" transform="rotate(-17 281 230)"/>
+      <ellipse class="ujn-home-campus__orbit ujn-home-campus__orbit--inner" cx="281" cy="230" rx="195" ry="140" transform="rotate(16 281 230)"/>
+      <circle class="ujn-home-campus__sun" cx="400" cy="123" r="36"/><circle cx="400" cy="123" r="48" class="ujn-home-campus__orbit"/>
+      <g class="ujn-home-campus__cloud" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5" stroke-linecap="round"><path d="M98 126h63m-48-10h66m-18 24h40"/><path d="M405 212h55m-36-11h49"/></g>
+      <path d="M40 340C116 327 133 334 170 338M390 338c40-12 83-16 130 2" stroke="currentColor" stroke-opacity=".25"/>
+      <g stroke="url(#ujn-campus-line)" stroke-width="1.7" stroke-linejoin="round">
+        <path d="M142 258l87-22v101l-87 16V258Zm189-22 87 22v95l-87-16V236Z" fill="url(#ujn-campus-fill)"/>
+        <path d="m132 258 97-26m102 0 97 26M151 273l69-17m120 0 69 17M151 325l69-13m120 0 69 13"/>
+        <path d="M230 208h100v129H230V208Z" fill="url(#ujn-campus-fill)"/>
+        <path d="m221 208 59-24 59 24H221Zm27-13v-33h64v33m-69-33 37-24 37 24h-74Z" fill="url(#ujn-campus-fill)"/>
+        <path d="M280 120v18m0-18 14 4-14 4"/>
+        <circle cx="280" cy="175" r="10"/><path d="M280 169v6l5 3"/>
+        <path d="M244 224h72M245 237h8v70h-8v-70Zm25 0h20v70h-20v-70Zm37 0h8v70h-8v-70Z"/>
+        <path d="M268 337v-21a12 12 0 0 1 24 0v21M235 321h26m38 0h26M225 338h110l12 9H213l12-9Zm-12 9h134l12 9H201l12-9Z"/>
+        <g stroke-opacity=".65"><path d="m160 285 12-3v14l-12 3v-14Zm30-7 12-3v14l-12 3v-14Zm-30 29 12-3v14l-12 3v-14Zm30-7 12-3v14l-12 3v-14ZM348 275l12 3v14l-12-3v-14Zm30 7 12 3v14l-12-3v-14Zm-30 15 12 3v14l-12-3v-14Zm30 7 12 3v14l-12-3v-14Z"/></g>
+        <path d="M103 341v-33m-16 13 16-18 16 18m-29-4 13-24 13 24M452 340v-28m-16 8 16-25 16 25m-26-11 10-22 10 22" stroke-linecap="round"/>
+      </g>
+      <path d="m256 356-61 87h172l-61-87" fill="url(#ujn-campus-path)"/><path d="m257 356-62 87m111-87 61 87" stroke="currentColor" stroke-opacity=".18"/>
+      <g class="ujn-home-campus__plane" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="m355 72 51-14-22 37-9-14-20-9Zm20 9 31-23m-31 23-1 16 10-2"/><path d="M345 81c-22 13-45 9-49-4-5-15 17-19 17-6 0 22-39 31-72 19" stroke-opacity=".4" stroke-dasharray="4 5"/></g>
+      <g fill="currentColor"><circle cx="88" cy="220" r="3"/><circle cx="442" cy="72" r="2"/><circle cx="474" cy="294" r="3"/><path d="m175 85 2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6Zm281 89 2 5 5 2-5 2-2 5-2-5-5-2 5-2 2-5Z"/></g>
+    </svg>
+    <span class="ujn-home-scene__label ujn-home-scene__label--top">每一段校园日常，都值得被照亮。</span>
+    <span class="ujn-home-scene__label ujn-home-scene__label--bottom"><i></i> 你的校园生活，正在展开</span>
+  </div>
+</section>
 
-<div class="grid cards" markdown>
-
-- :material-map-search-outline: **🌏 地点通**
-
-    ---
-    主校区 & 舜耕校区的教学楼、食堂、图书馆、快递站、运动场…… 全 campus 导航，新生不迷路。
-
-    [:octicons-arrow-right-24: 探索校园](site-guide/index.md){ .md-button }
-
-- :material-book-open-variant: **📗 绿皮书**
-
-    ---
-    成绩规则、推免保送、转专业、奖学金、应征入伍…… 官方政策一网打尽，办事不求人。
-
-    [:octicons-arrow-right-24: 查看指南](green-book/index.md){ .md-button }
-
-- :material-toolbox-outline: **🧰 实用工具**
-
-    ---
-    综测计算器，填入绩点与综合素质成绩即可计算。支持表格导入，数据只在浏览器本地处理。
-
-    [:octicons-arrow-right-24: 打开工具箱](tools/index.md){ .md-button }
-
-- :material-phone-in-talk: **📞 电话大全**
-
-    ---
-    学院办公室、教务处、后勤、科研平台…… 紧急时刻不用到处问，一键拨号。
-
-    [:octicons-arrow-right-24: 查询电话](phone-book/index.md){ .md-button }
-
-- :material-account-group: **🎭 社团与组织**
-
-    ---
-    校级组织、学生社团、老乡群…… 找到志同道合的伙伴，大学生活不孤单。
-
-    [:octicons-arrow-right-24: 了解社团](clubs/index.md){ .md-button }
-
-- :material-paw: **🐾 宠物收集录**
-
-    ---
-    校园里的猫猫合集！吸猫党必备，看看你在校园里邂逅过哪些小可爱。
-
-    [:octicons-arrow-right-24: 云吸猫](pets/index.md){ .md-button }
-
-- :material-calendar-month: **📅 校历**
-
-    ---
-    学期安排、放假时间、考试周…… 提前规划你的大学生活节奏。
-
-    [:octicons-arrow-right-24: 查看校历](school-calendar/index.md){ .md-button }
-
-- :material-book-check: **📜 规章制度**
-
-    ---
-    学籍管理、公寓规定、校园安全、违纪处分…… 合规生活，从了解规则开始。
-
-    [:octicons-arrow-right-24: 查阅规章](rules/index.md){ .md-button }
-
+<div class="ujn-home-about">
+  <section class="ujn-home-story" aria-labelledby="ujn-home-story-1">
+    <span class="ujn-home-story__number" aria-hidden="true">01 / 关于本站</span>
+    <h2 id="ujn-home-story-1">少一点摸索，多一点从容。</h2>
+    <p>我们想做的不只是信息合集，而是一份有温度的校园生活百科。让实用的信息更好找，让每一次需要帮助的时刻，都有一个可以先来看看的地方。</p>
+  </section>
+  <section class="ujn-home-story" aria-labelledby="ujn-home-story-2">
+    <span class="ujn-home-story__number" aria-hidden="true">02 / 一起完善</span>
+    <h2 id="ujn-home-story-2">一份指南，很多人的心意。</h2>
+    <p>这份指南由同学们共同维护。一次纠错、一条经验、一张照片，都能帮到下一位同学。校园故事还在继续，这里也会和大家一起慢慢成长。</p>
+  </section>
 </div>
 
----
 
-## 🌟 关于本站
 
-欢迎来到“济南大学校园通”！
+<div class="ujn-home-extra">
 
-这是一份由济大学子自发整理、维护的校园生活百科。无论你是刚刚拿到录取通知书的萌新，还是已经在济大摸爬滚打的“老油条”，我们都希望这里的信息能帮你避开生活和学习中的“坑”，让你在济南大学的日子更加顺利。
-
-在这里你可以找到：
-
-- 🏫 **校园导航** — 教学楼在哪？食堂在哪？快递去哪取？
-- 📚 **学业指南** — 成绩怎么算？怎么转专业？奖学金怎么拿？
-- 📞 **联络方式** — 各部门联系电话，急事不用慌
-- 🎯 **校园生活** — 社团、老乡群、宠物、校历…… 全都有
-
-想看看最近都更新了什么？见 **[🕒 最近更新](changelog.md)**（由提交历史自动生成）。
-
----
-
-## 🧰 校园集市、开源仓库与支持
-
-二手交易、失物招领，本站的开源仓库，以及支持站长——入口都在这里。
-
-<div class="grid cards" markdown>
-
-- :material-cart-variant: **跳蚤市场**
-
-    ---
-    校内二手交易与失物招领，微信小程序 + QQ 频道双通道，扫码即用。
-
-    <button class="md-button md-button--primary" type="button" data-ujn-modal="flea">🛒 打开跳蚤市场</button>
-
-- :material-coffee-outline: **支持站长**
-
-    ---
-    如果本站对您有所帮助，可以支持一下站长 ❤️
-
-    <button class="md-button" type="button" data-ujn-modal="donate">☕ 请站长喝杯奶茶</button>
-
-- :material-source-repository: **开源仓库**
-
-    ---
-    本站开源，欢迎 Star、提 issue 或直接改内容（[贡献流程](contribute/index.md)）。
-
-    [:fontawesome-brands-github: GitHub](https://github.com/K-zhaochao/ujn-guide){ .md-button target=_blank }
-    [:simple-gitee: Gitee](https://gitee.com/Draven323/ujn-guide){ .md-button target=_blank }
-
-</div>
-
----
-
-## 💬 反馈与建议
-
-校园信息在不断变化，如果发现内容有误或遗漏，欢迎告诉我！
-
-<div class="grid cards" markdown>
-
-- :material-qqchat: **联系作者**
-
-    ---
-    发现错误、内容过时、或有新功能建议？直接 QQ 联系作者反馈。
-
-    [:octicons-arrow-right-24: QQ 联系](https://qm.qq.com/q/GbM6rEhNWq){ .md-button .md-button--primary }
-
-- :material-lightbulb-group: **参与建设**
-
-    ---
-    本站是个人维护项目，暂未开源。你的每一条反馈都是对站点建设的支持 🙏
-
+  <nav aria-label="参与与联系">
+    <a href="contribute/">反馈与贡献</a>
+    <a href="https://qm.qq.com/q/GbM6rEhNWq">联系作者</a>
+    <a href="https://github.com/K-zhaochao/ujn-guide" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+    <a href="https://gitee.com/Draven323/ujn-guide" target="_blank" rel="noopener noreferrer">Gitee ↗</a>
+  </nav>
 </div>
